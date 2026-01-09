@@ -5,14 +5,15 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Jordan A. McKenzie - Portfolio</title>
   <link rel="stylesheet" href="styles.css" />
-  <link rel="icon" type="image/png" sizes="32x32" href="../images/folder-32.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="images/folder-32.png" />
   <style>
     @font-face {
       font-family: 'Chicago';
-      src: url('../fonts/pixChicago.woff2') format('woff2');
+      src: url('fonts/pixChicago.woff2') format('woff2');
       font-weight: normal;
       font-style: normal;
     }
+
     * {
       font-family: 'Chicago', sans-serif !important;
       color: black;
@@ -229,32 +230,11 @@
       filter: none;
     }
 
-    .start-button:hover {
-      border-top: 1px solid #ffffff;
-      border-left: 1px solid #ffffff;
-      border-right: 1px solid #6f6f6f;
-      border-bottom: 1px solid #6f6f6f;
-      background: linear-gradient(#efefef, #dcdcdc);
-    }
-
-    .start-button:active {
-      border-top: 1px solid #6f6f6f;
-      border-left: 1px solid #6f6f6f;
-      border-right: 1px solid #ffffff;
-      border-bottom: 1px solid #ffffff;
-      background: linear-gradient(#dcdcdc, #efefef);
-    }
-
-    .start-button:hover {
-      border: 1px solid #6f6f6f;
-      background: #cfcfcf;
-    }
-
     .search-bar {
       display: none;
       position: fixed;
-      top: 23px; /* drop just below the (22px) menu bar */
-      right: 6px;         /* upper-right corner */
+      top: 23px; /* drop just below the menu bar */
+      right: 6px; /* upper-right corner */
       background: #efefef;
       border: 1px solid #7d7d7d;
       box-shadow: inset 0 1px 0 #ffffff;
@@ -272,7 +252,9 @@
       padding: 2px 0;
       height: 100%;
       box-sizing: border-box;
-    }/* Right side cluster (time + find) pinned to the top-right */
+    }
+
+    /* Right side cluster (time + find) pinned to the top-right */
     .right-group {
       margin-left: auto;
       display: flex;
@@ -281,6 +263,7 @@
       padding-right: 0; /* rely on taskbar padding instead */
       overflow: visible;
     }
+
     .menubar-clock {
       font-family: 'Chicago', sans-serif !important;
       font-weight: normal;
@@ -292,7 +275,6 @@
       text-align: right;
       padding-right: 6px;
     }
-
 
     /* --- Popup / Window system (classic Mac) --- */
     .popup-overlay {
@@ -307,6 +289,7 @@
 
     .popup-window {
       width: min(520px, calc(100vw - 40px));
+      max-width: calc(100vw - 40px);
       max-height: calc(100vh - 80px);
       background: #efefef;
       border: 1px solid #000000;
@@ -315,6 +298,7 @@
         2px 2px 0 #000000;
       display: flex;
       flex-direction: column;
+      overflow: hidden; /* keep window inside viewport when screen shrinks */
 
       /* centered by default, then becomes draggable */
       position: fixed;
@@ -338,6 +322,7 @@
         inset 0 -1px 0 #6e6e6e;
       user-select: none;
       cursor: move; /* drag handle */
+      flex: 0 0 auto;
     }
 
     .popup-title {
@@ -361,6 +346,7 @@
       align-items: center;
       justify-content: center;
       cursor: pointer;
+      flex: 0 0 auto;
     }
 
     .popup-close:active {
@@ -388,41 +374,53 @@
       background: #ffffff;
       border-top: 1px solid #6e6e6e;
       box-shadow: inset 0 1px 0 #ffffff;
+      flex: 1 1 auto; /* shrink + scroll on small screens */
+      min-height: 0; /* important for flexbox overflow */
     }
 
+    .popup-body img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Footer is caption-only (no buttons) */
     .popup-actions {
       display: flex;
-      justify-content: flex-end;
-      gap: 8px;
-      padding: 8px;
+      align-items: center;
+      padding: 6px 8px;
       background: #efefef;
       border-top: 1px solid #6e6e6e;
+      flex: 0 0 auto;
     }
 
-    .popup-actions .menu-item {
-      height: 18px;
+    .popup-caption {
+      font-size: 10px; /* size-4-ish */
+      line-height: 1;
+      user-select: none;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
     .popup-overlay.show {
       display: flex;
     }
-
-</style>
+  </style>
 </head>
 <body>
   <div class="desktop" id="desktop">
-    <a href="architecture.html" class="icon"><img src="../images/folder-160.png" /><span>Architecture</span></a>
-    <a href="engineering.html" class="icon"><img src="../images/folder-160.png" /><span>Engineering</span></a>
-    <a href="graphicdesign.html" class="icon"><img src="../images/folder-160.png" /><span>Graphic Design</span></a>
-    <a href="aboutme.html" class="icon"><img src="../images/folder-160.png" /><span>About Me</span></a>
-    <a href="8ball.html" class="icon"><img src="../images/folder-160.png" /><span>???</span></a>
+    <a href="pages/architecture.html" class="icon"><img src="images/folder-160.png" /><span>Architecture</span></a>
+    <a href="pages/engineering.html" class="icon"><img src="images/folder-160.png" /><span>Engineering</span></a>
+    <a href="pages/graphicdesign.html" class="icon"><img src="images/folder-160.png" /><span>Graphic Design</span></a>
+    <a href="pages/aboutme.html" class="icon"><img src="images/folder-160.png" /><span>About Me</span></a>
+    <a href="pages/8ball.html" class="icon"><img src="images/folder-160.png" /><span>???</span></a>
   </div>
 
   <div class="taskbar">
     <div class="left-group">
-      <!-- Apple folder icon is now a button with the same styling as the E-mail menu item (no function yet) -->
       <button class="menu-item apple-button" type="button" aria-label="Apple Folder">
-        <img src="../images/apple folder.png" alt="Apple Folder" class="menubar-folder" />
+        <img src="images/apple folder.png" alt="Apple Folder" class="menubar-folder" />
       </button>
 
       <a class="menu-item" href="mailto:jam@prtf.io">E-mail</a>
@@ -431,17 +429,16 @@
     <div class="right-group">
       <div class="menubar-clock" id="menubarClock"></div>
       <button class="search-button" type="button" onclick="toggleSearch()" aria-label="Find">
-        <img src="../images/search icon-64.png" alt="Find" />
+        <img src="images/search icon-64.png" alt="Find" />
       </button>
     </div>
   </div>
 
-  <!-- Find box drops below the upper-right of the menu bar -->
   <div class="search-bar" id="searchBar">
     <input type="text" placeholder="Find..." onblur="hideSearch()" />
   </div>
 
-  <!-- Global popup container (re-used for welcome + image/content popups) -->
+  <!-- Global popup container (caption-only footer) -->
   <div class="popup-overlay" id="popupOverlay" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="popup-window" id="popupWindow">
       <div class="popup-titlebar" id="popupTitlebar">
@@ -449,25 +446,47 @@
         <div class="popup-title" id="popupTitle">Welcome</div>
       </div>
       <div class="popup-body" id="popupBody"></div>
-      <div class="popup-actions" id="popupActions">
-        <button class="menu-item" type="button" onclick="closePopup()">OK</button>
+      <div class="popup-actions">
+        <div class="popup-caption" id="popupCaption"></div>
       </div>
     </div>
   </div>
 
-  <script>    // --- Global Popup API ---
+  <script>
+    // --- Global Popup API ---
     var popupOverlay = document.getElementById('popupOverlay');
     var popupWindow = document.getElementById('popupWindow');
     var popupTitlebar = document.getElementById('popupTitlebar');
     var popupTitleEl = document.getElementById('popupTitle');
     var popupBodyEl = document.getElementById('popupBody');
-    var popupActionsEl = document.getElementById('popupActions');
+    var popupCaptionEl = document.getElementById('popupCaption');
 
     function resetPopupPosition() {
       if (!popupWindow) return;
       popupWindow.style.left = '50%';
       popupWindow.style.top = '50%';
       popupWindow.style.transform = 'translate(-50%, -50%)';
+    }
+
+    function clampPopupToViewport() {
+      if (!popupWindow) return;
+      // Only clamp if user has dragged (transform removed)
+      if (popupWindow.style.transform && popupWindow.style.transform !== 'none') return;
+
+      var r = popupWindow.getBoundingClientRect();
+      var margin = 10;
+
+      var x = r.left;
+      var y = r.top;
+
+      var maxX = window.innerWidth - r.width - margin;
+      var maxY = window.innerHeight - r.height - margin;
+
+      x = Math.max(margin, Math.min(maxX, x));
+      y = Math.max(margin, Math.min(maxY, y));
+
+      popupWindow.style.left = x + 'px';
+      popupWindow.style.top = y + 'px';
     }
 
     // Drag popup by the title bar (classic Mac behavior)
@@ -513,6 +532,11 @@
 
       document.addEventListener('mouseup', function () {
         popupDragging = false;
+        clampPopupToViewport();
+      });
+
+      window.addEventListener('resize', function () {
+        clampPopupToViewport();
       });
     }
 
@@ -522,26 +546,9 @@
       opts = opts || {};
       if (!popupOverlay) return;
 
-      var title = opts.title || 'Notice';
-      var html = opts.html || '';
-      var actions = opts.actions || [{ label: 'OK', onClick: closePopup }];
-
-      popupTitleEl.textContent = title;
-      popupBodyEl.innerHTML = html;
-
-      // build actions
-      popupActionsEl.innerHTML = '';
-      actions.forEach(function (a) {
-        var btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'menu-item';
-        btn.textContent = a.label || 'OK';
-        btn.addEventListener('click', function () {
-          if (typeof a.onClick === 'function') a.onClick();
-          else closePopup();
-        });
-        popupActionsEl.appendChild(btn);
-      });
+      popupTitleEl.textContent = opts.title || 'Notice';
+      popupBodyEl.innerHTML = opts.html || '';
+      if (popupCaptionEl) popupCaptionEl.textContent = opts.caption || '';
 
       popupOverlay.classList.add('show');
       popupOverlay.setAttribute('aria-hidden', 'false');
@@ -551,6 +558,9 @@
       if (!popupOverlay) return;
       popupOverlay.classList.remove('show');
       popupOverlay.setAttribute('aria-hidden', 'true');
+
+      // reset position when closing so it doesn't reopen off-screen
+      resetPopupPosition();
     }
 
     // close when clicking outside window
@@ -564,12 +574,13 @@
     window.addEventListener('DOMContentLoaded', function () {
       openPopup({
         title: 'Welcome',
-        html: '<div style="display:flex; justify-content:center; align-items:center; padding:8px;">' +
-              '<img src="../images/LV.png" alt="LV" style="max-width:100%; height:auto; image-rendering:pixelated;" />' +
-              '</div>'
+        caption: '',
+        html:
+          '<div style="display:flex; justify-content:center; align-items:center; padding:8px;">' +
+          '<img src="images/LV.png" alt="LV" style="max-width:100%; height:auto; image-rendering:pixelated;" />' +
+          '</div>'
       });
     });
-
 
     // --- Clock (fresh) ---
     (function initMenubarClock() {
@@ -592,7 +603,7 @@
       setInterval(tick, 1000);
     })();
 
-// --- Find dropdown ---
+    // --- Find dropdown ---
     function toggleSearch() {
       var sb = document.getElementById('searchBar');
       if (!sb) return;
@@ -613,8 +624,10 @@
 
     var dragging = false;
     var possible = false;
-    var startX = 0, startY = 0;
-    var offX = 0, offY = 0;
+    var startX = 0,
+      startY = 0;
+    var offX = 0,
+      offY = 0;
     var el = null;
     var threshold = 5;
 
@@ -622,9 +635,9 @@
       // Use known sizes so we don't depend on image load timing
       var paddingLeft = 10;
       var paddingTop = 10;
-      var gapX = 12;   // tighter horizontal spacing
+      var gapX = 12; // tighter horizontal spacing
       var gapY = 30;
-      var iconW = 99;  // matches .icon width
+      var iconW = 99; // matches .icon width
       var iconH = 120; // enough for folder + label
 
       var x = paddingLeft;
@@ -660,7 +673,9 @@
         offX = e.clientX - el.offsetLeft;
         offY = e.clientY - el.offsetTop;
         possible = true;
-        icons.forEach(function (i) { i.classList.remove('selected'); });
+        icons.forEach(function (i) {
+          i.classList.remove('selected');
+        });
         el.classList.add('selected');
       });
 
@@ -670,7 +685,9 @@
 
       icon.addEventListener('click', function (e) {
         e.preventDefault();
-        icons.forEach(function (i) { i.classList.remove('selected'); });
+        icons.forEach(function (i) {
+          i.classList.remove('selected');
+        });
         icon.classList.add('selected');
       });
     });
@@ -705,7 +722,9 @@
 
     document.addEventListener('click', function (e) {
       if (!e.target.closest('.icon')) {
-        icons.forEach(function (i) { i.classList.remove('selected'); });
+        icons.forEach(function (i) {
+          i.classList.remove('selected');
+        });
       }
     });
   </script>
