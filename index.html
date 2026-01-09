@@ -403,6 +403,50 @@
       background: #efefef;
       border-top: 1px solid #6e6e6e;
       flex: 0 0 auto;
+      justify-content: flex-start;
+      gap: 8px;
+    }
+
+    /* OK / Enter button (classic Mac bevel) */
+    .popup-ok {
+      -webkit-appearance: none;
+      appearance: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-sizing: border-box;
+
+      padding: 2px 16px;
+      min-height: 22px; /* match titlebar-ish sizing */
+      background: #dfdfdf;
+      border-top: 1px solid #ffffff;
+      border-left: 1px solid #ffffff;
+      border-right: 1px solid #6f6f6f;
+      border-bottom: 1px solid #6f6f6f;
+
+      cursor: pointer;
+      font: inherit;
+      font-size: 12px;
+      line-height: 1; /* keep pixel font inside */
+      white-space: nowrap;
+      user-select: none;
+    }
+
+    .popup-ok:active {
+      border-top: 1px solid #6f6f6f;
+      border-left: 1px solid #6f6f6f;
+      border-right: 1px solid #ffffff;
+      border-bottom: 1px solid #ffffff;
+      background: #dcdcdc;
+    }
+
+    /* When a popup has an OK button, center it in the footer */
+    .popup-window.has-ok .popup-actions {
+      justify-content: center;
+    }
+
+    .popup-window.has-ok .popup-caption {
+      display: none;
     }
 
     .popup-caption {
@@ -459,8 +503,9 @@
         <div class="popup-title" id="popupTitle">Welcome</div>
       </div>
       <div class="popup-body" id="popupBody"></div>
-      <div class="popup-actions">
+      <div class="popup-actions" id="popupActions">
         <div class="popup-caption" id="popupCaption"></div>
+        <button class="popup-ok" id="popupOk" type="button" onclick="closePopup()" style="display:none;">Enter</button>
       </div>
     </div>
   </div>
@@ -473,6 +518,7 @@
     var popupTitleEl = document.getElementById('popupTitle');
     var popupBodyEl = document.getElementById('popupBody');
     var popupCaptionEl = document.getElementById('popupCaption');
+    var popupOkBtn = document.getElementById('popupOk');
 
     function resetPopupPosition() {
       if (!popupWindow) return;
@@ -563,6 +609,20 @@
       popupBodyEl.innerHTML = opts.html || '';
       if (popupCaptionEl) popupCaptionEl.textContent = opts.caption || '';
 
+      // Optional OK/Enter button
+      var hasOk = !!opts.okText;
+      if (popupOkBtn) {
+        if (hasOk) {
+          popupOkBtn.textContent = opts.okText;
+          popupOkBtn.style.display = 'inline-flex';
+        } else {
+          popupOkBtn.style.display = 'none';
+        }
+      }
+      if (popupWindow) {
+        popupWindow.classList.toggle('has-ok', hasOk);
+      }
+
       popupOverlay.classList.add('show');
       popupOverlay.setAttribute('aria-hidden', 'false');
     }
@@ -588,6 +648,7 @@
       openPopup({
         title: 'Welcome',
         caption: '',
+        okText: 'Enter',
         html:
           '<div style="display:flex; justify-content:center; align-items:center; padding:8px;">' +
           '<img src="images/LV.png" alt="LV" style="max-width:100%; height:auto; image-rendering:pixelated;" />' +
