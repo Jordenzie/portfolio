@@ -433,6 +433,8 @@
       <button class="search-button" type="button" onclick="toggleSearch()" aria-label="Find">
         <img src="../images/search icon-64.png" alt="Find" />
       </button>
+    </div>
+  </div>
 
   <!-- Find box drops below the upper-right of the menu bar -->
   <div class="search-bar" id="searchBar">
@@ -558,26 +560,14 @@
       });
     }
 
-    // Welcome popup on first visit (per browser)
+    // Welcome popup on every page load
     window.addEventListener('DOMContentLoaded', function () {
-      try {
-        var key = 'jam_portfolio_welcome_shown';
-        if (!localStorage.getItem(key)) {
-          openPopup({
-            title: 'Welcome',
-            html: '<div style="font-size:12px; line-height:1.4;">' +
-                  '<div style="margin-bottom:8px;">Welcome to my portfolio.</div>' +
-                  '<div>Click folders to explore. (More popups will use this same window.)</div>' +
-                  '</div>',
-            actions: [
-              { label: 'OK', onClick: function () { localStorage.setItem(key, '1'); closePopup(); } }
-            ]
-          });
-        }
-      } catch (e) {
-        // if storage blocked, just show once per page load
-        openPopup({ title: 'Welcome', html: '<div>Welcome to my portfolio.</div>' });
-      }
+      openPopup({
+        title: 'Welcome',
+        html: '<div style="display:flex; justify-content:center; align-items:center; padding:8px;">' +
+              '<img src="../images/LV.png" alt="LV" style="max-width:100%; height:auto; image-rendering:pixelated;" />' +
+              '</div>'
+      });
     });
 
 
