@@ -292,6 +292,121 @@
       text-align: right;
       padding-right: 6px;
     }
+
+
+    /* --- Popup / Window system (classic Mac) --- */
+    .popup-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.55);
+      z-index: 3001;
+    }
+
+    .popup-window {
+      width: min(520px, calc(100vw - 40px));
+      max-height: calc(100vh - 80px);
+      background: #efefef;
+      border: 1px solid #000000;
+      box-shadow:
+        1px 1px 0 #6e6e6e,
+        2px 2px 0 #000000;
+      display: flex;
+      flex-direction: column;
+
+      /* centered by default, then becomes draggable */
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Title bar mimics the taskbar aesthetic */
+    .popup-titlebar {
+      height: 22px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 6px;
+      background: #dfdfdf;
+      border-top: 1px solid #ffffff;
+      border-bottom: 1px solid #000000;
+      box-shadow:
+        inset 0 1px 0 #ffffff,
+        inset 0 -1px 0 #6e6e6e;
+      user-select: none;
+      cursor: move; /* drag handle */
+    }
+
+    .popup-title {
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      flex: 1;
+    }
+
+    .popup-close {
+      width: 14px;
+      height: 14px;
+      padding: 0;
+      background: #dfdfdf;
+      border-top: 1px solid #ffffff;
+      border-left: 1px solid #ffffff;
+      border-right: 1px solid #6f6f6f;
+      border-bottom: 1px solid #6f6f6f;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .popup-close:active {
+      border-top: 1px solid #6f6f6f;
+      border-left: 1px solid #6f6f6f;
+      border-right: 1px solid #ffffff;
+      border-bottom: 1px solid #ffffff;
+      background: #dcdcdc;
+    }
+
+    .popup-close::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      background: #000;
+      /* simple pixel X */
+      clip-path: polygon(
+        0 10%, 10% 0, 50% 40%, 90% 0, 100% 10%, 60% 50%, 100% 90%, 90% 100%, 50% 60%, 10% 100%, 0 90%, 40% 50%
+      );
+    }
+
+    .popup-body {
+      padding: 10px;
+      overflow: auto;
+      background: #ffffff;
+      border-top: 1px solid #6e6e6e;
+      box-shadow: inset 0 1px 0 #ffffff;
+    }
+
+    .popup-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      padding: 8px;
+      background: #efefef;
+      border-top: 1px solid #6e6e6e;
+    }
+
+    .popup-actions .menu-item {
+      height: 18px;
+    }
+
+    .popup-overlay.show {
+      display: flex;
+    }
+
 </style>
 </head>
 <body>
@@ -324,7 +439,149 @@
     <input type="text" placeholder="Find..." onblur="hideSearch()" />
   </div>
 
-  <script>    // --- Clock (fresh) ---
+  <!-- Global popup container (re-used for welcome + image/content popups) -->
+  <div class="popup-overlay" id="popupOverlay" role="dialog" aria-modal="true" aria-hidden="true">
+    <div class="popup-window" id="popupWindow">
+      <div class="popup-titlebar" id="popupTitlebar">
+        <button class="popup-close" type="button" aria-label="Close" onclick="closePopup()"></button>
+        <div class="popup-title" id="popupTitle">Welcome</div>
+      </div>
+      <div class="popup-body" id="popupBody"></div>
+      <div class="popup-actions" id="popupActions">
+        <button class="menu-item" type="button" onclick="closePopup()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <script>    // --- Global Popup API ---
+    var popupOverlay = document.getElementById('popupOverlay');
+    var popupWindow = document.getElementById('popupWindow');
+    var popupTitlebar = document.getElementById('popupTitlebar');
+    var popupTitleEl = document.getElementById('popupTitle');
+    var popupBodyEl = document.getElementById('popupBody');
+    var popupActionsEl = document.getElementById('popupActions');
+
+    function resetPopupPosition() {
+      if (!popupWindow) return;
+      popupWindow.style.left = '50%';
+      popupWindow.style.top = '50%';
+      popupWindow.style.transform = 'translate(-50%, -50%)';
+    }
+
+    // Drag popup by the title bar (classic Mac behavior)
+    var popupDragging = false;
+    var popupOffX = 0;
+    var popupOffY = 0;
+
+    if (popupTitlebar && popupWindow) {
+      popupTitlebar.addEventListener('mousedown', function (e) {
+        // don't start drag when clicking the close button
+        if (e.target && e.target.closest && e.target.closest('.popup-close')) return;
+
+        e.preventDefault();
+        var r = popupWindow.getBoundingClientRect();
+
+        // convert from transform-centered to absolute pixels so we can drag
+        popupWindow.style.left = r.left + 'px';
+        popupWindow.style.top = r.top + 'px';
+        popupWindow.style.transform = 'none';
+
+        popupDragging = true;
+        popupOffX = e.clientX - r.left;
+        popupOffY = e.clientY - r.top;
+      });
+
+      document.addEventListener('mousemove', function (e) {
+        if (!popupDragging || !popupWindow) return;
+
+        var r = popupWindow.getBoundingClientRect();
+        var x = e.clientX - popupOffX;
+        var y = e.clientY - popupOffY;
+
+        // clamp inside viewport with a small margin
+        var margin = 10;
+        var maxX = window.innerWidth - r.width - margin;
+        var maxY = window.innerHeight - r.height - margin;
+        x = Math.max(margin, Math.min(maxX, x));
+        y = Math.max(margin, Math.min(maxY, y));
+
+        popupWindow.style.left = x + 'px';
+        popupWindow.style.top = y + 'px';
+      });
+
+      document.addEventListener('mouseup', function () {
+        popupDragging = false;
+      });
+    }
+
+    function openPopup(opts) {
+      // center it each time by default (set opts.preservePosition = true to keep last position)
+      if (!opts || !opts.preservePosition) resetPopupPosition();
+      opts = opts || {};
+      if (!popupOverlay) return;
+
+      var title = opts.title || 'Notice';
+      var html = opts.html || '';
+      var actions = opts.actions || [{ label: 'OK', onClick: closePopup }];
+
+      popupTitleEl.textContent = title;
+      popupBodyEl.innerHTML = html;
+
+      // build actions
+      popupActionsEl.innerHTML = '';
+      actions.forEach(function (a) {
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'menu-item';
+        btn.textContent = a.label || 'OK';
+        btn.addEventListener('click', function () {
+          if (typeof a.onClick === 'function') a.onClick();
+          else closePopup();
+        });
+        popupActionsEl.appendChild(btn);
+      });
+
+      popupOverlay.classList.add('show');
+      popupOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closePopup() {
+      if (!popupOverlay) return;
+      popupOverlay.classList.remove('show');
+      popupOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    // close when clicking outside window
+    if (popupOverlay) {
+      popupOverlay.addEventListener('mousedown', function (e) {
+        if (e.target === popupOverlay) closePopup();
+      });
+    }
+
+    // Welcome popup on first visit (per browser)
+    window.addEventListener('DOMContentLoaded', function () {
+      try {
+        var key = 'jam_portfolio_welcome_shown';
+        if (!localStorage.getItem(key)) {
+          openPopup({
+            title: 'Welcome',
+            html: '<div style="font-size:12px; line-height:1.4;">' +
+                  '<div style="margin-bottom:8px;">Welcome to my portfolio.</div>' +
+                  '<div>Click folders to explore. (More popups will use this same window.)</div>' +
+                  '</div>',
+            actions: [
+              { label: 'OK', onClick: function () { localStorage.setItem(key, '1'); closePopup(); } }
+            ]
+          });
+        }
+      } catch (e) {
+        // if storage blocked, just show once per page load
+        openPopup({ title: 'Welcome', html: '<div>Welcome to my portfolio.</div>' });
+      }
+    });
+
+
+    // --- Clock (fresh) ---
     (function initMenubarClock() {
       var el = document.getElementById('menubarClock');
       if (!el) return;
