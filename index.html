@@ -105,7 +105,7 @@
       display: flex;
       align-items: center;
       padding: 0 22px;
-      box-sizing: border-box; /* keep contents inside padding */
+      box-sizing: border-box;
       z-index: 1000;
       font-size: 12px;
 
@@ -116,6 +116,31 @@
       box-shadow:
         inset 0 1px 0 #ffffff,
         inset 0 -1px 0 #6e6e6e;
+    }
+
+    /* Mobile: move taskbar to bottom */
+    @media (max-width: 768px) {
+      .taskbar {
+        top: auto !important;
+        bottom: 0 !important;
+        border-top: 1px solid #000000;
+        border-bottom: 1px solid #ffffff;
+        box-shadow:
+          inset 0 -1px 0 #ffffff,
+          inset 0 1px 0 #6e6e6e;
+      }
+
+      /* move desktop area up so it doesn't hide behind taskbar */
+      .desktop {
+        top: 10px !important;
+      }
+
+      /* on mobile, the Find input should pop up above the bottom taskbar */
+      .search-bar {
+        top: auto !important;
+        bottom: 34px !important; /* 30px taskbar height + a little breathing room */
+        right: 6px;
+      }
     }
 
     /* darker separator just under the bar */
@@ -133,12 +158,14 @@
     .left-group {
       display: flex;
       align-items: center;
-      gap: 8px; /* space between folder icon and E-mail */
+      gap: 8px; /* space between items */
+      min-width: 0;
+      flex: 0 1 auto;
     }
 
     .menubar-folder {
-      width: 18px;
-      height: 18px;
+      width: 16px;
+      height: 16px;
       image-rendering: pixelated;
       display: inline-block;
     }
@@ -146,27 +173,47 @@
     .menu-item {
       display: inline-flex;
       align-items: center;
-      height: 18px;
-      padding: 0 6px;
+      min-height: 22px;        /* allow pixel font full height */
+      padding: 2px 6px;        /* real vertical padding instead of tight box */
+      box-sizing: border-box;
       text-decoration: none;
       color: #000;
       background: transparent;
       user-select: none;
-      line-height: 1;
 
-      /* so <button class="menu-item"> matches <a class="menu-item"> */
+      /* let font define its own height */
+      line-height: normal;
+
       border: 0;
       cursor: pointer;
       font: inherit;
+
+      white-space: nowrap;
+      max-width: 100%;
+      min-width: 0;
     }
 
-    /* square apple menu button only */
-    .apple-button {
-      width: 20px;
-      height: 20px; /* still matches taskbar button height visually */
-      padding: 1px;
-      justify-content: center;
-      align-items: center;
+    /* Taskbar items all share ONE knob set */
+    .taskbar-item {
+      gap: 4px;
+      flex: 0 1 auto; /* allow shrinking instead of overlapping */
+      min-width: 0;
+    }
+
+    .taskbar-label {
+      font-size: 12px;
+      line-height: normal;   /* prevent glyph clipping */
+      user-select: none;
+      display: inline-block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .menubar-search {
+      width: 16px;
+      height: 16px;
+      image-rendering: pixelated;
+      display: inline-block;
     }
 
     /* Menu item bevel hover (classic platinum, no blue highlight) */
@@ -186,48 +233,6 @@
       border-bottom: 1px solid #ffffff;
       background: linear-gradient(#dcdcdc, #efefef);
       color: #000;
-    }
-
-    /* Search icon button (restores old Find toggle) */
-    .search-button {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      height: 18px;
-      width: 22px;
-      padding: 0;
-      margin-right: 0; /* prevent edge smash */
-      background: transparent;
-      border: 0;
-      cursor: pointer;
-    }
-
-    .search-button img {
-      width: 16px;
-      height: 16px;
-      image-rendering: pixelated;
-    }
-
-    /* Match E-mail menu-item bevel hover for search icon */
-    .search-button:hover {
-      border-top: 1px solid #ffffff;
-      border-left: 1px solid #ffffff;
-      border-right: 1px solid #6f6f6f;
-      border-bottom: 1px solid #6f6f6f;
-      background: linear-gradient(#efefef, #dcdcdc);
-    }
-
-    .search-button:active {
-      border-top: 1px solid #6f6f6f;
-      border-left: 1px solid #6f6f6f;
-      border-right: 1px solid #ffffff;
-      border-bottom: 1px solid #ffffff;
-      background: linear-gradient(#dcdcdc, #efefef);
-    }
-
-    .search-button:hover img,
-    .search-button:active img {
-      filter: none;
     }
 
     .search-bar {
@@ -261,19 +266,25 @@
       align-items: center;
       gap: 12px;
       padding-right: 0; /* rely on taskbar padding instead */
-      overflow: visible;
+      overflow: hidden;
+      flex: 1 1 auto;
+      justify-content: flex-end;
+      min-width: 0;
     }
 
     .menubar-clock {
       font-family: 'Chicago', sans-serif !important;
       font-weight: normal;
       font-size: 10px;
-      line-height: 1;
+      line-height: normal;   /* avoid clipping pixel font */
       white-space: nowrap;
       user-select: none;
-      min-width: 78px;
+      min-width: 0;
       text-align: right;
-      padding-right: 6px;
+      padding: 2px 6px;      /* match the vertical breathing room of buttons */
+      box-sizing: border-box;
+      flex: 0 0 auto;
+      overflow: visible;
     }
 
     /* --- Popup / Window system (classic Mac) --- */
@@ -419,17 +430,19 @@
 
   <div class="taskbar">
     <div class="left-group">
-      <button class="menu-item apple-button" type="button" aria-label="Apple Folder">
+      <button class="menu-item taskbar-item" type="button" aria-label="About">
         <img src="images/apple folder.png" alt="Apple Folder" class="menubar-folder" />
+        <span class="taskbar-label">About</span>
       </button>
 
-      <a class="menu-item" href="mailto:jam@prtf.io">E-mail</a>
+      <a class="menu-item taskbar-item" href="mailto:jam@prtf.io"><span class="taskbar-label">E-mail</span></a>
     </div>
 
     <div class="right-group">
       <div class="menubar-clock" id="menubarClock"></div>
-      <button class="search-button" type="button" onclick="toggleSearch()" aria-label="Find">
-        <img src="images/search icon-64.png" alt="Find" />
+      <button class="menu-item taskbar-item" type="button" onclick="toggleSearch()" aria-label="Find">
+        <img src="images/search icon-64.png" alt="Find" class="menubar-search" />
+        <span class="taskbar-label">Find</span>
       </button>
     </div>
   </div>
