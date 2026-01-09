@@ -430,7 +430,7 @@
 
   <div class="taskbar">
     <div class="left-group">
-      <button class="menu-item taskbar-item" type="button" aria-label="About">
+      <button class="menu-item taskbar-item" type="button" aria-label="About" onclick="openAboutPopup()">
         <img src="images/apple folder.png" alt="Apple Folder" class="menubar-folder" />
         <span class="taskbar-label">About</span>
       </button>
@@ -594,6 +594,19 @@
           '</div>'
       });
     });
+
+    // About popup (triggered from taskbar)
+    function openAboutPopup() {
+      openPopup({
+        title: 'About',
+        caption: 'Jordan A. McKenzie',
+        html:
+          '<div style="font-size:12px; line-height:1.4;">' +
+          '<p style="margin-bottom:8px;">This site is a portfolio presented as a classic Macintosh desktop.</p>' +
+          '<p>Click folders to explore projects and work.</p>' +
+          '</div>'
+      });
+    }
 
     // --- Clock (fresh) ---
     (function initMenubarClock() {
