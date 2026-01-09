@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Jordan A. McKenzie - Portfolio</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="icon" type="image/png" sizes="32x32" href="../images/folder-32.png" />
+  <style>
+    @font-face {
+      font-family: 'Chicago';
+      src: url('../fonts/pixChicago.woff2') format('woff2');
+      font-weight: normal;
+      font-style: normal;
+    }
+    * {
+      font-family: 'Chicago', sans-serif !important;
+      color: black;
+      font-size: 12px;
+      font-weight: normal !important; /* avoid fallback from bold */
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: none;
+      -moz-osx-font-smoothing: grayscale;
+      text-rendering: geometricPrecision;
+    }
+
+    /* Form controls often ignore/reset font unless forced */
+    input, textarea, button, select {
+      font-family: inherit !important;
+      font-size: inherit;
+      font-weight: inherit;
+    }
+
+    input::placeholder {
+      font-family: inherit !important;
+      font-weight: inherit;
+    }
+
+    body {
+      background: #ffffff;
+      margin: 0;
+      overflow: hidden;
+    }
+
+    /* Full-screen Mac-style 1px border on all sides */
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border: 1px solid #000000;
+      pointer-events: none;
+      z-index: 2000;
+    }
+
+    .desktop {
+      position: absolute;
+      top: 38px; /* adjusted for top taskbar */
+      display: flex;
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    .icon {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      width: 99px;              /* folder width (66px * 1.5) */
+      text-align: center;
+      cursor: pointer;
+      position: absolute;
+      user-select: none;
+      padding: 6px;
+      transition: opacity 0.2s;
+    }
+
+    .icon img {
+      width: 66px;              /* +50% from previous 44px */
+      height: auto;
+    }
+
+    .icon span {
+      font-size: 7px;
+      width: 66px;              /* exactly match folder image width */
+      max-width: 66px;
+      word-wrap: break-word;
+      text-align: center;
+    }
+
+    .icon.selected {
+      opacity: 0.75;
+    }
+
+    .taskbar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      padding: 0 22px;
+      box-sizing: border-box; /* keep contents inside padding */
+      z-index: 1000;
+      font-size: 12px;
+
+      /* Mac OS 9 "platinum" */
+      background: #dfdfdf;
+      border-top: 1px solid #ffffff;
+      border-bottom: 1px solid #000000;
+      box-shadow:
+        inset 0 1px 0 #ffffff,
+        inset 0 -1px 0 #6e6e6e;
+    }
+
+    /* darker separator just under the bar */
+    .taskbar::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: -1px;
+      height: 1px;
+      background: #000000;
+      pointer-events: none;
+    }
+
+    .left-group {
+      display: flex;
+      align-items: center;
+      gap: 8px; /* space between folder icon and E-mail */
+    }
+
+    .menubar-folder {
+      width: 18px;
+      height: 18px;
+      image-rendering: pixelated;
+      display: inline-block;
+    }
+
+    .menu-item {
+      display: inline-flex;
+      align-items: center;
+      height: 18px;
+      padding: 0 6px;
+      text-decoration: none;
+      color: #000;
+      background: transparent;
+      user-select: none;
+      line-height: 1;
+
+      /* so <button class="menu-item"> matches <a class="menu-item"> */
+      border: 0;
+      cursor: pointer;
+      font: inherit;
+    }
+
+    /* square apple menu button only */
+    .apple-button {
+      width: 20px;
+      height: 20px; /* still matches taskbar button height visually */
+      padding: 1px;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Menu item bevel hover (classic platinum, no blue highlight) */
+    .menu-item:hover {
+      border-top: 1px solid #ffffff;
+      border-left: 1px solid #ffffff;
+      border-right: 1px solid #6f6f6f;
+      border-bottom: 1px solid #6f6f6f;
+      background: linear-gradient(#efefef, #dcdcdc);
+      color: #000;
+    }
+
+    .menu-item:active {
+      border-top: 1px solid #6f6f6f;
+      border-left: 1px solid #6f6f6f;
+      border-right: 1px solid #ffffff;
+      border-bottom: 1px solid #ffffff;
+      background: linear-gradient(#dcdcdc, #efefef);
+      color: #000;
+    }
+
+    /* Search icon button (restores old Find toggle) */
+    .search-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      height: 18px;
+      width: 22px;
+      padding: 0;
+      margin-right: 0; /* prevent edge smash */
+      background: transparent;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .search-button img {
+      width: 16px;
+      height: 16px;
+      image-rendering: pixelated;
+    }
+
+    /* Match E-mail menu-item bevel hover for search icon */
+    .search-button:hover {
+      border-top: 1px solid #ffffff;
+      border-left: 1px solid #ffffff;
+      border-right: 1px solid #6f6f6f;
+      border-bottom: 1px solid #6f6f6f;
+      background: linear-gradient(#efefef, #dcdcdc);
+    }
+
+    .search-button:active {
+      border-top: 1px solid #6f6f6f;
+      border-left: 1px solid #6f6f6f;
+      border-right: 1px solid #ffffff;
+      border-bottom: 1px solid #ffffff;
+      background: linear-gradient(#dcdcdc, #efefef);
+    }
+
+    .search-button:hover img,
+    .search-button:active img {
+      filter: none;
+    }
+
+    .start-button:hover {
+      border-top: 1px solid #ffffff;
+      border-left: 1px solid #ffffff;
+      border-right: 1px solid #6f6f6f;
+      border-bottom: 1px solid #6f6f6f;
+      background: linear-gradient(#efefef, #dcdcdc);
+    }
+
+    .start-button:active {
+      border-top: 1px solid #6f6f6f;
+      border-left: 1px solid #6f6f6f;
+      border-right: 1px solid #ffffff;
+      border-bottom: 1px solid #ffffff;
+      background: linear-gradient(#dcdcdc, #efefef);
+    }
+
+    .start-button:hover {
+      border: 1px solid #6f6f6f;
+      background: #cfcfcf;
+    }
+
+    .search-bar {
+      display: none;
+      position: fixed;
+      top: 23px; /* drop just below the (22px) menu bar */
+      right: 6px;         /* upper-right corner */
+      background: #efefef;
+      border: 1px solid #7d7d7d;
+      box-shadow: inset 0 1px 0 #ffffff;
+      height: 22px;
+      align-items: center;
+      padding: 0 6px;
+      z-index: 1001;
+    }
+
+    .search-bar input {
+      width: 160px;
+      background: transparent;
+      border: none;
+      outline: none;
+      padding: 2px 0;
+      height: 100%;
+      box-sizing: border-box;
+    }/* Right side cluster (time + find) pinned to the top-right */
+    .right-group {
+      margin-left: auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-right: 0; /* rely on taskbar padding instead */
+      overflow: visible;
+    }
+    .menubar-clock {
+      font-family: 'Chicago', sans-serif !important;
+      font-weight: normal;
+      font-size: 10px;
+      line-height: 1;
+      white-space: nowrap;
+      user-select: none;
+      min-width: 78px;
+      text-align: right;
+      padding-right: 6px;
+    }
+</style>
+</head>
+<body>
+  <div class="desktop" id="desktop">
+    <a href="architecture.html" class="icon"><img src="../images/folder-160.png" /><span>Architecture</span></a>
+    <a href="engineering.html" class="icon"><img src="../images/folder-160.png" /><span>Engineering</span></a>
+    <a href="graphicdesign.html" class="icon"><img src="../images/folder-160.png" /><span>Graphic Design</span></a>
+    <a href="aboutme.html" class="icon"><img src="../images/folder-160.png" /><span>About Me</span></a>
+    <a href="8ball.html" class="icon"><img src="../images/folder-160.png" /><span>???</span></a>
+  </div>
+
+  <div class="taskbar">
+    <div class="left-group">
+      <!-- Apple folder icon is now a button with the same styling as the E-mail menu item (no function yet) -->
+      <button class="menu-item apple-button" type="button" aria-label="Apple Folder">
+        <img src="../images/apple folder.png" alt="Apple Folder" class="menubar-folder" />
+      </button>
+
+      <a class="menu-item" href="mailto:jam@prtf.io">E-mail</a>
+    </div>
+
+    <div class="right-group">
+      <div class="menubar-clock" id="menubarClock"></div>
+      <button class="search-button" type="button" onclick="toggleSearch()" aria-label="Find">
+        <img src="../images/search icon-64.png" alt="Find" />
+      </button>
+
+  <!-- Find box drops below the upper-right of the menu bar -->
+  <div class="search-bar" id="searchBar">
+    <input type="text" placeholder="Find..." onblur="hideSearch()" />
+  </div>
+
+  <script>    // --- Clock (fresh) ---
+    (function initMenubarClock() {
+      var el = document.getElementById('menubarClock');
+      if (!el) return;
+
+      function tick() {
+        var now = new Date();
+        var h = now.getHours();
+        var m = now.getMinutes();
+        var ampm = h >= 12 ? 'PM' : 'AM';
+        h = h % 12;
+        if (h === 0) h = 12;
+        var mm = (m < 10 ? '0' + m : '' + m);
+        var colon = (now.getSeconds() % 2 === 0) ? ':' : ' ';
+        el.textContent = '' + h + colon + mm + ' ' + ampm;
+      }
+
+      tick();
+      setInterval(tick, 1000);
+    })();
+
+// --- Find dropdown ---
+    function toggleSearch() {
+      var sb = document.getElementById('searchBar');
+      if (!sb) return;
+      sb.style.display = (sb.style.display === 'flex') ? 'none' : 'flex';
+      if (sb.style.display === 'flex') {
+        var input = sb.querySelector('input');
+        if (input) input.focus();
+      }
+    }
+
+    function hideSearch() {
+      var sb = document.getElementById('searchBar');
+      if (sb) sb.style.display = 'none';
+    }
+
+    // --- Desktop icons (layout + drag) ---
+    var icons = Array.from(document.querySelectorAll('.icon'));
+
+    var dragging = false;
+    var possible = false;
+    var startX = 0, startY = 0;
+    var offX = 0, offY = 0;
+    var el = null;
+    var threshold = 5;
+
+    function layoutIcons() {
+      // Use known sizes so we don't depend on image load timing
+      var paddingLeft = 10;
+      var paddingTop = 10;
+      var gapX = 12;   // tighter horizontal spacing
+      var gapY = 30;
+      var iconW = 99;  // matches .icon width
+      var iconH = 120; // enough for folder + label
+
+      var x = paddingLeft;
+      var y = paddingTop;
+
+      icons.forEach(function (icon) {
+        if (x + iconW > window.innerWidth - 10) {
+          x = paddingLeft;
+          y += iconH + gapY;
+        }
+        icon.style.left = x + 'px';
+        icon.style.top = y + 'px';
+        x += iconW + gapX;
+      });
+    }
+
+    // Make sure they never start stacked
+    layoutIcons();
+    window.addEventListener('load', function () {
+      layoutIcons();
+      requestAnimationFrame(layoutIcons);
+    });
+    window.addEventListener('resize', function () {
+      if (!dragging) layoutIcons();
+    });
+
+    icons.forEach(function (icon) {
+      icon.addEventListener('mousedown', function (e) {
+        e.preventDefault();
+        startX = e.clientX;
+        startY = e.clientY;
+        el = icon;
+        offX = e.clientX - el.offsetLeft;
+        offY = e.clientY - el.offsetTop;
+        possible = true;
+        icons.forEach(function (i) { i.classList.remove('selected'); });
+        el.classList.add('selected');
+      });
+
+      icon.addEventListener('dblclick', function () {
+        location.href = icon.href;
+      });
+
+      icon.addEventListener('click', function (e) {
+        e.preventDefault();
+        icons.forEach(function (i) { i.classList.remove('selected'); });
+        icon.classList.add('selected');
+      });
+    });
+
+    document.addEventListener('mousemove', function (e) {
+      if (!possible) return;
+
+      if (!dragging) {
+        var dx = e.clientX - startX;
+        var dy = e.clientY - startY;
+        if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+          dragging = true;
+          if (el) el.style.zIndex = 1000;
+        }
+      }
+
+      if (dragging && el) {
+        var x = e.clientX - offX;
+        var y = e.clientY - offY;
+        x = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, x));
+        y = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, y));
+        el.style.left = x + 'px';
+        el.style.top = y + 'px';
+      }
+    });
+
+    document.addEventListener('mouseup', function () {
+      possible = false;
+      dragging = false;
+      if (el) el.style.zIndex = '';
+    });
+
+    document.addEventListener('click', function (e) {
+      if (!e.target.closest('.icon')) {
+        icons.forEach(function (i) { i.classList.remove('selected'); });
+      }
+    });
+  </script>
+</body>
+</html>
