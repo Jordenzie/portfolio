@@ -96,6 +96,14 @@
       opacity: 0.75;
     }
 
+    /* Fallback positions (so icons never stack even if JS fails) */
+    .desktop .icon:nth-of-type(1) { left: 10px; top: 10px; }
+    .desktop .icon:nth-of-type(2) { left: 121px; top: 10px; }
+    .desktop .icon:nth-of-type(3) { left: 232px; top: 10px; }
+    .desktop .icon:nth-of-type(4) { left: 343px; top: 10px; }
+    .desktop .icon:nth-of-type(5) { left: 454px; top: 10px; }
+
+
     .taskbar {
       position: fixed;
       top: 0;
@@ -395,6 +403,42 @@
       display: block;
     }
 
+    /* Flexible popup content blocks */
+    .popup-content {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .popup-media {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .popup-media img {
+      image-rendering: pixelated;
+      max-width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .popup-text {
+      line-height: 1.4;
+      white-space: pre-wrap;
+    }
+
+    .popup-text.align-left { text-align: left; }
+    .popup-text.align-center { text-align: center; }
+    .popup-text.align-right { text-align: right; }
+
+    /* Text sizes (feel free to tweak) */
+    .popup-text.size-xs { font-size: 9px; }
+    .popup-text.size-sm { font-size: 10px; }
+    .popup-text.size-md { font-size: 12px; }
+    .popup-text.size-lg { font-size: 14px; }
+    .popup-text.size-xl { font-size: 16px; }
+
     /* Footer is caption-only (no buttons) */
     .popup-actions {
       display: flex;
@@ -403,7 +447,7 @@
       background: #efefef;
       border-top: 1px solid #6e6e6e;
       flex: 0 0 auto;
-      justify-content: flex-start;
+      justify-content: center; /* center Enter button */
       gap: 8px;
     }
 
@@ -502,318 +546,421 @@
         <button class="popup-close" type="button" aria-label="Close" onclick="closePopup()"></button>
         <div class="popup-title" id="popupTitle">Welcome</div>
       </div>
-      <div class="popup-body" id="popupBody"></div>
+      <div class="popup-body" id="popupBody">
+        <!-- Fallback content (shows even if JS fails) -->
+        <div class="popup-content">
+          <div class="popup-text size-xl align-center">WELCOME</div>
+          <div class="popup-text size-md align-left">
+            This is a long placeholder welcome message intended to test scrolling behavior inside the popup window.
+
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi.
+
+            Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim. Pellentesque congue.
+
+            Ut in risus volutpat libero pharetra tempor. Cras vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. Pellentesque sed dui ut augue blandit sodales.
+
+            Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. Mauris ac mauris sed pede pellentesque fermentum. Maecenas adipiscing ante non diam sodales hendrerit.
+
+            This text continues deliberately to exceed the height of the popup window so that vertical scrolling is required. The popup container itself will never exceed the viewport, but this white content area will scroll independently.
+
+            When you are satisfied with the behavior, replace this entire block with your real introduction copy.
+          </div>
+        </div>
+      </div>
       <div class="popup-actions" id="popupActions">
         <div class="popup-caption" id="popupCaption"></div>
-        <button class="popup-ok" id="popupOk" type="button" onclick="closePopup()" style="display:none;">Enter</button>
+        <button class="popup-ok" id="popupOk" type="button" onclick="closePopup()" style="display:inline-flex;">Enter</button>
       </div>
     </div>
   </div>
-
   <script>
-    // --- Global Popup API ---
-    var popupOverlay = document.getElementById('popupOverlay');
-    var popupWindow = document.getElementById('popupWindow');
-    var popupTitlebar = document.getElementById('popupTitlebar');
-    var popupTitleEl = document.getElementById('popupTitle');
-    var popupBodyEl = document.getElementById('popupBody');
-    var popupCaptionEl = document.getElementById('popupCaption');
-    var popupOkBtn = document.getElementById('popupOk');
+    (function () {
+      'use strict';
 
-    function resetPopupPosition() {
-      if (!popupWindow) return;
-      popupWindow.style.left = '50%';
-      popupWindow.style.top = '50%';
-      popupWindow.style.transform = 'translate(-50%, -50%)';
-    }
+      // ---------- Elements ----------
+      var popupOverlay = document.getElementById('popupOverlay');
+      var popupWindow = document.getElementById('popupWindow');
+      var popupTitlebar = document.getElementById('popupTitlebar');
+      var popupTitleEl = document.getElementById('popupTitle');
+      var popupBodyEl = document.getElementById('popupBody');
+      var popupCaptionEl = document.getElementById('popupCaption');
+      var popupOkBtn = document.getElementById('popupOk');
 
-    function clampPopupToViewport() {
-      if (!popupWindow) return;
-      // Only clamp if user has dragged (transform removed)
-      if (popupWindow.style.transform && popupWindow.style.transform !== 'none') return;
+      var searchBarEl = document.getElementById('searchBar');
+      var clockEl = document.getElementById('menubarClock');
 
-      var r = popupWindow.getBoundingClientRect();
-      var margin = 10;
+      // ---------- Popup: render flexible content ----------
+      function renderPopupContent(content) {
+        var wrap = document.createElement('div');
+        wrap.className = 'popup-content';
 
-      var x = r.left;
-      var y = r.top;
+        (content || []).forEach(function (block) {
+          if (!block || !block.type) return;
 
-      var maxX = window.innerWidth - r.width - margin;
-      var maxY = window.innerHeight - r.height - margin;
+          if (block.type === 'image') {
+            var media = document.createElement('div');
+            media.className = 'popup-media';
 
-      x = Math.max(margin, Math.min(maxX, x));
-      y = Math.max(margin, Math.min(maxY, y));
+            var img = document.createElement('img');
+            img.src = block.src || '';
+            img.alt = block.alt || '';
+            if (block.maxWidth != null) img.style.maxWidth = String(block.maxWidth) + 'px';
+            if (block.width != null) img.style.width = String(block.width) + 'px';
 
-      popupWindow.style.left = x + 'px';
-      popupWindow.style.top = y + 'px';
-    }
+            media.appendChild(img);
+            wrap.appendChild(media);
+            return;
+          }
 
-    // Drag popup by the title bar (classic Mac behavior)
-    var popupDragging = false;
-    var popupOffX = 0;
-    var popupOffY = 0;
+          if (block.type === 'text') {
+            var d = document.createElement('div');
+            var size = block.size || 'md';
+            var align = block.align || 'left';
+            d.className = 'popup-text size-' + size + ' align-' + align;
+            d.textContent = block.text || '';
+            wrap.appendChild(d);
+            return;
+          }
 
-    if (popupTitlebar && popupWindow) {
-      popupTitlebar.addEventListener('mousedown', function (e) {
-        // don't start drag when clicking the close button
-        if (e.target && e.target.closest && e.target.closest('.popup-close')) return;
+          if (block.type === 'html') {
+            var h = document.createElement('div');
+            h.innerHTML = block.html || '';
+            wrap.appendChild(h);
+            return;
+          }
+        });
 
-        e.preventDefault();
-        var r = popupWindow.getBoundingClientRect();
+        return wrap;
+      }
 
-        // convert from transform-centered to absolute pixels so we can drag
-        popupWindow.style.left = r.left + 'px';
-        popupWindow.style.top = r.top + 'px';
-        popupWindow.style.transform = 'none';
+      function resetPopupPosition() {
+        if (!popupWindow) return;
+        popupWindow.style.left = '50%';
+        popupWindow.style.top = '50%';
+        popupWindow.style.transform = 'translate(-50%, -50%)';
+      }
 
-        popupDragging = true;
-        popupOffX = e.clientX - r.left;
-        popupOffY = e.clientY - r.top;
+      function openPopup(opts) {
+        opts = opts || {};
+        if (!popupOverlay) return;
+
+        // Center by default unless preserving
+        if (!opts.preservePosition) resetPopupPosition();
+
+        if (popupTitleEl) popupTitleEl.textContent = opts.title || 'Notice';
+        if (popupCaptionEl) popupCaptionEl.textContent = opts.caption || '';
+
+        // Body content
+        if (popupBodyEl) {
+          popupBodyEl.innerHTML = '';
+          if (Array.isArray(opts.content)) {
+            popupBodyEl.appendChild(renderPopupContent(opts.content));
+          } else {
+            popupBodyEl.innerHTML = opts.html || '';
+          }
+        }
+
+        // OK button
+        var hasOk = !!opts.okText;
+        if (popupOkBtn) {
+          if (hasOk) {
+            popupOkBtn.textContent = opts.okText;
+            popupOkBtn.style.display = 'inline-flex';
+          } else {
+            popupOkBtn.style.display = 'none';
+          }
+        }
+        if (popupWindow) popupWindow.classList.toggle('has-ok', hasOk);
+
+        popupOverlay.classList.add('show');
+        popupOverlay.setAttribute('aria-hidden', 'false');
+      }
+
+      function closePopup() {
+        if (!popupOverlay) return;
+        popupOverlay.classList.remove('show');
+        popupOverlay.setAttribute('aria-hidden', 'true');
+        resetPopupPosition();
+      }
+
+      // Expose for inline onclick hooks
+      window.openPopup = openPopup;
+      window.closePopup = closePopup;
+
+      window.openAboutPopup = function () {
+        openPopup({
+          title: 'About',
+          caption: 'Jordan A. McKenzie',
+          okText: 'Enter',
+          content: [
+            { type: 'text', text: 'About This Portfolio', size: 'lg', align: 'center' },
+            {
+              type: 'text',
+              size: 'md',
+              align: 'left',
+              text:
+                'This site is a portfolio presented as a classic Macintosh desktop.\n\n' +
+                'Click folders to explore projects and work.'
+            }
+          ]
+        });
+      };
+
+      // X / Enter / outside click
+      (function bindPopupControls() {
+        if (!popupOverlay) return;
+
+        var closeBtn = popupOverlay.querySelector('.popup-close');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            closePopup();
+          });
+        }
+
+        if (popupOkBtn) {
+          popupOkBtn.addEventListener('click', function (e) {
+            e.stopPropagation();
+            closePopup();
+          });
+        }
+
+        popupOverlay.addEventListener('mousedown', function (e) {
+          if (e.target === popupOverlay) closePopup();
+        });
+      })();
+
+      // Draggable titlebar
+      (function bindPopupDrag() {
+        if (!popupTitlebar || !popupWindow) return;
+
+        var dragging = false;
+        var offX = 0;
+        var offY = 0;
+
+        popupTitlebar.addEventListener('mousedown', function (e) {
+          if (e.target && e.target.closest && e.target.closest('.popup-close')) return;
+          e.preventDefault();
+
+          var r = popupWindow.getBoundingClientRect();
+          popupWindow.style.left = r.left + 'px';
+          popupWindow.style.top = r.top + 'px';
+          popupWindow.style.transform = 'none';
+
+          dragging = true;
+          offX = e.clientX - r.left;
+          offY = e.clientY - r.top;
+        });
+
+        document.addEventListener('mousemove', function (e) {
+          if (!dragging) return;
+
+          var r = popupWindow.getBoundingClientRect();
+          var x = e.clientX - offX;
+          var y = e.clientY - offY;
+
+          var margin = 10;
+          var maxX = window.innerWidth - r.width - margin;
+          var maxY = window.innerHeight - r.height - margin;
+          x = Math.max(margin, Math.min(maxX, x));
+          y = Math.max(margin, Math.min(maxY, y));
+
+          popupWindow.style.left = x + 'px';
+          popupWindow.style.top = y + 'px';
+        });
+
+        document.addEventListener('mouseup', function () {
+          dragging = false;
+        });
+
+        window.addEventListener('resize', function () {
+          // Keep inside viewport if already dragged (transform removed)
+          if (!popupWindow || (popupWindow.style.transform && popupWindow.style.transform !== 'none')) return;
+          var r = popupWindow.getBoundingClientRect();
+          var margin = 10;
+          var x = Math.max(margin, Math.min(window.innerWidth - r.width - margin, r.left));
+          var y = Math.max(margin, Math.min(window.innerHeight - r.height - margin, r.top));
+          popupWindow.style.left = x + 'px';
+          popupWindow.style.top = y + 'px';
+        });
+      })();
+
+      // ---------- Find dropdown ----------
+      window.toggleSearch = function () {
+        if (!searchBarEl) return;
+        searchBarEl.style.display = (searchBarEl.style.display === 'flex') ? 'none' : 'flex';
+        if (searchBarEl.style.display === 'flex') {
+          var input = searchBarEl.querySelector('input');
+          if (input) input.focus();
+        }
+      };
+
+      window.hideSearch = function () {
+        if (searchBarEl) searchBarEl.style.display = 'none';
+      };
+
+      // ---------- Clock ----------
+      (function initClock() {
+        if (!clockEl) return;
+        function tick() {
+          var now = new Date();
+          var h = now.getHours();
+          var m = now.getMinutes();
+          var ampm = h >= 12 ? 'PM' : 'AM';
+          h = h % 12;
+          if (h === 0) h = 12;
+          var mm = (m < 10 ? '0' + m : '' + m);
+          var colon = (now.getSeconds() % 2 === 0) ? ':' : ' ';
+          clockEl.textContent = '' + h + colon + mm + ' ' + ampm;
+        }
+        tick();
+        setInterval(tick, 1000);
+      })();
+
+      // ---------- Desktop icons (layout + drag) ----------
+      var icons = Array.prototype.slice.call(document.querySelectorAll('.icon'));
+
+      function layoutIcons() {
+        var paddingLeft = 10;
+        var paddingTop = 10;
+        var gapX = 12;
+        var gapY = 30;
+        var iconW = 99;
+        var iconH = 120;
+
+        var x = paddingLeft;
+        var y = paddingTop;
+
+        icons.forEach(function (icon) {
+          if (x + iconW > window.innerWidth - 10) {
+            x = paddingLeft;
+            y += iconH + gapY;
+          }
+          icon.style.left = x + 'px';
+          icon.style.top = y + 'px';
+          x += iconW + gapX;
+        });
+      }
+
+      var draggingIcon = false;
+      var possibleDrag = false;
+      var startX = 0;
+      var startY = 0;
+      var offX2 = 0;
+      var offY2 = 0;
+      var activeIcon = null;
+      var threshold = 5;
+
+      function clearSelections() {
+        icons.forEach(function (i) { i.classList.remove('selected'); });
+      }
+
+      icons.forEach(function (icon) {
+        icon.addEventListener('mousedown', function (e) {
+          e.preventDefault();
+          startX = e.clientX;
+          startY = e.clientY;
+          activeIcon = icon;
+          offX2 = e.clientX - icon.offsetLeft;
+          offY2 = e.clientY - icon.offsetTop;
+          possibleDrag = true;
+          draggingIcon = false;
+          clearSelections();
+          icon.classList.add('selected');
+        });
+
+        icon.addEventListener('dblclick', function (e) {
+          // navigate
+          e.preventDefault();
+          window.location.href = icon.href;
+        });
+
+        icon.addEventListener('click', function (e) {
+          // select only
+          e.preventDefault();
+          clearSelections();
+          icon.classList.add('selected');
+        });
       });
 
       document.addEventListener('mousemove', function (e) {
-        if (!popupDragging || !popupWindow) return;
+        if (!possibleDrag || !activeIcon) return;
 
-        var r = popupWindow.getBoundingClientRect();
-        var x = e.clientX - popupOffX;
-        var y = e.clientY - popupOffY;
+        if (!draggingIcon) {
+          var dx = e.clientX - startX;
+          var dy = e.clientY - startY;
+          if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+            draggingIcon = true;
+            activeIcon.style.zIndex = 1000;
+          }
+        }
 
-        // clamp inside viewport with a small margin
-        var margin = 10;
-        var maxX = window.innerWidth - r.width - margin;
-        var maxY = window.innerHeight - r.height - margin;
-        x = Math.max(margin, Math.min(maxX, x));
-        y = Math.max(margin, Math.min(maxY, y));
-
-        popupWindow.style.left = x + 'px';
-        popupWindow.style.top = y + 'px';
+        if (draggingIcon) {
+          var x = e.clientX - offX2;
+          var y = e.clientY - offY2;
+          x = Math.max(0, Math.min(window.innerWidth - activeIcon.offsetWidth, x));
+          y = Math.max(0, Math.min(window.innerHeight - activeIcon.offsetHeight, y));
+          activeIcon.style.left = x + 'px';
+          activeIcon.style.top = y + 'px';
+        }
       });
 
       document.addEventListener('mouseup', function () {
-        popupDragging = false;
-        clampPopupToViewport();
+        possibleDrag = false;
+        draggingIcon = false;
+        if (activeIcon) activeIcon.style.zIndex = '';
+        activeIcon = null;
+      });
+
+      document.addEventListener('click', function (e) {
+        if (!e.target.closest('.icon')) clearSelections();
       });
 
       window.addEventListener('resize', function () {
-        clampPopupToViewport();
+        // If not actively dragging an icon, reflow
+        if (!draggingIcon) layoutIcons();
       });
-    }
 
-    function openPopup(opts) {
-      // center it each time by default (set opts.preservePosition = true to keep last position)
-      if (!opts || !opts.preservePosition) resetPopupPosition();
-      opts = opts || {};
-      if (!popupOverlay) return;
-
-      popupTitleEl.textContent = opts.title || 'Notice';
-      popupBodyEl.innerHTML = opts.html || '';
-      if (popupCaptionEl) popupCaptionEl.textContent = opts.caption || '';
-
-      // Optional OK/Enter button
-      var hasOk = !!opts.okText;
-      if (popupOkBtn) {
-        if (hasOk) {
-          popupOkBtn.textContent = opts.okText;
-          popupOkBtn.style.display = 'inline-flex';
-        } else {
-          popupOkBtn.style.display = 'none';
-        }
-      }
-      if (popupWindow) {
-        popupWindow.classList.toggle('has-ok', hasOk);
-      }
-
-      popupOverlay.classList.add('show');
-      popupOverlay.setAttribute('aria-hidden', 'false');
-    }
-
-    function closePopup() {
-      if (!popupOverlay) return;
-      popupOverlay.classList.remove('show');
-      popupOverlay.setAttribute('aria-hidden', 'true');
-
-      // reset position when closing so it doesn't reopen off-screen
-      resetPopupPosition();
-    }
-
-    // close when clicking outside window
-    if (popupOverlay) {
-      popupOverlay.addEventListener('mousedown', function (e) {
-        if (e.target === popupOverlay) closePopup();
-      });
-    }
-
-    // Welcome popup on every page load
-    window.addEventListener('DOMContentLoaded', function () {
-      openPopup({
-        title: 'Welcome',
-        caption: '',
-        okText: 'Enter',
-        html:
-          '<div style="display:flex; justify-content:center; align-items:center; padding:8px;">' +
-          '<img src="images/LV.png" alt="LV" style="max-width:100%; height:auto; image-rendering:pixelated;" />' +
-          '</div>'
-      });
-    });
-
-    // About popup (triggered from taskbar)
-    function openAboutPopup() {
-      openPopup({
-        title: 'About',
-        caption: 'Jordan A. McKenzie',
-        html:
-          '<div style="font-size:12px; line-height:1.4;">' +
-          '<p style="margin-bottom:8px;">This site is a portfolio presented as a classic Macintosh desktop.</p>' +
-          '<p>Click folders to explore projects and work.</p>' +
-          '</div>'
-      });
-    }
-
-    // --- Clock (fresh) ---
-    (function initMenubarClock() {
-      var el = document.getElementById('menubarClock');
-      if (!el) return;
-
-      function tick() {
-        var now = new Date();
-        var h = now.getHours();
-        var m = now.getMinutes();
-        var ampm = h >= 12 ? 'PM' : 'AM';
-        h = h % 12;
-        if (h === 0) h = 12;
-        var mm = (m < 10 ? '0' + m : '' + m);
-        var colon = (now.getSeconds() % 2 === 0) ? ':' : ' ';
-        el.textContent = '' + h + colon + mm + ' ' + ampm;
-      }
-
-      tick();
-      setInterval(tick, 1000);
-    })();
-
-    // --- Find dropdown ---
-    function toggleSearch() {
-      var sb = document.getElementById('searchBar');
-      if (!sb) return;
-      sb.style.display = (sb.style.display === 'flex') ? 'none' : 'flex';
-      if (sb.style.display === 'flex') {
-        var input = sb.querySelector('input');
-        if (input) input.focus();
-      }
-    }
-
-    function hideSearch() {
-      var sb = document.getElementById('searchBar');
-      if (sb) sb.style.display = 'none';
-    }
-
-    // --- Desktop icons (layout + drag) ---
-    var icons = Array.from(document.querySelectorAll('.icon'));
-
-    var dragging = false;
-    var possible = false;
-    var startX = 0,
-      startY = 0;
-    var offX = 0,
-      offY = 0;
-    var el = null;
-    var threshold = 5;
-
-    function layoutIcons() {
-      // Use known sizes so we don't depend on image load timing
-      var paddingLeft = 10;
-      var paddingTop = 10;
-      var gapX = 12; // tighter horizontal spacing
-      var gapY = 30;
-      var iconW = 99; // matches .icon width
-      var iconH = 120; // enough for folder + label
-
-      var x = paddingLeft;
-      var y = paddingTop;
-
-      icons.forEach(function (icon) {
-        if (x + iconW > window.innerWidth - 10) {
-          x = paddingLeft;
-          y += iconH + gapY;
-        }
-        icon.style.left = x + 'px';
-        icon.style.top = y + 'px';
-        x += iconW + gapX;
-      });
-    }
-
-    // Make sure they never start stacked
-    layoutIcons();
-    window.addEventListener('load', function () {
+      // Initial layout
       layoutIcons();
-      requestAnimationFrame(layoutIcons);
-    });
-    window.addEventListener('resize', function () {
-      if (!dragging) layoutIcons();
-    });
-
-    icons.forEach(function (icon) {
-      icon.addEventListener('mousedown', function (e) {
-        e.preventDefault();
-        startX = e.clientX;
-        startY = e.clientY;
-        el = icon;
-        offX = e.clientX - el.offsetLeft;
-        offY = e.clientY - el.offsetTop;
-        possible = true;
-        icons.forEach(function (i) {
-          i.classList.remove('selected');
-        });
-        el.classList.add('selected');
+      window.addEventListener('load', function () {
+        layoutIcons();
+        requestAnimationFrame(layoutIcons);
       });
 
-      icon.addEventListener('dblclick', function () {
-        location.href = icon.href;
-      });
-
-      icon.addEventListener('click', function (e) {
-        e.preventDefault();
-        icons.forEach(function (i) {
-          i.classList.remove('selected');
-        });
-        icon.classList.add('selected');
-      });
-    });
-
-    document.addEventListener('mousemove', function (e) {
-      if (!possible) return;
-
-      if (!dragging) {
-        var dx = e.clientX - startX;
-        var dy = e.clientY - startY;
-        if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
-          dragging = true;
-          if (el) el.style.zIndex = 1000;
-        }
-      }
-
-      if (dragging && el) {
-        var x = e.clientX - offX;
-        var y = e.clientY - offY;
-        x = Math.max(0, Math.min(window.innerWidth - el.offsetWidth, x));
-        y = Math.max(0, Math.min(window.innerHeight - el.offsetHeight, y));
-        el.style.left = x + 'px';
-        el.style.top = y + 'px';
-      }
-    });
-
-    document.addEventListener('mouseup', function () {
-      possible = false;
-      dragging = false;
-      if (el) el.style.zIndex = '';
-    });
-
-    document.addEventListener('click', function (e) {
-      if (!e.target.closest('.icon')) {
-        icons.forEach(function (i) {
-          i.classList.remove('selected');
+      // ---------- Welcome popup on page load ----------
+      function showWelcomePopup() {
+        openPopup({
+          title: 'Welcome',
+          caption: '',
+          okText: 'Enter',
+          content: [
+            { type: 'text', text: 'WELCOME', size: 'xl', align: 'center' },
+            {
+              type: 'text',
+              size: 'md',
+              align: 'left',
+              text:
+                'This is a long placeholder welcome message intended to test scrolling behavior inside the popup window.\n\n' +
+                'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed non risus. Suspendisse lectus tortor, dignissim sit amet, adipiscing nec, ultricies sed, dolor. Cras elementum ultrices diam. Maecenas ligula massa, varius a, semper congue, euismod non, mi.\n\n' +
+                'Proin porttitor, orci nec nonummy molestie, enim est eleifend mi, non fermentum diam nisl sit amet erat. Duis semper. Duis arcu massa, scelerisque vitae, consequat in, pretium a, enim. Pellentesque congue.\n\n' +
+                'Ut in risus volutpat libero pharetra tempor. Cras vestibulum bibendum augue. Praesent egestas leo in pede. Praesent blandit odio eu enim. Pellentesque sed dui ut augue blandit sodales.\n\n' +
+                'Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia Curae; Aliquam nibh. Mauris ac mauris sed pede pellentesque fermentum. Maecenas adipiscing ante non diam sodales hendrerit.\n\n' +
+                'This text continues deliberately to exceed the height of the popup window so that vertical scrolling is required. The popup container itself will never exceed the viewport, but this white content area will scroll independently.\n\n' +
+                'When you are satisfied with the behavior, replace this entire block with your real introduction copy.'
+            }
+          ]
         });
       }
-    });
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', showWelcomePopup);
+      } else {
+        showWelcomePopup();
+      }
+
+    })();
   </script>
+</body>
 </body>
 </html>
