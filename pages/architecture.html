@@ -1,15 +1,19 @@
-<!-- architecture.html -->
+<!-- pages/architecture.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Architecture - Jordan A. McKenzie</title>
-  <link rel="icon" type="image/png" sizes="32x32" href="images/folder-32.png" />
+
+  <!-- FIX: page is /pages/, so go up one -->
+  <link rel="icon" type="image/png" sizes="32x32" href="../images/folder-32.png" />
+
   <style>
     @font-face {
       font-family: 'Chicago';
-      src: url('fonts/pixChicago.woff2') format('woff2');
+      /* FIX: page is /pages/, so go up one */
+      src: url('../fonts/pixChicago.woff2') format('woff2');
       font-weight: normal;
       font-style: normal;
     }
@@ -251,7 +255,6 @@
       background: rgba(255, 255, 255, 0.55);
       z-index: 3001;
     }
-
     .popup-overlay.show { display: flex; }
 
     .popup-window {
@@ -286,13 +289,7 @@
       flex: 0 0 auto;
     }
 
-    .popup-title {
-      font-size: 12px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
-    }
+    .popup-title { font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
 
     .popup-close {
       width: 14px;
@@ -338,19 +335,6 @@
       flex: 1 1 auto;
       min-height: 0;
     }
-
-    .popup-content { display: flex; flex-direction: column; gap: 10px; }
-
-    .popup-text { line-height: 1.4; white-space: pre-wrap; }
-    .popup-text.align-left { text-align: left; }
-    .popup-text.align-center { text-align: center; }
-    .popup-text.align-right { text-align: right; }
-
-    .popup-text.size-xs { font-size: 9px; }
-    .popup-text.size-sm { font-size: 10px; }
-    .popup-text.size-md { font-size: 12px; }
-    .popup-text.size-lg { font-size: 14px; }
-    .popup-text.size-xl { font-size: 16px; }
 
     .popup-actions {
       display: flex;
@@ -408,15 +392,15 @@
 
 <body data-page="architecture">
   <div class="desktop" id="desktop">
-    <!-- Back to desktop -->
-    <a href="index.html" class="icon" id="iconBack">
-      <img src="images/folder-160.png" alt="Folder" />
+    <!-- FIX: from /pages/ back to root -->
+    <a href="../index.html" class="icon" id="iconBack">
+      <img src="../images/folder-160.png" alt="Folder" />
       <span>Desktop</span>
     </a>
 
     <!-- example.txt -->
     <a href="#" class="icon file" data-file="example.txt" id="iconExample">
-      <img src="images/folder-160.png" alt="File" />
+      <img src="../images/folder-160.png" alt="File" />
       <span>example.txt</span>
     </a>
   </div>
@@ -424,7 +408,7 @@
   <div class="taskbar">
     <div class="left-group">
       <button class="menu-item taskbar-item" id="aboutBtn" type="button" aria-label="About">
-        <img src="images/apple folder.png" alt="Apple Folder" class="menubar-folder" />
+        <img src="../images/apple folder.png" alt="Apple Folder" class="menubar-folder" />
         <span class="taskbar-label">About</span>
       </button>
       <a class="menu-item taskbar-item" href="mailto:jam@prtf.io"><span class="taskbar-label">E-mail</span></a>
@@ -433,7 +417,7 @@
     <div class="right-group">
       <div class="menubar-clock" id="menubarClock"></div>
       <button class="menu-item taskbar-item" id="findBtn" type="button" aria-label="Find">
-        <img src="images/search icon-64.png" alt="Find" class="menubar-search" />
+        <img src="../images/search icon-64.png" alt="Find" class="menubar-search" />
         <span class="taskbar-label">Find</span>
       </button>
     </div>
@@ -458,6 +442,7 @@
     </div>
   </div>
 
-  <script defer src="js/app.js"></script>
+  <!-- FIX: app.js is in /js/, page is /pages/ -->
+  <script defer src="../js/app.js"></script>
 </body>
 </html>

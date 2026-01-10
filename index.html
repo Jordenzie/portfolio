@@ -412,23 +412,25 @@
 
 <body data-page="home">
   <div class="desktop" id="desktop">
-    <a href="/pages/architecture.html" class="icon">
+    <a href="pages/architecture.html" class="icon">
       <img src="images/folder-160.png" alt="Folder" />
       <span>Architecture</span>
     </a>
-    <a href="engineering.html" class="icon">
+
+    <!-- FIXED: these should be inside /pages just like architecture -->
+    <a href="pages/engineering.html" class="icon">
       <img src="images/folder-160.png" alt="Folder" />
       <span>Engineering</span>
     </a>
-    <a href="graphicdesign.html" class="icon">
+    <a href="pages/graphicdesign.html" class="icon">
       <img src="images/folder-160.png" alt="Folder" />
       <span>Graphic Design</span>
     </a>
-    <a href="aboutme.html" class="icon">
+    <a href="pages/aboutme.html" class="icon">
       <img src="images/folder-160.png" alt="Folder" />
       <span>About Me</span>
     </a>
-    <a href="8ball.html" class="icon">
+    <a href="pages/8ball.html" class="icon">
       <img src="images/folder-160.png" alt="Folder" />
       <span>???</span>
     </a>
@@ -471,6 +473,7 @@
     </div>
   </div>
 
-  <script defer src="js/app.js"></script>
+  <!-- Global JS -->
+  <script src="js/app.js" defer></script>
 </body>
 </html>
