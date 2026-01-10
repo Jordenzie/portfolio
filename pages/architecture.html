@@ -1,10 +1,10 @@
-<!-- index.html -->
+<!-- architecture.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Jordan A. McKenzie - Portfolio</title>
+  <title>Architecture - Jordan A. McKenzie</title>
   <link rel="icon" type="image/png" sizes="32x32" href="images/folder-32.png" />
   <style>
     @font-face {
@@ -86,12 +86,8 @@
 
     .icon.selected { opacity: 0.75; }
 
-    /* fallback positions if JS fails */
     .desktop .icon:nth-of-type(1) { left: 10px; top: 10px; }
     .desktop .icon:nth-of-type(2) { left: 121px; top: 10px; }
-    .desktop .icon:nth-of-type(3) { left: 232px; top: 10px; }
-    .desktop .icon:nth-of-type(4) { left: 343px; top: 10px; }
-    .desktop .icon:nth-of-type(5) { left: 454px; top: 10px; }
 
     .taskbar {
       position: fixed;
@@ -410,27 +406,18 @@
   </style>
 </head>
 
-<body data-page="home">
+<body data-page="architecture">
   <div class="desktop" id="desktop">
-    <a href="architecture.html" class="icon">
+    <!-- Back to desktop -->
+    <a href="index.html" class="icon" id="iconBack">
       <img src="images/folder-160.png" alt="Folder" />
-      <span>Architecture</span>
+      <span>Desktop</span>
     </a>
-    <a href="engineering.html" class="icon">
-      <img src="images/folder-160.png" alt="Folder" />
-      <span>Engineering</span>
-    </a>
-    <a href="graphicdesign.html" class="icon">
-      <img src="images/folder-160.png" alt="Folder" />
-      <span>Graphic Design</span>
-    </a>
-    <a href="aboutme.html" class="icon">
-      <img src="images/folder-160.png" alt="Folder" />
-      <span>About Me</span>
-    </a>
-    <a href="8ball.html" class="icon">
-      <img src="images/folder-160.png" alt="Folder" />
-      <span>???</span>
+
+    <!-- example.txt -->
+    <a href="#" class="icon file" data-file="example.txt" id="iconExample">
+      <img src="images/folder-160.png" alt="File" />
+      <span>example.txt</span>
     </a>
   </div>
 
