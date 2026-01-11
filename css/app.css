@@ -1,0 +1,320 @@
+@font-face {
+    font-family: 'Chicago';
+    src: url('../fonts/pixChicago.woff2') format('woff2');
+    font-weight: normal;
+    font-style: normal;
+  }
+  
+  * {
+    font-family: 'Chicago', sans-serif !important;
+    color: black;
+    font-size: 12px;
+    font-weight: normal !important;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: none;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: geometricPrecision;
+  }
+  
+  a { text-decoration: none; }
+  
+  /* ---------- Base ---------- */
+  body {
+    background: #ffffff;
+    margin: 0;
+    overflow: hidden;
+  }
+  
+  body::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    border: 1px solid #000;
+    pointer-events: none;
+    z-index: 2000;
+  }
+  
+  /* ---------- Desktop ---------- */
+  .desktop {
+    position: absolute;
+    top: 38px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .icon {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 99px;
+    text-align: center;
+    cursor: pointer;
+    position: absolute;
+    user-select: none;
+    padding: 6px;
+  }
+  
+  .icon img {
+    width: 66px;
+    image-rendering: pixelated;
+  }
+  
+  .icon span {
+    font-size: 7px;
+    width: 66px;
+    word-wrap: break-word;
+  }
+  
+  .icon.selected { opacity: 0.75; }
+  
+  /* ---------- Taskbar ---------- */
+  .taskbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    padding: 0 22px;
+    box-sizing: border-box;
+    z-index: 1000;
+    background: #dfdfdf;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #000;
+    box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 #6e6e6e;
+  }
+  
+  .taskbar::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 1px;
+    background: #000;
+  }
+  
+  .left-group,
+  .right-group {
+    display: flex;
+    align-items: center;
+  }
+  
+  .right-group {
+    margin-left: auto;
+  }
+  
+  /* ---------- Menu Items ---------- */
+  .menu-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;                 /* keeps icon spacing */
+    min-height: 22px;
+    padding: 2px 6px;
+    background: transparent;
+    border: 0;                /* IMPORTANT: prevents “line under E-mail” */
+    outline: none;
+    cursor: pointer;
+    font: inherit;
+    white-space: nowrap;
+    line-height: normal;
+  }
+  
+  .menu-item img {
+    display: block;
+    width: 16px;
+    height: 16px;
+    image-rendering: pixelated;
+    flex: 0 0 auto;
+  }
+  
+  .menu-item:hover {
+    border-top: 1px solid #fff;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #6f6f6f;
+    border-bottom: 1px solid #6f6f6f;
+    background: linear-gradient(#efefef, #dcdcdc);
+  }
+  
+  .menu-item:active {
+    border-top: 1px solid #6f6f6f;
+    border-left: 1px solid #6f6f6f;
+    border-right: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    background: linear-gradient(#dcdcdc, #efefef);
+  }
+  
+  /* key fix: when hovered/active, keep padding/size stable so it doesn’t “scrunch” */
+  .menu-item:hover,
+  .menu-item:active {
+    padding: 1px 5px; /* compensate for 1px borders */
+  }
+  
+  .menubar-clock {
+    font-size: 10px;
+    padding: 2px 6px;
+    white-space: nowrap;
+  }
+  
+  /* ---------- Search ---------- */
+  .search-bar {
+    display: none;
+    position: fixed;
+    top: 23px;
+    right: 6px;
+    background: #efefef;
+    border: 1px solid #7d7d7d;
+    height: 22px;
+    align-items: center;
+    padding: 0 6px;
+    z-index: 1001;
+  }
+  
+  .search-bar input {
+    width: 160px;
+    border: none;
+    background: transparent;
+    outline: none;
+  }
+  
+  /* ---------- Popup ---------- */
+  .popup-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.55);
+    z-index: 3001;
+  }
+  
+  .popup-overlay.show { display: flex; }
+  
+  .popup-window {
+    width: min(520px, calc(100vw - 40px));
+    max-height: calc(100vh - 80px);
+    background: #efefef;
+    border: 1px solid #000;
+    box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000;
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+  }
+  
+  .popup-titlebar {
+    height: 22px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 6px;
+    background: #dfdfdf;
+    border-top: 1px solid #fff;
+    border-bottom: 1px solid #000;
+    box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 #6e6e6e;
+    cursor: move;
+  }
+  
+  .popup-title {
+    flex: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  
+  /* ---------- Popup Close (X) ---------- */
+  .popup-close {
+    width: 14px;
+    height: 14px;
+    background: #dfdfdf;
+    border-top: 1px solid #fff;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #6f6f6f;
+    border-bottom: 1px solid #6f6f6f;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+    flex: 0 0 auto;
+  }
+  
+  .popup-close::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    background: #000;
+    clip-path: polygon(
+      0 10%, 10% 0, 50% 40%, 90% 0, 100% 10%, 60% 50%,
+      100% 90%, 90% 100%, 50% 60%, 10% 100%, 0 90%, 40% 50%
+    );
+  }
+  
+  .popup-close:active {
+    border-top: 1px solid #6f6f6f;
+    border-left: 1px solid #6f6f6f;
+    border-right: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    background: #dcdcdc;
+  }
+  
+  .popup-body {
+    padding: 10px;
+    background: #fff;
+    overflow: auto;
+    flex: 1;
+    border-top: 1px solid #6e6e6e;
+    box-shadow: inset 0 1px 0 #fff;
+  }
+  
+  .popup-actions {
+    padding: 6px 8px;
+    background: #efefef;
+    border-top: 1px solid #6e6e6e;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .popup-ok {
+    padding: 2px 16px;
+    background: #dfdfdf;
+    border-top: 1px solid #fff;
+    border-left: 1px solid #fff;
+    border-right: 1px solid #6f6f6f;
+    border-bottom: 1px solid #6f6f6f;
+  }
+  
+  .popup-ok:active {
+    border-top: 1px solid #6f6f6f;
+    border-left: 1px solid #6f6f6f;
+    border-right: 1px solid #fff;
+    border-bottom: 1px solid #fff;
+    background: #dcdcdc;
+  }
+  
+  /* Hide captions globally */
+  .popup-caption { display: none !important; }
+  
+  /* ---------- Popup Typography Roles ---------- */
+  /* Default: body text justified */
+  .popup-text {
+    text-align: justify;
+    text-align-last: justify;
+  }
+  
+  /* Use this class for popup titles (ex: WELCOME) */
+  .popup-text.title {
+    text-align: center;
+    text-align-last: center;
+  }
+  
+  /* Optional explicit class for body blocks if you want to tag them */
+  .popup-text.body {
+    text-align: justify;
+    text-align-last: justify;
+  }
+  

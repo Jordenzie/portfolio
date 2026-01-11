@@ -28,14 +28,20 @@
       var wrap = document.createElement('div');
       wrap.className = 'popup-content';
   
-      (content || []).forEach(function (block) {
+      (content || []).forEach(function (block, idx) {
         if (!block || !block.type) return;
   
         if (block.type === 'text') {
           var d = document.createElement('div');
           var size = block.size || 'md';
           var align = block.align || 'left';
-          d.className = 'popup-text size-' + size + ' align-' + align;
+  
+          // NEW: allow semantic "role" styling + smart default for first text block
+          // - role: 'title' => centered title styling via CSS hook
+          // - if no role and this is the first text block => treat as title (helps Welcome popups)
+          var role = block.role || ((idx === 0) ? 'title' : 'body');
+  
+          d.className = 'popup-text size-' + size + ' align-' + align + ' role-' + role;
           d.textContent = block.text || '';
           wrap.appendChild(d);
         }
@@ -58,7 +64,10 @@
       if (!opts.preservePosition) resetPopupPosition();
   
       if (popupTitleEl) popupTitleEl.textContent = opts.title || 'Notice';
-      if (popupCaptionEl) popupCaptionEl.textContent = opts.caption || '';
+  
+      // NEW: default caption off (you wanted to remove “Jordan A. McKenzie”)
+      var caption = (opts.caption != null) ? String(opts.caption) : '';
+      if (popupCaptionEl) popupCaptionEl.textContent = caption;
   
       if (popupBodyEl) {
         popupBodyEl.innerHTML = '';
@@ -98,12 +107,14 @@
     function openAboutPopup() {
       openPopup({
         title: 'About',
-        caption: 'Jordan A. McKenzie',
+        // caption removed by default now
         okText: 'Enter',
         content: [
-          { type: 'text', text: 'About This Portfolio', size: 'lg', align: 'center' },
+          // NEW: role title for centered heading
+          { type: 'text', role: 'title', text: 'About This Portfolio', size: 'lg', align: 'center' },
           {
             type: 'text',
+            role: 'body',
             size: 'md',
             align: 'left',
             text:
@@ -290,12 +301,12 @@
           if (file === 'example.txt') {
             openPopup({
               title: 'example.txt',
-              caption: '',
               okText: 'Enter',
               content: [
-                { type: 'text', size: 'lg', align: 'center', text: 'example.txt' },
+                { type: 'text', role: 'title', size: 'lg', align: 'center', text: 'example.txt' },
                 {
                   type: 'text',
+                  role: 'body',
                   size: 'md',
                   align: 'left',
                   text:
@@ -310,7 +321,7 @@
           openPopup({
             title: file || 'File',
             okText: 'Enter',
-            content: [{ type: 'text', size: 'md', align: 'left', text: 'No handler yet for this file.' }]
+            content: [{ type: 'text', role: 'body', size: 'md', align: 'left', text: 'No handler yet for this file.' }]
           });
           return;
         }
@@ -374,16 +385,21 @@
   
       openPopup({
         title: 'Welcome',
-        caption: '',
         okText: 'Enter',
         content: [
-          { type: 'text', text: 'WELCOME', size: 'xl', align: 'center' },
+          // NEW: role title
+          { type: 'text', role: 'title', text: 'WELCOME', size: 'xl', align: 'center' },
           {
             type: 'text',
+            role: 'body',
             size: 'md',
             align: 'left',
             text:
-              'This is a long placeholder welcome message intended to test scrolling behavior inside the popup window.\n\n' +
+              'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis.\n\n' +
+              'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis.\n\n' +
+              'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis.\n\n' +
+              'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis.\n\n' +
+              'Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis.\n\n' +
               'Replace this with your real introduction copy when you’re ready.'
           }
         ]

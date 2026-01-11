@@ -6,408 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Jordan A. McKenzie - Portfolio</title>
   <link rel="icon" type="image/png" sizes="32x32" href="images/folder-32.png" />
-  <style>
-    @font-face {
-      font-family: 'Chicago';
-      src: url('fonts/pixChicago.woff2') format('woff2');
-      font-weight: normal;
-      font-style: normal;
-    }
-
-    * {
-      font-family: 'Chicago', sans-serif !important;
-      color: black;
-      font-size: 12px;
-      font-weight: normal !important;
-      margin: 0;
-      padding: 0;
-      -webkit-font-smoothing: none;
-      -moz-osx-font-smoothing: grayscale;
-      text-rendering: geometricPrecision;
-    }
-
-    input, textarea, button, select {
-      font-family: inherit !important;
-      font-size: inherit;
-      font-weight: inherit;
-    }
-
-    input::placeholder {
-      font-family: inherit !important;
-      font-weight: inherit;
-    }
-
-    body {
-      background: #ffffff;
-      margin: 0;
-      overflow: hidden;
-    }
-
-    body::before {
-      content: "";
-      position: fixed;
-      inset: 0;
-      border: 1px solid #000000;
-      pointer-events: none;
-      z-index: 2000;
-    }
-
-    .desktop {
-      position: absolute;
-      top: 38px;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-start;
-    }
-
-    .icon {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-decoration: none;
-      width: 99px;
-      text-align: center;
-      cursor: pointer;
-      position: absolute;
-      user-select: none;
-      padding: 6px;
-      transition: opacity 0.2s;
-    }
-
-    .icon img { width: 66px; height: auto; image-rendering: pixelated; }
-
-    .icon span {
-      font-size: 7px;
-      width: 66px;
-      max-width: 66px;
-      word-wrap: break-word;
-      text-align: center;
-    }
-
-    .icon.selected { opacity: 0.75; }
-
-    /* fallback positions if JS fails */
-    .desktop .icon:nth-of-type(1) { left: 10px; top: 10px; }
-    .desktop .icon:nth-of-type(2) { left: 121px; top: 10px; }
-    .desktop .icon:nth-of-type(3) { left: 232px; top: 10px; }
-    .desktop .icon:nth-of-type(4) { left: 343px; top: 10px; }
-    .desktop .icon:nth-of-type(5) { left: 454px; top: 10px; }
-
-    .taskbar {
-      position: fixed;
-      top: 0; left: 0;
-      width: 100%;
-      height: 30px;
-      display: flex;
-      align-items: center;
-      padding: 0 22px;
-      box-sizing: border-box;
-      z-index: 1000;
-
-      background: #dfdfdf;
-      border-top: 1px solid #ffffff;
-      border-bottom: 1px solid #000000;
-      box-shadow: inset 0 1px 0 #ffffff, inset 0 -1px 0 #6e6e6e;
-    }
-
-    @media (max-width: 768px) {
-      .taskbar {
-        top: auto !important;
-        bottom: 0 !important;
-        border-top: 1px solid #000000;
-        border-bottom: 1px solid #ffffff;
-        box-shadow: inset 0 -1px 0 #ffffff, inset 0 1px 0 #6e6e6e;
-      }
-      .desktop { top: 10px !important; }
-      .search-bar {
-        top: auto !important;
-        bottom: 34px !important;
-        right: 6px;
-      }
-    }
-
-    .taskbar::after {
-      content: "";
-      position: absolute;
-      left: 0; right: 0;
-      bottom: -1px;
-      height: 1px;
-      background: #000000;
-      pointer-events: none;
-    }
-
-    .left-group {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      min-width: 0;
-      flex: 0 1 auto;
-    }
-
-    .right-group {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      flex: 1 1 auto;
-      justify-content: flex-end;
-      min-width: 0;
-      overflow: hidden;
-    }
-
-    .menubar-folder, .menubar-search {
-      width: 16px;
-      height: 16px;
-      image-rendering: pixelated;
-      display: inline-block;
-    }
-
-    .menu-item {
-      display: inline-flex;
-      align-items: center;
-      min-height: 22px;
-      padding: 2px 6px;
-      box-sizing: border-box;
-      text-decoration: none;
-      color: #000;
-      background: transparent;
-      user-select: none;
-      line-height: normal;
-      border: 0;
-      cursor: pointer;
-      font: inherit;
-      white-space: nowrap;
-      max-width: 100%;
-      min-width: 0;
-    }
-
-    .taskbar-item { gap: 4px; flex: 0 1 auto; min-width: 0; }
-
-    .taskbar-label {
-      font-size: 12px;
-      line-height: normal;
-      user-select: none;
-      display: inline-block;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .menu-item:hover {
-      border-top: 1px solid #ffffff;
-      border-left: 1px solid #ffffff;
-      border-right: 1px solid #6f6f6f;
-      border-bottom: 1px solid #6f6f6f;
-      background: linear-gradient(#efefef, #dcdcdc);
-    }
-
-    .menu-item:active {
-      border-top: 1px solid #6f6f6f;
-      border-left: 1px solid #6f6f6f;
-      border-right: 1px solid #ffffff;
-      border-bottom: 1px solid #ffffff;
-      background: linear-gradient(#dcdcdc, #efefef);
-    }
-
-    .menubar-clock {
-      font-family: 'Chicago', sans-serif !important;
-      font-weight: normal;
-      font-size: 10px;
-      line-height: normal;
-      white-space: nowrap;
-      user-select: none;
-      padding: 2px 6px;
-      box-sizing: border-box;
-      flex: 0 0 auto;
-      overflow: visible;
-    }
-
-    .search-bar {
-      display: none;
-      position: fixed;
-      top: 23px;
-      right: 6px;
-      background: #efefef;
-      border: 1px solid #7d7d7d;
-      box-shadow: inset 0 1px 0 #ffffff;
-      height: 22px;
-      align-items: center;
-      padding: 0 6px;
-      z-index: 1001;
-    }
-
-    .search-bar input {
-      width: 160px;
-      background: transparent;
-      border: none;
-      outline: none;
-      padding: 2px 0;
-      height: 100%;
-      box-sizing: border-box;
-    }
-
-    /* Popup */
-    .popup-overlay {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255, 255, 255, 0.55);
-      z-index: 3001;
-    }
-
-    .popup-overlay.show { display: flex; }
-
-    .popup-window {
-      width: min(520px, calc(100vw - 40px));
-      max-width: calc(100vw - 40px);
-      max-height: calc(100vh - 80px);
-      background: #efefef;
-      border: 1px solid #000000;
-      box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000000;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-
-      position: fixed;
-      left: 50%;
-      top: 50%;
-      transform: translate(-50%, -50%);
-    }
-
-    .popup-titlebar {
-      height: 22px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      padding: 0 6px;
-      background: #dfdfdf;
-      border-top: 1px solid #ffffff;
-      border-bottom: 1px solid #000000;
-      box-shadow: inset 0 1px 0 #ffffff, inset 0 -1px 0 #6e6e6e;
-      user-select: none;
-      cursor: move;
-      flex: 0 0 auto;
-    }
-
-    .popup-title {
-      font-size: 12px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      flex: 1;
-    }
-
-    .popup-close {
-      width: 14px;
-      height: 14px;
-      padding: 0;
-      background: #dfdfdf;
-      border-top: 1px solid #ffffff;
-      border-left: 1px solid #ffffff;
-      border-right: 1px solid #6f6f6f;
-      border-bottom: 1px solid #6f6f6f;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      flex: 0 0 auto;
-    }
-
-    .popup-close:active {
-      border-top: 1px solid #6f6f6f;
-      border-left: 1px solid #6f6f6f;
-      border-right: 1px solid #ffffff;
-      border-bottom: 1px solid #ffffff;
-      background: #dcdcdc;
-    }
-
-    .popup-close::before {
-      content: "";
-      width: 8px;
-      height: 8px;
-      background: #000;
-      clip-path: polygon(
-        0 10%, 10% 0, 50% 40%, 90% 0, 100% 10%, 60% 50%,
-        100% 90%, 90% 100%, 50% 60%, 10% 100%, 0 90%, 40% 50%
-      );
-    }
-
-    .popup-body {
-      padding: 10px;
-      overflow: auto;
-      background: #ffffff;
-      border-top: 1px solid #6e6e6e;
-      box-shadow: inset 0 1px 0 #ffffff;
-      flex: 1 1 auto;
-      min-height: 0;
-    }
-
-    .popup-content { display: flex; flex-direction: column; gap: 10px; }
-
-    .popup-text { line-height: 1.4; white-space: pre-wrap; }
-    .popup-text.align-left { text-align: left; }
-    .popup-text.align-center { text-align: center; }
-    .popup-text.align-right { text-align: right; }
-
-    .popup-text.size-xs { font-size: 9px; }
-    .popup-text.size-sm { font-size: 10px; }
-    .popup-text.size-md { font-size: 12px; }
-    .popup-text.size-lg { font-size: 14px; }
-    .popup-text.size-xl { font-size: 16px; }
-
-    .popup-actions {
-      display: flex;
-      align-items: center;
-      padding: 6px 8px;
-      background: #efefef;
-      border-top: 1px solid #6e6e6e;
-      flex: 0 0 auto;
-      justify-content: center;
-      gap: 8px;
-    }
-
-    .popup-caption {
-      font-size: 10px;
-      line-height: 1;
-      user-select: none;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .popup-window.has-ok .popup-caption { display: none; }
-
-    .popup-ok {
-      -webkit-appearance: none;
-      appearance: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      box-sizing: border-box;
-      padding: 2px 16px;
-      min-height: 22px;
-      background: #dfdfdf;
-      border-top: 1px solid #ffffff;
-      border-left: 1px solid #ffffff;
-      border-right: 1px solid #6f6f6f;
-      border-bottom: 1px solid #6f6f6f;
-      cursor: pointer;
-      font: inherit;
-      font-size: 12px;
-      line-height: 1;
-      white-space: nowrap;
-      user-select: none;
-    }
-
-    .popup-ok:active {
-      border-top: 1px solid #6f6f6f;
-      border-left: 1px solid #6f6f6f;
-      border-right: 1px solid #ffffff;
-      border-bottom: 1px solid #ffffff;
-      background: #dcdcdc;
-    }
-  </style>
+  <link rel="stylesheet" href="css/app.css" />
 </head>
 
 <body data-page="home">
@@ -417,19 +16,21 @@
       <span>Architecture</span>
     </a>
 
-    <!-- FIXED: these should be inside /pages just like architecture -->
     <a href="pages/engineering.html" class="icon">
       <img src="images/folder-160.png" alt="Folder" />
       <span>Engineering</span>
     </a>
+
     <a href="pages/graphicdesign.html" class="icon">
       <img src="images/folder-160.png" alt="Folder" />
       <span>Graphic Design</span>
     </a>
+
     <a href="pages/aboutme.html" class="icon">
       <img src="images/folder-160.png" alt="Folder" />
       <span>About Me</span>
     </a>
+
     <a href="pages/8ball.html" class="icon">
       <img src="images/folder-160.png" alt="Folder" />
       <span>???</span>
@@ -442,7 +43,9 @@
         <img src="images/apple folder.png" alt="Apple Folder" class="menubar-folder" />
         <span class="taskbar-label">About</span>
       </button>
-      <a class="menu-item taskbar-item" href="mailto:jam@prtf.io"><span class="taskbar-label">E-mail</span></a>
+      <a class="menu-item taskbar-item" href="mailto:jam@prtf.io">
+        <span class="taskbar-label">E-mail</span>
+      </a>
     </div>
 
     <div class="right-group">
@@ -465,7 +68,14 @@
         <button class="popup-close" id="popupClose" type="button" aria-label="Close"></button>
         <div class="popup-title" id="popupTitle">Window</div>
       </div>
+
+      <!-- IMPORTANT:
+           app.js will render blocks like:
+           <div class="popup-text title">WELCOME</div>
+           <div class="popup-text body">...</div>
+           so the CSS you added applies (title centered, body justified). -->
       <div class="popup-body" id="popupBody"></div>
+
       <div class="popup-actions" id="popupActions">
         <div class="popup-caption" id="popupCaption"></div>
         <button class="popup-ok" id="popupOk" type="button">Enter</button>
