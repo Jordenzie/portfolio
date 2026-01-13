@@ -128,7 +128,7 @@
       min-height: 22px;
       padding: 2px 6px;
       background: transparent;
-      border: 0;              /* prevents “line under E-mail” */
+      border: 0;
       outline: none;
       cursor: pointer;
       font: inherit;
@@ -150,7 +150,7 @@
       border-right: 1px solid #6f6f6f;
       border-bottom: 1px solid #6f6f6f;
       background: linear-gradient(#efefef, #dcdcdc);
-      padding: 1px 5px; /* compensate for 1px borders */
+      padding: 1px 5px;
     }
 
     .menu-item:active {
@@ -159,7 +159,7 @@
       border-right: 1px solid #fff;
       border-bottom: 1px solid #fff;
       background: linear-gradient(#dcdcdc, #efefef);
-      padding: 1px 5px; /* compensate for 1px borders */
+      padding: 1px 5px;
     }
 
     .menubar-clock {
@@ -231,6 +231,7 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
+      font-size: 10px; /* 2pt smaller title (Loading...) */
     }
 
     .popup-close {
@@ -306,14 +307,34 @@
 
     .popup-caption { display: none !important; }
 
-    /* ---------- Popup Typography ---------- */
-    /* NOTE: your JS uses role-title / role-body classes */
     .popup-text {
+      white-space: pre-wrap;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+
+    /* justified paragraph text */
+    /* justified paragraph with last line left-aligned */
+    .popup-text.align-justify-last-left {
       text-align: justify;
       text-align-last: left;
-      white-space: pre-wrap; /* preserves your 
+    }
 
- line breaks */
+    /* last-line-left helper */
+    .popup-text.align-last-left {
+      text-align: justify;
+      text-align-last: left;
+    }
+
+    /* alignment helpers for popup blocks */
+    .popup-text.align-center {
+      text-align: center;
+      text-align-last: center;
+    }
+
+    /* welcome headline spacing */
+    .popup-text.role-welcome {
+      margin-bottom: 18px; /* ~one extra line of breathing room */
     }
 
     .popup-text.role-title {
@@ -321,7 +342,6 @@
       text-align-last: center;
     }
 
-    /* ---------- Popup Images (NEW) ---------- */
     .popup-media {
       display: flex;
       justify-content: center;
@@ -333,12 +353,11 @@
       image-rendering: pixelated;
       max-width: 100%;
       height: auto;
-      border: none;          /* removed outline for popup images only */
-      box-shadow: none;     /* removed shadow for popup images only */
+      border: none;
+      box-shadow: none;
       background: transparent;
     }
 
-    /* size helpers: constrain max width inside popup */
     .popup-media.size-xs img { max-width: 120px; }
     .popup-media.size-sm img { max-width: 180px; }
     .popup-media.size-md img { max-width: 240px; }
@@ -356,12 +375,8 @@
           inset 0 1px 0 #6e6e6e;
       }
 
-      /* compensate layout so content isn't hidden */
-      .desktop {
-        top: 10px !important;
-      }
+      .desktop { top: 10px !important; }
 
-      /* move search popup above bottom taskbar */
       .search-bar {
         top: auto !important;
         bottom: 34px !important;
@@ -372,29 +387,9 @@
 
 <body data-page="home">
   <div class="desktop" id="desktop">
-    <a href="pages/architecture.html" class="icon">
+    <a href="pages/j-mac.html" class="icon">
       <img src="images/folder-160.png" alt="Folder" />
-      <span>Architecture</span>
-    </a>
-
-    <a href="pages/engineering.html" class="icon">
-      <img src="images/folder-160.png" alt="Folder" />
-      <span>Engineering</span>
-    </a>
-
-    <a href="pages/graphicdesign.html" class="icon">
-      <img src="images/folder-160.png" alt="Folder" />
-      <span>Graphic Design</span>
-    </a>
-
-    <a href="pages/aboutme.html" class="icon">
-      <img src="images/folder-160.png" alt="Folder" />
-      <span>About Me</span>
-    </a>
-
-    <a href="pages/8ball.html" class="icon">
-      <img src="images/folder-160.png" alt="Folder" />
-      <span>???</span>
+      <span>J-Mac</span>
     </a>
   </div>
 
@@ -450,7 +445,6 @@
       function $(id) { return document.getElementById(id); }
       function isMobile() { return window.matchMedia && window.matchMedia("(max-width: 768px)").matches; }
 
-      // ---------- Elements (safe if missing) ----------
       var aboutBtn = $("aboutBtn");
       var findBtn = $("findBtn");
       var searchBarEl = $("searchBar");
@@ -466,7 +460,6 @@
       var popupCaptionEl = $("popupCaption");
       var popupOkBtn = $("popupOk");
 
-      // ---------- Popup rendering ----------
       function renderPopupContent(content) {
         var wrap = document.createElement("div");
         wrap.className = "popup-content";
@@ -485,7 +478,6 @@
             wrap.appendChild(d);
           }
 
-          // NEW: image/gif blocks
           if (block.type === "image") {
             var m = document.createElement("div");
             var size2 = block.size || "md";
@@ -497,8 +489,6 @@
 
             if (block.width) img.width = Number(block.width) || img.width;
             if (block.height) img.height = Number(block.height) || img.height;
-
-            // allow turning pixelation off per-image if needed
             if (block.pixelated === false) img.style.imageRendering = "auto";
 
             m.appendChild(img);
@@ -557,7 +547,6 @@
       window.openPopup = openPopup;
       window.closePopup = closePopup;
 
-      // ---------- Global About ----------
       function openAboutPopup() {
         openPopup({
           title: "About",
@@ -577,7 +566,6 @@
         });
       }
 
-      // ---------- About / Find bindings ----------
       if (aboutBtn) aboutBtn.addEventListener("click", function (e) { e.preventDefault(); openAboutPopup(); });
 
       function showSearch() {
@@ -598,7 +586,6 @@
       if (findBtn) findBtn.addEventListener("click", function (e) { e.preventDefault(); toggleSearch(); });
       if (searchInput) searchInput.addEventListener("blur", function () { hideSearch(); });
 
-      // ---------- Popup controls ----------
       if (popupClose) popupClose.addEventListener("click", function (e) { e.stopPropagation(); closePopup(); });
       if (popupOkBtn) popupOkBtn.addEventListener("click", function (e) { e.stopPropagation(); closePopup(); });
 
@@ -608,7 +595,6 @@
         });
       }
 
-      // ---------- Draggable popup titlebar ----------
       (function bindPopupDrag() {
         if (!popupTitlebar || !popupWindow) return;
 
@@ -663,7 +649,6 @@
         });
       })();
 
-      // ---------- Clock ----------
       (function initClock() {
         if (!clockEl) return;
 
@@ -683,7 +668,6 @@
         setInterval(tick, 1000);
       })();
 
-      // ---------- Desktop icons ----------
       var icons = Array.prototype.slice.call(document.querySelectorAll(".icon"));
 
       function layoutIcons() {
@@ -745,39 +729,6 @@
         icon.addEventListener("dblclick", function (e) {
           e.preventDefault();
 
-          // FILE OPEN
-          if (icon.classList.contains("file")) {
-            var file = icon.getAttribute("data-file") || "";
-
-            if (file === "example.txt") {
-              openPopup({
-                title: "example.txt",
-                okText: "Enter",
-                content: [
-                  { type: "text", role: "title", size: "lg", align: "center", text: "example.txt" },
-                  {
-                    type: "text",
-                    role: "body",
-                    size: "md",
-                    align: "left",
-                    text:
-                      "This is an example text file inside the Architecture folder." +
-                      "Replace this with real notes, project links, or whatever you want."
-                  }
-                ]
-              });
-              return;
-            }
-
-            openPopup({
-              title: file || "File",
-              okText: "Enter",
-              content: [{ type: "text", role: "body", size: "md", align: "left", text: "No handler yet for this file." }]
-            });
-            return;
-          }
-
-          // FOLDER / LINK OPEN
           var href = icon.getAttribute("href");
           if (href && href !== "#") window.location.href = href;
         });
@@ -826,13 +777,10 @@
         requestAnimationFrame(layoutIcons);
       });
 
-      // ---------- Welcome (home only) ----------
       (function maybeWelcome() {
         var page = document.body ? document.body.getAttribute("data-page") : "";
         if (page !== "home") return;
-        // show on mobile too
 
-        // Only show once per site visit (per-tab session)
         try {
           if (sessionStorage.getItem("welcomeShown") === "1") return;
           sessionStorage.setItem("welcomeShown", "1");
@@ -842,20 +790,10 @@
           title: "Loading...",
           okText: "Enter",
           content: [
-            { type: "text", role: "title", text: "Jordy loves Bonna", size: "xl", align: "center" },
-
-            // NEW: image/gif block example
-            // Put a file at: images/welcome.gif (or change this path to any .png/.jpg/.gif URL)
+            { type: "text", role: "title", text: (function(){ var d = new Date(); return d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }); })(), size: "xl", align: "center" },
             { type: "image", src: "images/earth.gif", alt: "Welcome", size: "lg" },
-
-            {
-              type: "text",
-              role: "body",
-              size: "md",
-              align: "left",
-              text:
-                "I love Bonna more than anything in this world... duh"
-            }
+            { type: "text", role: "welcome", size: "md", align: "center", text: "Welcome to my portfolio!" },
+            { type: "text", role: "body", size: "md", align: "justify-last-left", text: "This is a collection of my work, personal projects, and ideas in progress. You can take a look around and see what I’ve been building. I hope you enjoy your time while you're here." }
           ]
         });
       })();
