@@ -830,7 +830,7 @@
       (function maybeWelcome() {
         var page = document.body ? document.body.getAttribute("data-page") : "";
         if (page !== "home") return;
-        if (isMobile()) return;
+        // show on mobile too
 
         // Only show once per site visit (per-tab session)
         try {
@@ -854,7 +854,7 @@
               size: "md",
               align: "left",
               text:
-                "I love Bonna more than anything in this whole world... duh"
+                "I love Bonna more than anything in this world... duh"
             }
           ]
         });
