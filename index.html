@@ -311,7 +311,9 @@
     .popup-text {
       text-align: justify;
       text-align-last: left;
-      white-space: pre-wrap; /* preserves your \n\n line breaks */
+      white-space: pre-wrap; /* preserves your 
+
+ line breaks */
     }
 
     .popup-text.role-title {
@@ -319,28 +321,52 @@
       text-align-last: center;
     }
 
+    /* ---------- Popup Images (NEW) ---------- */
+    .popup-media {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 10px 0;
+    }
+
+    .popup-media img {
+      image-rendering: pixelated;
+      max-width: 100%;
+      height: auto;
+      border: none;          /* removed outline for popup images only */
+      box-shadow: none;     /* removed shadow for popup images only */
+      background: transparent;
+    }
+
+    /* size helpers: constrain max width inside popup */
+    .popup-media.size-xs img { max-width: 120px; }
+    .popup-media.size-sm img { max-width: 180px; }
+    .popup-media.size-md img { max-width: 240px; }
+    .popup-media.size-lg img { max-width: 320px; }
+    .popup-media.size-xl img { max-width: 420px; }
+
     @media (max-width: 768px) {
-  .taskbar {
-    top: auto !important;
-    bottom: 0 !important;
-    border-top: 1px solid #000000;
-    border-bottom: 1px solid #ffffff;
-    box-shadow:
-      inset 0 -1px 0 #ffffff,
-      inset 0 1px 0 #6e6e6e;
-  }
+      .taskbar {
+        top: auto !important;
+        bottom: 0 !important;
+        border-top: 1px solid #000000;
+        border-bottom: 1px solid #ffffff;
+        box-shadow:
+          inset 0 -1px 0 #ffffff,
+          inset 0 1px 0 #6e6e6e;
+      }
 
-  /* compensate layout so content isn't hidden */
-  .desktop {
-    top: 10px !important;
-  }
+      /* compensate layout so content isn't hidden */
+      .desktop {
+        top: 10px !important;
+      }
 
-  /* move search popup above bottom taskbar */
-  .search-bar {
-    top: auto !important;
-    bottom: 34px !important;
-  }
-}
+      /* move search popup above bottom taskbar */
+      .search-bar {
+        top: auto !important;
+        bottom: 34px !important;
+      }
+    }
   </style>
 </head>
 
@@ -458,6 +484,26 @@
             d.textContent = block.text || "";
             wrap.appendChild(d);
           }
+
+          // NEW: image/gif blocks
+          if (block.type === "image") {
+            var m = document.createElement("div");
+            var size2 = block.size || "md";
+            m.className = "popup-media size-" + size2;
+
+            var img = document.createElement("img");
+            img.src = block.src || "";
+            img.alt = block.alt || "";
+
+            if (block.width) img.width = Number(block.width) || img.width;
+            if (block.height) img.height = Number(block.height) || img.height;
+
+            // allow turning pixelation off per-image if needed
+            if (block.pixelated === false) img.style.imageRendering = "auto";
+
+            m.appendChild(img);
+            wrap.appendChild(m);
+          }
         });
 
         return wrap;
@@ -524,7 +570,7 @@
               size: "md",
               align: "left",
               text:
-                "This site is a portfolio presented as a classic Macintosh desktop.\n\n" +
+                "This site is a portfolio presented as a classic Macintosh desktop." +
                 "Click folders to explore projects and work."
             }
           ]
@@ -715,7 +761,7 @@
                     size: "md",
                     align: "left",
                     text:
-                      "This is an example text file inside the Architecture folder.\n\n" +
+                      "This is an example text file inside the Architecture folder." +
                       "Replace this with real notes, project links, or whatever you want."
                   }
                 ]
@@ -793,22 +839,22 @@
         } catch (e) {}
 
         openPopup({
-          title: "Welcome",
+          title: "Loading...",
           okText: "Enter",
           content: [
-            { type: "text", role: "title", text: "WELCOME", size: "xl", align: "center" },
+            { type: "text", role: "title", text: "Jordy loves Bonna", size: "xl", align: "center" },
+
+            // NEW: image/gif block example
+            // Put a file at: images/welcome.gif (or change this path to any .png/.jpg/.gif URL)
+            { type: "image", src: "images/earth.gif", alt: "Welcome", size: "lg" },
+
             {
               type: "text",
               role: "body",
               size: "md",
               align: "left",
               text:
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis.\n\n" +
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis.\n\n" +
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis.\n\n" +
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis.\n\n" +
-                "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Quis ipsum suspendisse ultrices gravida. Risus commodo viverra maecenas accumsan lacus vel facilisis.\n\n" +
-                "Replace this with your real introduction copy when you’re ready."
+                "I love Bonna more than anything in this whole world... duh"
             }
           ]
         });
