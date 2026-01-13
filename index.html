@@ -1,4 +1,4 @@
-<!doctype html>
+<!doctype html> 
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -310,31 +310,39 @@
     .popup-text {
       white-space: pre-wrap;
       font-size: 12px;
-      line-height: 1.5;
+      line-height: 1.8;
     }
 
-    /* justified paragraph text */
-    /* justified paragraph with last line left-aligned */
     .popup-text.align-justify-last-left {
       text-align: justify;
       text-align-last: left;
     }
 
-    /* last-line-left helper */
     .popup-text.align-last-left {
       text-align: justify;
       text-align-last: left;
     }
 
-    /* alignment helpers for popup blocks */
     .popup-text.align-center {
       text-align: center;
       text-align-last: center;
     }
 
-    /* welcome headline spacing */
     .popup-text.role-welcome {
-      margin-bottom: 18px; /* ~one extra line of breathing room */
+      margin-bottom: 18px;
+    }
+
+    /* ---------- Welcome wave animation ---------- */
+    .popup-text.role-welcome.wave span {
+      display: inline-block;
+      animation: welcomeWave 1.6s ease-in-out infinite;
+      animation-delay: calc(var(--i) * 0.06s);
+      will-change: transform;
+    }
+
+    @keyframes welcomeWave {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-4px); }
     }
 
     .popup-text.role-title {
@@ -418,7 +426,6 @@
     <input id="searchInput" type="text" placeholder="Find..." />
   </div>
 
-  <!-- Popup (shared everywhere) -->
   <div class="popup-overlay" id="popupOverlay" role="dialog" aria-modal="true" aria-hidden="true">
     <div class="popup-window" id="popupWindow">
       <div class="popup-titlebar" id="popupTitlebar">
@@ -435,9 +442,6 @@
     </div>
   </div>
 
-  <!-- ======================
-       Embedded JS (combined)
-       ====================== -->
   <script defer>
     (function () {
       "use strict";
@@ -541,6 +545,10 @@
         if (!popupOverlay) return;
         popupOverlay.classList.remove("show");
         popupOverlay.setAttribute("aria-hidden", "true");
+
+        // Stop welcome clock updates when the popup closes
+        try { if (window.__welcomeClockTimer) { clearInterval(window.__welcomeClockTimer); window.__welcomeClockTimer = null; } } catch (e) {}
+
         resetPopupPosition();
       }
 
@@ -790,12 +798,58 @@
           title: "Loading...",
           okText: "Enter",
           content: [
-            { type: "text", role: "title", text: (function(){ var d = new Date(); return d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" }); })(), size: "xl", align: "center" },
+            { type: "text", role: "title", text: "", size: "xl", align: "center" },
             { type: "image", src: "images/earth.gif", alt: "Welcome", size: "lg" },
             { type: "text", role: "welcome", size: "md", align: "center", text: "Welcome to my portfolio!" },
-            { type: "text", role: "body", size: "md", align: "justify-last-left", text: "This is a collection of my work, personal projects, and ideas in progress. You can take a look around and see what I’ve been building. I hope you enjoy your time while you're here." }
+            { type: "text", role: "body", size: "md", align: "justify-last-left", text: "Here you can find a collection of my work, personal projects, and ideas-in-progress. Feel free to take a look around and see what I’ve been building. I hope you enjoy your time spent while you're here." }
           ]
         });
+
+        // Wave animation on the welcome line
+        try {
+          var welcomeLine = popupBodyEl ? popupBodyEl.querySelector(".popup-text.role-welcome") : null;
+          if (welcomeLine && !welcomeLine.classList.contains("wave")) {
+            var raw = welcomeLine.textContent || "";
+            var html = "";
+            for (var i = 0; i < raw.length; i++) {
+              var ch = raw[i];
+              if (ch === " ") {
+                html += "&nbsp;";
+              } else {
+                if (ch === "&") ch = "&amp;";
+                else if (ch === "<") ch = "&lt;";
+                else if (ch === ">") ch = "&gt;";
+                html += '<span style="--i:' + i + '">' + ch + "</span>";
+              }
+            }
+            welcomeLine.innerHTML = html;
+            welcomeLine.classList.add("wave");
+          }
+        } catch (e) {}
+
+        // Live date + time with blinking colon (like the menubar clock)
+        try { if (window.__welcomeClockTimer) clearInterval(window.__welcomeClockTimer); } catch (e) {}
+
+        var welcomeTitleEl = popupBodyEl ? popupBodyEl.querySelector(".popup-text.role-title") : null;
+        function tickWelcomeTitle() {
+          if (!welcomeTitleEl) return;
+          var d = new Date();
+          var dateStr = d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+
+          var h = d.getHours();
+          var m = d.getMinutes();
+          var ampm = h >= 12 ? "PM" : "AM";
+          h = h % 12;
+          if (h === 0) h = 12;
+          var mm = (m < 10 ? "0" + m : "" + m);
+          var colon = (d.getSeconds() % 2 === 0) ? ":" : " ";
+
+          // newline works because .popup-text uses white-space: pre-wrap
+          welcomeTitleEl.textContent = dateStr + "\n" + h + colon + mm + " " + ampm;
+
+        }
+        tickWelcomeTitle();
+        window.__welcomeClockTimer = setInterval(tickWelcomeTitle, 1000);
       })();
     })();
   </script>
