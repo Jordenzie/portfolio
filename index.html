@@ -33,10 +33,18 @@
 
     /* ---------- Base ---------- */
     body {
-      background: #ffffff;
+      background: #ffffff; /* desktop background */
       margin: 0;
       overflow: hidden;
+      min-height: 100vh; /* prevent html (black) showing at odd viewport sizes */
     }
+
+    /* Out-of-bounds page background (only visible when zooming/overscrolling) */
+    html {
+      background: #000;
+    }
+
+    html, body { height: 100%; }
 
     body::before {
       content: "";
@@ -458,7 +466,40 @@
     .popup-media.size-lg img { max-width: 320px; }
     .popup-media.size-xl img { max-width: 420px; }
 
+    /* Desktop taskbar: pinned to top */
+    .taskbar {
+      top: 0;
+      bottom: auto;
+    }
+
+    /* Force top taskbar for any non-mobile width */
+    @media (min-width: 769px) {
+      body { padding-bottom: 0 !important; }
+      .taskbar { top: 0 !important; bottom: auto !important; }
+      .search-bar { top: 30px !important; bottom: auto !important; }
+    }
+
     @media (max-width: 768px) {
+      html {
+        background: #000; /* out-of-bounds */
+      }
+
+      body {
+        background: #ffffff !important; /* desktop stays white */
+        min-height: 100vh;
+        height: auto;
+        overflow-y: scroll !important;
+        overflow-x: hidden !important;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: none;
+        padding-bottom: 44px; /* room for bottom taskbar */
+      }
+
+      /* Give desktop extra bottom room so icons never peek under the fixed taskbar */
+      #desktop {
+        padding-bottom: 90px;
+      }
+
       .taskbar {
         top: auto !important;
         bottom: 0 !important;
@@ -469,7 +510,11 @@
           inset 0 1px 0 #6e6e6e;
       }
 
-      .desktop { top: 10px !important; }
+      .desktop {
+        top: 10px !important;
+        position: relative !important;
+        background: transparent;
+      }
 
       .search-bar {
         top: auto !important;
@@ -479,6 +524,7 @@
       /* Hide Find button on mobile */
       #findBtn { display: none !important; }
     }
+
   </style>
 </head>
 
@@ -586,6 +632,7 @@
       function isMobile() { return window.matchMedia && window.matchMedia("(max-width: 768px)").matches; }
 
       var aboutBtn = $("aboutBtn");
+      var desktopEl = $("desktop");
       var findBtn = $("findBtn");
       var searchBarEl = $("searchBar");
       var searchInput = $("searchInput");
@@ -1296,6 +1343,15 @@
             x += iconW + gapX;
           }
         });
+
+        // Make the page scrollable on mobile by giving the desktop a real height.
+        // (Icons are absolutely positioned, so without this the document height stays tiny.)
+        try {
+          var rows = Math.ceil(icons.length / cols);
+          var totalH = paddingTop + (rows * iconH) + ((rows - 1) * gapY);
+          var extra = isMobile() ? 80 : 20;
+          if (desktopEl) desktopEl.style.height = (totalH + extra) + "px";
+        } catch (e) {}
       }
 
       function clearSelections() { icons.forEach(function (i) { i.classList.remove("selected"); }); }
