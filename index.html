@@ -1,4 +1,4 @@
-<!doctype html> 
+<!doctype html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
@@ -7,9 +7,6 @@
 
   <link rel="icon" type="image/png" sizes="32x32" href="images/folder-32.png" />
 
-  <!-- ======================
-       Embedded CSS (combined)
-       ====================== -->
   <style>
     /* ---------- Fonts ---------- */
     @font-face {
@@ -88,7 +85,7 @@
       width: 78px;
       margin-top: 6px;
       line-height: 1.2;
-      height: 24px;
+      height: 24px;               /* fixed label box for baseline alignment */
       display: flex;
       align-items: flex-start;
       justify-content: center;
@@ -197,7 +194,7 @@
     }
 
     .search-bar input {
-      width: 240px;
+      width: 240px; /* 1.5x (was 160px) */
       border: none;
       background: transparent;
       outline: none;
@@ -346,6 +343,7 @@
       );
     }
 
+    /* active behavior also on hover */
     .popup-close:active,
     .popup-close:hover {
       border-top: 1px solid #6f6f6f;
@@ -381,9 +379,10 @@
       border-left: 1px solid #fff;
       border-right: 1px solid #6f6f6f;
       border-bottom: 1px solid #6f6f6f;
-      cursor: pointer;
+      cursor: pointer; /* pointer cursor like X */
     }
 
+    /* active behavior also on hover */
     .popup-ok:active,
     .popup-ok:hover {
       border-top: 1px solid #6f6f6f;
@@ -485,7 +484,7 @@
 
 <body data-page="home">
   <div class="desktop" id="desktop">
-    <a href="pages/j-mac.html" class="icon">
+    <a href="pages/j-mac.html" class="icon" data-kind="folder">
       <img src="images/folder-160.png" alt="Folder" />
       <span>J-Mac</span>
     </a>
@@ -501,30 +500,36 @@
     </a>
 
     <a href="#" class="icon" data-kind="file">
+      <img src="images/nike.jpg" alt="Image" />
+      <span>Nike.jpg</span>
+    </a>
+
+    <a href="#" class="icon" data-kind="file">
       <img src="images/text-160.png" alt="Text File" />
       <span>notes_03.txt</span>
     </a>
 
-    <!-- Example files -->
-    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>draft_01.txt</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>ideas.md</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>resume_v2.txt</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>todo.txt</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>meeting_notes.txt</span></a>
+    <!-- Example files (real images for stress testing) -->
+    <a href="#" class="icon" data-kind="file"><img src="images/apple folder.png" alt="Image" /><span>apple folder.png</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/apple folder copy.png" alt="Image" /><span>apple folder copy.png</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/return folder.png" alt="Image" /><span>return folder.png</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/return folder copy.png" alt="Image" /><span>return folder copy.png</span></a>
 
-    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>concept.png</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>layout.png</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>wireframe.jpg</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>screenshot.png</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/green.gif" alt="GIF" /><span>green.gif</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/star.gif" alt="GIF" /><span>star.gif</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/earth.gif" alt="GIF" /><span>earth.gif</span></a>
 
-    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>log_2024.txt</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>notes_old.txt</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>random.txt</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/LV.png" alt="Image" /><span>LV.png</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/Nike_swoosh_logo71.png" alt="Image" /><span>Nike_swoosh_logo71.png</span></a>
 
-    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>photo_01.jpg</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>photo_02.jpg</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>photo_03.jpg</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/search icon-32.png" alt="Image" /><span>search icon-32.png</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/search icon-64.png" alt="Image" /><span>search icon-64.png</span></a>
 
+    <a href="#" class="icon" data-kind="file"><img src="images/folder-32.png" alt="Image" /><span>folder-32.png</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/folder-64.png" alt="Image" /><span>folder-64.png</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/folder-160.png" alt="Image" /><span>folder-160.png</span></a>
+
+    <!-- extra non-image files (still searchable) -->
     <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>readme.txt</span></a>
     <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>changelog.txt</span></a>
     <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>specs.txt</span></a>
@@ -678,7 +683,12 @@
         popupOverlay.classList.remove("show");
         popupOverlay.setAttribute("aria-hidden", "true");
 
-        try { if (window.__welcomeClockTimer) { clearInterval(window.__welcomeClockTimer); window.__welcomeClockTimer = null; } } catch (e) {}
+        try {
+          if (window.__welcomeClockTimer) {
+            clearInterval(window.__welcomeClockTimer);
+            window.__welcomeClockTimer = null;
+          }
+        } catch (e) {}
 
         resetPopupPosition();
       }
@@ -796,15 +806,13 @@
       // =====================
       // Find / Search Index (Spotlight-ish)
       // =====================
-      function safeText(s) {
-        return String(s || "");
-      }
+      function safeText(s) { return String(s || ""); }
       function escHtml(s) {
         return safeText(s)
           .replace(/&/g, "&amp;")
           .replace(/</g, "&lt;")
           .replace(/>/g, "&gt;")
-          .replace(/\"/g, "&quot;")
+          .replace(/\\"/g, "&quot;")
           .replace(/'/g, "&#39;");
       }
 
@@ -949,19 +957,6 @@
         }
       }
 
-      function isRecentItem(it) {
-        try {
-          var key = ((it.kind || "") + "|" + (it.href || "") + "|" + (it.name || "")).toLowerCase();
-          var rec = getRecents();
-          for (var i = 0; i < rec.length; i++) {
-            var r = rec[i];
-            var rkey = ((r.kind || "") + "|" + (r.href || "") + "|" + (r.name || "")).toLowerCase();
-            if (rkey === key) return true;
-          }
-        } catch (e) {}
-        return false;
-      }
-
       function pushRecent(it) {
         try {
           var rec = getRecents();
@@ -1058,7 +1053,6 @@
 
           var nameEl = document.createElement("span");
           nameEl.className = "search-result-name";
-          // highlight
           nameEl.innerHTML = highlightName(it.name, idxs);
 
           leftWrap.appendChild(icon);
@@ -1124,6 +1118,7 @@
           var k = ((it.kind || "") + "|" + (it.href || "") + "|" + (it.name || "")).toLowerCase();
           return !!exists[k];
         });
+
         if (!rec.length) {
           if (searchResultsEl) searchResultsEl.style.display = "none";
           return;
@@ -1149,6 +1144,7 @@
             showRecentsIfEmpty();
             return;
           }
+          // once typing starts, recents go away and results show default class labels
           renderResults(matchItems(q), q, { defaultSelectTop: true });
         });
 
@@ -1163,7 +1159,6 @@
             setActiveRow(Math.max(0, activeIdx - 1));
           } else if (e.key === "Enter") {
             e.preventDefault();
-            // Spotlight behavior: enter opens active, else top
             var pick = null;
             if (activeIdx >= 0 && currentMatches[activeIdx]) pick = currentMatches[activeIdx].item || currentMatches[activeIdx];
             else if (currentMatches[0]) pick = currentMatches[0].item || currentMatches[0];
@@ -1175,8 +1170,7 @@
         });
       }
 
-      // When Find opens, show recents immediately
-      // (SEARCH_INDEX is rebuilt in showSearch())
+      // When Find opens, show recents immediately (SEARCH_INDEX is rebuilt in showSearch())
       var __oldShowSearch = showSearch;
       showSearch = function () {
         __oldShowSearch();
@@ -1218,7 +1212,6 @@
         var available = Math.max(1, window.innerWidth - margin * 2);
         var cols = Math.max(1, Math.floor((available + gapX) / (iconW + gapX)));
 
-        // Center the grid on mobile (and generally keep it nicely centered if roomy)
         var gridW = cols * iconW + (cols - 1) * gapX;
 
         // Center only on mobile (<=768px)
@@ -1286,7 +1279,7 @@
           var kind = icon.getAttribute("data-kind") || "folder";
           var imgEl = icon.querySelector("img");
 
-          // Image preview
+          // Image preview (desktop files)
           if (kind === "file" && imgEl && imgEl.src && /\.(png|jpg|jpeg|gif|webp)$/i.test(imgEl.src)) {
             openPopup({
               title: icon.querySelector("span") ? icon.querySelector("span").textContent : "Image",
@@ -1402,8 +1395,7 @@
           var mm = (m < 10 ? "0" + m : "" + m);
           var colon = (d.getSeconds() % 2 === 0) ? ":" : " ";
 
-          welcomeTitleEl.textContent = dateStr + "" + h + colon + mm + " " + ampm;
-
+          welcomeTitleEl.textContent = dateStr + " " + h + colon + mm + " " + ampm;
         }
         tickWelcomeTitle();
         window.__welcomeClockTimer = setInterval(tickWelcomeTitle, 1000);
