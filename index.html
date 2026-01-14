@@ -894,6 +894,7 @@
       var GLOBAL_INDEX = [];
       var activeIdx = -1;
       var currentMatches = [];
+      var findIsRecentsView = false;
       var RECENTS_KEY = "prtf_find_recents_v1";
 
       function normalizeItem(it) {
@@ -1040,10 +1041,8 @@
 
       function activateTopSuggestion() {
         try {
-          // Ensure recents show when empty
-          if (searchInput && !(searchInput.value || "").trim()) {
-            showRecentsIfEmpty();
-          }
+          // Recents (empty query) require explicit selection via arrows/click.
+          if (findIsRecentsView && activeIdx < 0) return false;
           if (!currentMatches || !currentMatches.length) return false;
           var pick = null;
           if (activeIdx >= 0 && currentMatches[activeIdx]) pick = currentMatches[activeIdx].item || currentMatches[activeIdx];
@@ -1102,6 +1101,7 @@
         opts = opts || {};
         currentMatches = (list || []).slice(0);
         activeIdx = -1;
+        findIsRecentsView = !!opts.isRecentsView;
 
         if (!searchResultsEl) return;
         searchResultsEl.innerHTML = "";
@@ -1154,8 +1154,8 @@
 
         searchResultsEl.style.display = "block";
 
-        // Spotlight behavior: default to top result
-        if (opts.defaultSelectTop && currentMatches.length) {
+        // Spotlight behavior: default to top result (but NOT for Recents)
+        if (opts.defaultSelectTop && currentMatches.length && !opts.isRecentsView) {
           setActiveRow(0);
         }
       }
@@ -1202,7 +1202,7 @@
         }
         // Render as rows without scoring
         var rows = rec.map(function (it) { return { item: it, score: 999, idxs: [] }; });
-        renderResults(rows, "", { defaultSelectTop: true, isRecentsView: true });
+        renderResults(rows, "", { defaultSelectTop: false, isRecentsView: true });
       }
 
       // Keyboard shortcut: Cmd/Ctrl+F or Cmd/Ctrl+K opens Find
@@ -1228,16 +1228,10 @@
           return;
         }
 
-        // If Find is open, Enter should activate the top suggestion (even if focus isn't in the input)
+        // If Find is open, Enter activates the selected row.
+        // For Recents (empty query), Enter only works after the user selects a recent via arrows/click.
         if (searchBarEl && searchBarEl.style.display === "flex") {
           e.preventDefault();
-
-          // Ensure we have suggestions to activate (recents when query is empty)
-          if (!currentMatches || !currentMatches.length) {
-            showRecentsIfEmpty();
-          }
-
-          // Activate on next tick to allow any render to complete
           setTimeout(function () { activateTopSuggestion(); }, 0);
           return;
         }
