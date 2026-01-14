@@ -299,6 +299,17 @@
       height: 100%;
       width: 0%;
       background: repeating-linear-gradient(90deg, #000 0px, #000 3px, transparent 3px, transparent 6px);
+      background-position: 0 0;
+    }
+
+    .loader-fill.indeterminate {
+      width: 100% !important;
+      animation: loaderSlide 0.35s linear infinite;
+    }
+
+    @keyframes loaderSlide {
+      from { background-position: 0 0; }
+      to { background-position: 12px 0; }
     }
     .loader-hint { font-size: 10px; margin-top: 6px; opacity: 0.8; }
 
@@ -706,6 +717,12 @@
             wrap.appendChild(m);
           }
 
+          if (block.type === "spacer") {
+            var sp = document.createElement("div");
+            sp.style.height = (block.height || 120) + "px";
+            wrap.appendChild(sp);
+          }
+
           if (block.type === "loader") {
             var lw = document.createElement("div");
             lw.className = "loader-wrap";
@@ -787,6 +804,13 @@
           }
         } catch (e) {}
 
+        try {
+          if (window.__loaderDotsTimer) {
+            clearInterval(window.__loaderDotsTimer);
+            window.__loaderDotsTimer = null;
+          }
+        } catch (e) {}
+
         resetPopupPosition();
       }
 
@@ -812,20 +836,33 @@
         }, 50);
       }
 
+      function startLoaderDots() {
+        // Animate titlebar: Loading. -> Loading...
+        try { if (window.__loaderDotsTimer) clearInterval(window.__loaderDotsTimer); } catch (e) {}
+        var i = 0;
+        window.__loaderDotsTimer = setInterval(function () {
+          i = (i + 1) % 4;
+          if (popupTitleEl) popupTitleEl.textContent = "Loading" + ".".repeat(i);
+        }, 350);
+        // set immediately
+        if (popupTitleEl) popupTitleEl.textContent = "Loading";
+      }
+
       function showLoadingScreen(opts) {
+        // Timed (faux) loader
         opts = opts || {};
         var fillId = "loaderFill_" + Math.random().toString(16).slice(2);
 
         openPopup({
-          title: opts.title || "Loading…",
+          title: "Loading...",
           okText: null,
           preservePosition: true,
-          content: [
-            { type: "text", role: "title", text: opts.headline || "Loading…", size: "lg", align: "center" },
-            { type: "image", src: opts.icon || "images/earth.gif", alt: "", size: "sm" },
+          content: [,
             { type: "loader", id: fillId, label: opts.label || "Loading…", hint: opts.hint || "" }
           ]
         });
+
+        startLoaderDots();
 
         runLoader(fillId, opts.durationMs || 750, function () {
           try { closePopup(); } catch (e) {}
@@ -833,7 +870,61 @@
         });
       }
 
+      // Real-duration loader: stays up until this page finishes loading.
+      function showLoadingUntilPageLoad(opts) {
+        opts = opts || {};
+        var fillId = "loaderFill_" + Math.random().toString(16).slice(2);
+
+        openPopup({
+          title: "Loading...",
+          okText: null,
+          preservePosition: true,
+          content: [
+            
+            { type: "image", src: opts.icon || "images/earth.gif", alt: "", size: "sm" },
+            { type: "loader", id: fillId, label: opts.label || "Loading…", hint: opts.hint || "" }
+          ]
+        });
+
+        startLoaderDots();
+
+        // Indeterminate barber-pole until load completes
+        setTimeout(function () {
+          var fill = document.getElementById(fillId);
+          if (fill) {
+            fill.classList.add("indeterminate");
+            fill.style.width = "100%";
+          }
+        }, 0);
+
+        // Close when the page is fully loaded
+        window.addEventListener("load", function onL() {
+          window.removeEventListener("load", onL);
+          try { closePopup(); } catch (e) {}
+          if (typeof opts.onDone === "function") opts.onDone();
+        });
+      }
+
+      // Cross-page loader (Option A): previous page sets a flag; next page shows until load.
+      function maybeStartPendingLoader() {
+        var key = "prtf_pending_loader_v1";
+        var raw = null;
+        try { raw = sessionStorage.getItem(key); } catch (e) {}
+        if (!raw) return false;
+
+        try { sessionStorage.removeItem(key); } catch (e) {}
+
+        var opts = null;
+        try { opts = JSON.parse(raw); } catch (e) { opts = null; }
+        if (!opts || typeof opts !== "object") opts = {};
+
+        showLoadingUntilPageLoad(opts);
+        return true;
+      }
+
       window.showLoadingScreen = showLoadingScreen;
+      window.showLoadingUntilPageLoad = showLoadingUntilPageLoad;
+      window.maybeStartPendingLoader = maybeStartPendingLoader;
 
       function openAboutPopup() {
         openPopup({
@@ -1492,15 +1583,20 @@
           }
 
           if (href && href !== "#") {
-            // OS9-style loading screen for folders before navigation
-            showLoadingScreen({
-              title: "Opening…",
-              headline: (icon.querySelector("span") ? icon.querySelector("span").textContent : "Folder"),
-              label: "Loading items…",
-              hint: "Reading folder contents…",
-              durationMs: 650,
-              onDone: function () { window.location.href = href; }
-            });
+            // Cross-page loader (Option A): set a flag, navigate immediately.
+            try {
+              sessionStorage.setItem(
+                "prtf_pending_loader_v1",
+                JSON.stringify({
+                  title: "Loading...",
+                  headline: (icon.querySelector("span") ? icon.querySelector("span").textContent : "Folder"),
+                  label: "Loading items…",
+                  hint: "Reading folder contents…",
+                  icon: "images/folder-160.png"
+                })
+              );
+            } catch (e) {}
+            window.location.href = href;
           }
         });
       });
@@ -1611,20 +1707,32 @@
         window.__welcomeClockTimer = setInterval(tickWelcomeTitle, 1000);
       }
 
-      // OS9-style boot/loading screen on page load, then show the normal welcome popup (home only).
-      window.addEventListener("load", function () {
-        var page = document.body ? document.body.getAttribute("data-page") : "";
-        showLoadingScreen({
-          title: "Welcome",
-          headline: "Mac OS 9",
-          label: "Loading desktop…",
-          hint: "Initializing extensions…",
-          durationMs: 800,
-          onDone: function () {
-            if (page === "home") maybeWelcome();
-          }
+      // If we navigated here from a folder click, show a real-duration loader until this page finishes loading.
+      var hadPending = false;
+      try { hadPending = maybeStartPendingLoader(); } catch (e) { hadPending = false; }
+
+      // Otherwise, show an OS9-style boot/loading screen on page load (timed), then the welcome popup (home only).
+      if (!hadPending) {
+        window.addEventListener("load", function () {
+          var page = document.body ? document.body.getAttribute("data-page") : "";
+          showLoadingScreen({
+            title: "Welcome",
+            headline: "",
+            label: "Loading desktop…",
+            hint: "Initializing extensions…",
+            durationMs: 800,
+            onDone: function () {
+              if (page === "home") maybeWelcome();
+            }
+          });
         });
-      });
+      } else {
+        // If pending loader just ran and we're on home, show welcome after load.
+        window.addEventListener("load", function () {
+          var page2 = document.body ? document.body.getAttribute("data-page") : "";
+          if (page2 === "home") maybeWelcome();
+        });
+      }
 
     })();
   </script>
