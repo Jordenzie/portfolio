@@ -63,23 +63,37 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      justify-content: flex-start;
       width: 99px;
+      height: 120px;
       text-align: center;
       cursor: pointer;
       position: absolute;
       user-select: none;
       padding: 6px;
+      box-sizing: border-box;
     }
 
     .icon img {
       width: 66px;
+      height: 66px;
+      object-fit: contain;
       image-rendering: pixelated;
+      flex: 0 0 auto;
+      margin-top: 2px;
     }
 
     .icon span {
-      font-size: 7px;
-      width: 66px;
-      word-wrap: break-word;
+      font-size: 10px;
+      width: 78px;
+      margin-top: 6px;
+      line-height: 1.2;
+      height: 24px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      word-break: break-word;
+      overflow: hidden;
     }
 
     .icon.selected { opacity: 0.75; }
@@ -484,14 +498,34 @@
     </a>
 
     <a href="#" class="icon" data-kind="file">
-      <img src="images/image-160.png" alt="Image" />
-      <span>sunset.png</span>
-    </a>
-
-    <a href="#" class="icon" data-kind="file">
       <img src="images/text-160.png" alt="Text File" />
       <span>notes_03.txt</span>
     </a>
+
+    <!-- Example files -->
+    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>draft_01.txt</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>ideas.md</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>resume_v2.txt</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>todo.txt</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>meeting_notes.txt</span></a>
+
+    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>concept.png</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>layout.png</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>wireframe.jpg</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>screenshot.png</span></a>
+
+    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>log_2024.txt</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>notes_old.txt</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>random.txt</span></a>
+
+    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>photo_01.jpg</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>photo_02.jpg</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/image-160.png" alt="Image" /><span>photo_03.jpg</span></a>
+
+    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>readme.txt</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>changelog.txt</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>specs.txt</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>archive_list.txt</span></a>
   </div>
 
   <div class="taskbar">
@@ -1140,24 +1174,41 @@
       function layoutIcons() {
         if (!icons.length) return;
 
-        var paddingLeft = 10;
-        var paddingTop = 10;
         var gapX = 12;
         var gapY = 30;
         var iconW = 99;
         var iconH = 120;
 
+        var margin = 10;
+        var available = Math.max(1, window.innerWidth - margin * 2);
+        var cols = Math.max(1, Math.floor((available + gapX) / (iconW + gapX)));
+
+        // Center the grid on mobile (and generally keep it nicely centered if roomy)
+        var gridW = cols * iconW + (cols - 1) * gapX;
+
+        // Center only on mobile (<=768px)
+        var paddingLeft = isMobile()
+          ? Math.max(margin, Math.round((window.innerWidth - gridW) / 2))
+          : margin;
+
+        var paddingTop = 10;
+
         var x = paddingLeft;
         var y = paddingTop;
+        var col = 0;
 
         icons.forEach(function (icon) {
-          if (x + iconW > window.innerWidth - 10) {
-            x = paddingLeft;
-            y += iconH + gapY;
-          }
           icon.style.left = x + "px";
           icon.style.top = y + "px";
-          x += iconW + gapX;
+
+          col++;
+          if (col >= cols) {
+            col = 0;
+            x = paddingLeft;
+            y += iconH + gapY;
+          } else {
+            x += iconW + gapX;
+          }
         });
       }
 
@@ -1197,6 +1248,21 @@
           e.preventDefault();
 
           var href = icon.getAttribute("href");
+          var kind = icon.getAttribute("data-kind") || "folder";
+          var imgEl = icon.querySelector("img");
+
+          // Image preview
+          if (kind === "file" && imgEl && imgEl.src && /\.(png|jpg|jpeg|gif|webp)$/i.test(imgEl.src)) {
+            openPopup({
+              title: icon.querySelector("span") ? icon.querySelector("span").textContent : "Image",
+              okText: "Close",
+              content: [
+                { type: "image", src: imgEl.src, alt: "Preview", size: "xl" }
+              ]
+            });
+            return;
+          }
+
           if (href && href !== "#") window.location.href = href;
         });
       });
