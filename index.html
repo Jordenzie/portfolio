@@ -81,7 +81,7 @@
     }
 
     .icon span {
-      font-size: 10px;
+      font-size: 8px;
       width: 78px;
       margin-top: 6px;
       line-height: 1.2;
@@ -722,8 +722,21 @@
         // Rebuild local index each time (so it matches the current page)
         try { SEARCH_INDEX = buildLocalIndex(); } catch (e) {}
 
+        // Clear previous query so user can immediately type
+        if (searchInput) {
+          searchInput.value = "";
+          try { searchInput.setSelectionRange(0, 0); } catch (e) {}
+        }
+        if (searchResultsEl) {
+          searchResultsEl.innerHTML = "";
+          searchResultsEl.style.display = "none";
+        }
+
         searchBarEl.style.display = "flex";
         if (searchInput) searchInput.focus();
+
+        // Always show top suggestions (recents) when opening Find
+        showRecentsIfEmpty();
       }
       function hideSearch() {
         if (!searchBarEl) return;
@@ -978,6 +991,23 @@
         });
       }
 
+      function activateTopSuggestion() {
+        try {
+          // Ensure recents show when empty
+          if (searchInput && !(searchInput.value || "").trim()) {
+            showRecentsIfEmpty();
+          }
+          if (!currentMatches || !currentMatches.length) return false;
+          var pick = null;
+          if (activeIdx >= 0 && currentMatches[activeIdx]) pick = currentMatches[activeIdx].item || currentMatches[activeIdx];
+          else if (currentMatches[0]) pick = currentMatches[0].item || currentMatches[0];
+          activateItem(pick);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
+
       function resolveLiveItem(it) {
         try {
           if (!it) return null;
@@ -1137,6 +1167,37 @@
         toggleSearch();
       });
 
+      // Enter behavior:
+      // 1) If any popup is open, Enter closes it.
+      // 2) If Find is open, Enter activates the first (top) suggestion.
+      // 3) Otherwise, Enter does nothing special.
+      document.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter") return;
+
+        // If popup is open, always close it.
+        if (popupOverlay && popupOverlay.classList.contains("show")) {
+          e.preventDefault();
+          closePopup();
+          return;
+        }
+
+        // If Find is open, Enter should activate the top suggestion (even if focus isn't in the input)
+        if (searchBarEl && searchBarEl.style.display === "flex") {
+          e.preventDefault();
+
+          // Ensure we have suggestions to activate (recents when query is empty)
+          if (!currentMatches || !currentMatches.length) {
+            showRecentsIfEmpty();
+          }
+
+          // Activate on next tick to allow any render to complete
+          setTimeout(function () { activateTopSuggestion(); }, 0);
+          return;
+        }
+
+        // Otherwise: no special Enter behavior
+      }, true);
+
       if (searchInput) {
         searchInput.addEventListener("input", function () {
           var q = searchInput.value || "";
@@ -1159,10 +1220,7 @@
             setActiveRow(Math.max(0, activeIdx - 1));
           } else if (e.key === "Enter") {
             e.preventDefault();
-            var pick = null;
-            if (activeIdx >= 0 && currentMatches[activeIdx]) pick = currentMatches[activeIdx].item || currentMatches[activeIdx];
-            else if (currentMatches[0]) pick = currentMatches[0].item || currentMatches[0];
-            activateItem(pick);
+            activateTopSuggestion();
           } else if (e.key === "Escape") {
             e.preventDefault();
             hideSearch();
