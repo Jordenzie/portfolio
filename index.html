@@ -280,6 +280,29 @@
     }
 
     /* ---------- Popup ---------- */
+
+    /* ---------- OS9 Loader ---------- */
+    .loader-wrap { margin: 12px 0 4px; }
+    .loader-label { font-size: 10px; margin-bottom: 6px; }
+    .loader-bar {
+      height: 14px;
+      background: #ffffff;
+      border-top: 1px solid #6f6f6f;
+      border-left: 1px solid #6f6f6f;
+      border-right: 1px solid #ffffff;
+      border-bottom: 1px solid #ffffff;
+      box-shadow: inset 0 0 0 1px #000;
+      padding: 2px;
+      box-sizing: border-box;
+    }
+    .loader-fill {
+      height: 100%;
+      width: 0%;
+      background: repeating-linear-gradient(90deg, #000 0px, #000 3px, transparent 3px, transparent 6px);
+    }
+    .loader-hint { font-size: 10px; margin-top: 6px; opacity: 0.8; }
+
+
     .popup-overlay {
       position: fixed;
       inset: 0;
@@ -682,6 +705,33 @@
             m.appendChild(img);
             wrap.appendChild(m);
           }
+
+          if (block.type === "loader") {
+            var lw = document.createElement("div");
+            lw.className = "loader-wrap";
+
+            var label = document.createElement("div");
+            label.className = "loader-label";
+            label.textContent = block.label || "Loading…";
+
+            var bar = document.createElement("div");
+            bar.className = "loader-bar";
+
+            var fill = document.createElement("div");
+            fill.className = "loader-fill";
+            fill.id = block.id || "loaderFill";
+
+            bar.appendChild(fill);
+
+            var hint = document.createElement("div");
+            hint.className = "loader-hint";
+            hint.textContent = block.hint || "Please wait.";
+
+            lw.appendChild(label);
+            lw.appendChild(bar);
+            lw.appendChild(hint);
+            wrap.appendChild(lw);
+          }
         });
 
         return wrap;
@@ -742,6 +792,48 @@
 
       window.openPopup = openPopup;
       window.closePopup = closePopup;
+
+      // OS9-style loading popup + progress bar
+      function runLoader(fillId, durationMs, done) {
+        durationMs = Number(durationMs) || 800;
+        var start = Date.now();
+        var fill = fillId ? document.getElementById(fillId) : null;
+        if (fill) fill.style.width = "0%";
+
+        var t = setInterval(function () {
+          var p = (Date.now() - start) / durationMs;
+          p = 1 - Math.pow(1 - Math.min(1, p), 2); // ease-out
+          var pct = Math.round(p * 100);
+          if (fill) fill.style.width = pct + "%";
+          if (p >= 1) {
+            clearInterval(t);
+            if (typeof done === "function") done();
+          }
+        }, 50);
+      }
+
+      function showLoadingScreen(opts) {
+        opts = opts || {};
+        var fillId = "loaderFill_" + Math.random().toString(16).slice(2);
+
+        openPopup({
+          title: opts.title || "Loading…",
+          okText: null,
+          preservePosition: true,
+          content: [
+            { type: "text", role: "title", text: opts.headline || "Loading…", size: "lg", align: "center" },
+            { type: "image", src: opts.icon || "images/earth.gif", alt: "", size: "sm" },
+            { type: "loader", id: fillId, label: opts.label || "Loading…", hint: opts.hint || "" }
+          ]
+        });
+
+        runLoader(fillId, opts.durationMs || 750, function () {
+          try { closePopup(); } catch (e) {}
+          if (typeof opts.onDone === "function") opts.onDone();
+        });
+      }
+
+      window.showLoadingScreen = showLoadingScreen;
 
       function openAboutPopup() {
         openPopup({
@@ -1399,7 +1491,17 @@
             return;
           }
 
-          if (href && href !== "#") window.location.href = href;
+          if (href && href !== "#") {
+            // OS9-style loading screen for folders before navigation
+            showLoadingScreen({
+              title: "Opening…",
+              headline: (icon.querySelector("span") ? icon.querySelector("span").textContent : "Folder"),
+              label: "Loading items…",
+              hint: "Reading folder contents…",
+              durationMs: 650,
+              onDone: function () { window.location.href = href; }
+            });
+          }
         });
       });
 
@@ -1446,7 +1548,7 @@
         requestAnimationFrame(layoutIcons);
       });
 
-      (function maybeWelcome() {
+      function maybeWelcome() {
         var page = document.body ? document.body.getAttribute("data-page") : "";
         if (page !== "home") return;
 
@@ -1507,7 +1609,23 @@
         }
         tickWelcomeTitle();
         window.__welcomeClockTimer = setInterval(tickWelcomeTitle, 1000);
-      })();
+      }
+
+      // OS9-style boot/loading screen on page load, then show the normal welcome popup (home only).
+      window.addEventListener("load", function () {
+        var page = document.body ? document.body.getAttribute("data-page") : "";
+        showLoadingScreen({
+          title: "Welcome",
+          headline: "Mac OS 9",
+          label: "Loading desktop…",
+          hint: "Initializing extensions…",
+          durationMs: 800,
+          onDone: function () {
+            if (page === "home") maybeWelcome();
+          }
+        });
+      });
+
     })();
   </script>
 </body>
