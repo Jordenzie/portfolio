@@ -245,7 +245,12 @@
 
     .search-hit {
       background: transparent;
-      text-decoration: underline;
+      text-decoration: none;
+    }
+
+    /* Inverse highlight: dim non-matching characters */
+    .search-dim {
+      opacity: 0.5;
     }
 
     .search-result-kind {
@@ -454,6 +459,9 @@
         top: auto !important;
         bottom: 30px !important;
       }
+
+      /* Hide Find button on mobile */
+      #findBtn { display: none !important; }
     }
   </style>
 </head>
@@ -463,6 +471,26 @@
     <a href="pages/j-mac.html" class="icon">
       <img src="images/folder-160.png" alt="Folder" />
       <span>J-Mac</span>
+    </a>
+
+    <a href="pages/projects.html" class="icon" data-kind="folder">
+      <img src="images/folder-160.png" alt="Folder" />
+      <span>Projects</span>
+    </a>
+
+    <a href="pages/archive.html" class="icon" data-kind="folder">
+      <img src="images/folder-160.png" alt="Folder" />
+      <span>Archive</span>
+    </a>
+
+    <a href="#" class="icon" data-kind="file">
+      <img src="images/image-160.png" alt="Image" />
+      <span>sunset.png</span>
+    </a>
+
+    <a href="#" class="icon" data-kind="file">
+      <img src="images/text-160.png" alt="Text File" />
+      <span>notes_03.txt</span>
     </a>
   </div>
 
@@ -863,11 +891,12 @@
         var set = Object.create(null);
         idxs.forEach(function (i) { set[i] = 1; });
 
+        // Inverse highlight: matched chars stay normal, non-matched chars are dimmed.
         var out = "";
         for (var i = 0; i < name.length; i++) {
           var ch = escHtml(name[i]);
-          if (set[i]) out += '<span class="search-hit">' + ch + "</span>";
-          else out += ch;
+          if (set[i]) out += ch;
+          else out += '<span class="search-dim">' + ch + "</span>";
         }
         return out;
       }
@@ -881,6 +910,19 @@
         } catch (e) {
           return [];
         }
+      }
+
+      function isRecentItem(it) {
+        try {
+          var key = ((it.kind || "") + "|" + (it.href || "") + "|" + (it.name || "")).toLowerCase();
+          var rec = getRecents();
+          for (var i = 0; i < rec.length; i++) {
+            var r = rec[i];
+            var rkey = ((r.kind || "") + "|" + (r.href || "") + "|" + (r.name || "")).toLowerCase();
+            if (rkey === key) return true;
+          }
+        } catch (e) {}
+        return false;
       }
 
       function pushRecent(it) {
@@ -966,7 +1008,9 @@
 
           var right = document.createElement("span");
           right.className = "search-result-kind";
-          right.textContent = (it.kind === "folder") ? "Folder" : "File";
+          right.textContent = (opts && opts.isRecentsView)
+            ? "Recent"
+            : ((it.kind === "folder") ? "Folder" : "File");
 
           row.appendChild(leftWrap);
           row.appendChild(right);
@@ -1017,7 +1061,7 @@
         }
         // Render as rows without scoring
         var rows = rec.map(function (it) { return { item: it, score: 999, idxs: [] }; });
-        renderResults(rows, "", { defaultSelectTop: true });
+        renderResults(rows, "", { defaultSelectTop: true, isRecentsView: true });
       }
 
       // Keyboard shortcut: Cmd/Ctrl+F or Cmd/Ctrl+K opens Find
@@ -1257,7 +1301,7 @@
           var mm = (m < 10 ? "0" + m : "" + m);
           var colon = (d.getSeconds() % 2 === 0) ? ":" : " ";
 
-          welcomeTitleEl.textContent = dateStr + "\n" + h + colon + mm + " " + ampm;
+          welcomeTitleEl.textContent = dateStr + "" + h + colon + mm + " " + ampm;
 
         }
         tickWelcomeTitle();
