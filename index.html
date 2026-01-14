@@ -172,8 +172,8 @@
     .search-bar {
       display: none;
       position: fixed;
-      top: 23px;
-      right: 6px;
+      top: 30px;
+      right: 0;
       background: #efefef;
       border: 1px solid #7d7d7d;
       height: 22px;
@@ -187,6 +187,72 @@
       border: none;
       background: transparent;
       outline: none;
+    }
+
+    /* ---------- Search Results ---------- */
+    .search-results {
+      position: absolute;
+      top: 22px;
+      right: -1px;
+      left: -1px;
+      display: none;
+      background: #efefef;
+      border: 1px solid #7d7d7d;
+      border-top: 0;
+      box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000;
+      z-index: 1002;
+    }
+
+    .search-result {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 3px 6px;
+      background: transparent;
+      border: 0;
+      text-align: left;
+      cursor: pointer;
+    }
+
+    .search-result:hover,
+    .search-result.active {
+      background: #dcdcdc;
+    }
+
+    .search-result-left {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-width: 0;
+      flex: 1;
+    }
+
+    .search-result-icon {
+      width: 16px;
+      height: 16px;
+      image-rendering: pixelated;
+      flex: 0 0 auto;
+    }
+
+    .search-result-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      min-width: 0;
+    }
+
+    .search-hit {
+      background: transparent;
+      text-decoration: underline;
+    }
+
+    .search-result-kind {
+      font-size: 10px;
+      opacity: 0.8;
+      flex: 0 0 auto;
+      white-space: nowrap;
     }
 
     /* ---------- Popup ---------- */
@@ -231,7 +297,7 @@
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
-      font-size: 10px; /* 2pt smaller title (Loading...) */
+      font-size: 10px;
     }
 
     .popup-close {
@@ -332,7 +398,6 @@
       margin-bottom: 18px;
     }
 
-    /* ---------- Welcome wave animation ---------- */
     .popup-text.role-welcome.wave span {
       display: inline-block;
       animation: welcomeWave 1.6s ease-in-out infinite;
@@ -387,7 +452,7 @@
 
       .search-bar {
         top: auto !important;
-        bottom: 34px !important;
+        bottom: 30px !important;
       }
     }
   </style>
@@ -423,7 +488,8 @@
   </div>
 
   <div class="search-bar" id="searchBar">
-    <input id="searchInput" type="text" placeholder="Find..." />
+    <input id="searchInput" type="text" placeholder="Find..." autocomplete="off" />
+    <div class="search-results" id="searchResults"></div>
   </div>
 
   <div class="popup-overlay" id="popupOverlay" role="dialog" aria-modal="true" aria-hidden="true">
@@ -453,6 +519,7 @@
       var findBtn = $("findBtn");
       var searchBarEl = $("searchBar");
       var searchInput = $("searchInput");
+      var searchResultsEl = $("searchResults");
       var clockEl = $("menubarClock");
 
       var popupOverlay = $("popupOverlay");
@@ -546,7 +613,6 @@
         popupOverlay.classList.remove("show");
         popupOverlay.setAttribute("aria-hidden", "true");
 
-        // Stop welcome clock updates when the popup closes
         try { if (window.__welcomeClockTimer) { clearInterval(window.__welcomeClockTimer); window.__welcomeClockTimer = null; } } catch (e) {}
 
         resetPopupPosition();
@@ -578,12 +644,17 @@
 
       function showSearch() {
         if (!searchBarEl) return;
+        // Rebuild local index each time (so it matches the current page)
+        try { SEARCH_INDEX = buildLocalIndex(); } catch (e) {}
+
         searchBarEl.style.display = "flex";
         if (searchInput) searchInput.focus();
       }
       function hideSearch() {
         if (!searchBarEl) return;
         searchBarEl.style.display = "none";
+        if (searchResultsEl) searchResultsEl.style.display = "none";
+        if (searchResultsEl) searchResultsEl.innerHTML = "";
       }
       function toggleSearch() {
         if (!searchBarEl) return;
@@ -656,6 +727,350 @@
           popupWindow.style.top = y + "px";
         });
       })();
+
+      // =====================
+      // Find / Search Index (Spotlight-ish)
+      // =====================
+      function safeText(s) {
+        return String(s || "");
+      }
+      function escHtml(s) {
+        return safeText(s)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/\"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function buildLocalIndex() {
+        var items = [];
+        document.querySelectorAll(".icon").forEach(function (el) {
+          var name = ((el.querySelector("span") && el.querySelector("span").textContent) || "").trim();
+          var href = el.getAttribute("href") || "";
+          var kind = el.getAttribute("data-kind") || "folder";
+          var imgEl = el.querySelector("img");
+          var iconSrc = (imgEl && (imgEl.getAttribute("src") || imgEl.src)) || "";
+          if (!name) return;
+          items.push({ name: name, kind: kind, href: href, icon: iconSrc, el: el });
+        });
+        return items;
+      }
+
+      var SEARCH_INDEX = buildLocalIndex();
+      var GLOBAL_INDEX = [];
+      var activeIdx = -1;
+      var currentMatches = [];
+      var RECENTS_KEY = "prtf_find_recents_v1";
+
+      function normalizeItem(it) {
+        if (!it) return null;
+        var out = {
+          name: safeText(it.name).trim(),
+          kind: safeText(it.kind || "").trim() || "file",
+          href: safeText(it.href || "").trim(),
+          icon: safeText(it.icon || "").trim()
+        };
+        if (!out.name) return null;
+        if (!out.kind) out.kind = "file";
+        return out;
+      }
+
+      function loadGlobalIndex() {
+        // Optional: create a search-index.json at site root.
+        // Format: [{"name":"J-Mac","kind":"folder","href":"pages/j-mac.html","icon":"images/folder-160.png"}, ...]
+        try {
+          if (!window.fetch) return;
+          fetch("search-index.json", { cache: "no-store" })
+            .then(function (r) { return r.ok ? r.json() : null; })
+            .then(function (data) {
+              if (!Array.isArray(data)) return;
+              GLOBAL_INDEX = data.map(normalizeItem).filter(Boolean);
+            })
+            .catch(function () {});
+        } catch (e) {}
+      }
+      loadGlobalIndex();
+
+      function getCombinedIndex() {
+        // Local (current desktop/page) first, then global.
+        var seen = Object.create(null);
+        var out = [];
+
+        function add(it) {
+          var key = (it.kind + "|" + it.href + "|" + it.name).toLowerCase();
+          if (seen[key]) return;
+          seen[key] = 1;
+          out.push(it);
+        }
+
+        SEARCH_INDEX.forEach(function (it) { add(it); });
+        GLOBAL_INDEX.forEach(function (it) { add(it); });
+        return out;
+      }
+
+      function fuzzyMatch(name, q) {
+        // Returns {score, idxs} or null.
+        name = safeText(name);
+        q = safeText(q);
+        var n = name.toLowerCase();
+        var qq = q.toLowerCase();
+        if (!qq) return null;
+
+        // Exact substring bonus
+        var pos = n.indexOf(qq);
+        if (pos !== -1) {
+          var idxs = [];
+          for (var i = 0; i < qq.length; i++) idxs.push(pos + i);
+          // lower score = better
+          var score = 0 + pos * 2 + (name.length * 0.05);
+          // prefix gets extra boost
+          if (pos === 0) score -= 5;
+          // word boundary gets boost
+          if (pos > 0 && /[^a-z0-9]/i.test(name[pos - 1])) score -= 2;
+          return { score: score, idxs: idxs };
+        }
+
+        // Fuzzy: letters in order
+        var idxs2 = [];
+        var last = -1;
+        var gaps = 0;
+        for (var j = 0; j < qq.length; j++) {
+          var ch = qq[j];
+          var found = n.indexOf(ch, last + 1);
+          if (found === -1) return null;
+          if (last !== -1) gaps += Math.max(0, found - last - 1);
+          idxs2.push(found);
+          last = found;
+        }
+
+        // score: prefer early + tight + shorter
+        var start = idxs2[0];
+        var span = idxs2[idxs2.length - 1] - idxs2[0];
+        var score2 = 20 + start * 1.5 + gaps * 1.2 + span * 0.2 + (name.length * 0.08);
+
+        // bonus if first char matches word boundary
+        if (start === 0) score2 -= 4;
+        else if (start > 0 && /[^a-z0-9]/i.test(name[start - 1])) score2 -= 2;
+
+        return { score: score2, idxs: idxs2 };
+      }
+
+      function highlightName(name, idxs) {
+        name = safeText(name);
+        if (!idxs || !idxs.length) return escHtml(name);
+
+        var set = Object.create(null);
+        idxs.forEach(function (i) { set[i] = 1; });
+
+        var out = "";
+        for (var i = 0; i < name.length; i++) {
+          var ch = escHtml(name[i]);
+          if (set[i]) out += '<span class="search-hit">' + ch + "</span>";
+          else out += ch;
+        }
+        return out;
+      }
+
+      function getRecents() {
+        try {
+          var raw = localStorage.getItem(RECENTS_KEY);
+          var arr = raw ? JSON.parse(raw) : [];
+          if (!Array.isArray(arr)) return [];
+          return arr.map(normalizeItem).filter(Boolean).slice(0, 8);
+        } catch (e) {
+          return [];
+        }
+      }
+
+      function pushRecent(it) {
+        try {
+          var rec = getRecents();
+          var key = (it.kind + "|" + it.href + "|" + it.name).toLowerCase();
+          rec = rec.filter(function (r) {
+            return ((r.kind + "|" + r.href + "|" + r.name).toLowerCase() !== key);
+          });
+          rec.unshift(normalizeItem(it));
+          rec = rec.filter(Boolean).slice(0, 8);
+          localStorage.setItem(RECENTS_KEY, JSON.stringify(rec));
+        } catch (e) {}
+      }
+
+      function setActiveRow(i) {
+        activeIdx = i;
+        if (!searchResultsEl) return;
+        Array.prototype.slice.call(searchResultsEl.children).forEach(function (el, idx) {
+          el.classList.toggle("active", idx === activeIdx);
+        });
+      }
+
+      function activateItem(it) {
+        hideSearch();
+        if (!it) return;
+
+        pushRecent(it);
+
+        if (it.kind === "folder") {
+          if (it.href) window.location.href = it.href;
+          return;
+        }
+
+        if (typeof it.open === "function") {
+          it.open();
+          return;
+        }
+        if (it.href) {
+          window.location.href = it.href;
+          return;
+        }
+        if (it.el) it.el.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+      }
+
+      function renderResults(list, q, opts) {
+        opts = opts || {};
+        currentMatches = (list || []).slice(0);
+        activeIdx = -1;
+
+        if (!searchResultsEl) return;
+        searchResultsEl.innerHTML = "";
+
+        if (!currentMatches.length) {
+          searchResultsEl.style.display = "none";
+          return;
+        }
+
+        currentMatches.forEach(function (rowData, idx) {
+          var it = rowData.item || rowData;
+          var idxs = rowData.idxs || [];
+
+          var row = document.createElement("button");
+          row.type = "button";
+          row.className = "search-result";
+          row.setAttribute("data-idx", String(idx));
+
+          var leftWrap = document.createElement("span");
+          leftWrap.className = "search-result-left";
+
+          var icon = document.createElement("img");
+          icon.className = "search-result-icon";
+          icon.alt = "";
+          if (it.icon) icon.src = it.icon;
+
+          var nameEl = document.createElement("span");
+          nameEl.className = "search-result-name";
+          // highlight
+          nameEl.innerHTML = highlightName(it.name, idxs);
+
+          leftWrap.appendChild(icon);
+          leftWrap.appendChild(nameEl);
+
+          var right = document.createElement("span");
+          right.className = "search-result-kind";
+          right.textContent = (it.kind === "folder") ? "Folder" : "File";
+
+          row.appendChild(leftWrap);
+          row.appendChild(right);
+
+          row.addEventListener("mousedown", function (e) {
+            e.preventDefault();
+            activateItem(it);
+          });
+
+          searchResultsEl.appendChild(row);
+        });
+
+        searchResultsEl.style.display = "block";
+
+        // Spotlight behavior: default to top result
+        if (opts.defaultSelectTop && currentMatches.length) {
+          setActiveRow(0);
+        }
+      }
+
+      function matchItems(q) {
+        var combined = getCombinedIndex();
+        q = safeText(q).trim();
+        if (!q) return [];
+
+        var scored = [];
+        combined.forEach(function (it) {
+          var m = fuzzyMatch(it.name, q);
+          if (!m) return;
+          scored.push({ item: it, score: m.score, idxs: m.idxs });
+        });
+
+        // Better ranking: folders can come first when score ties
+        scored.sort(function (a, b) {
+          if (a.score !== b.score) return a.score - b.score;
+          if (a.item.kind !== b.item.kind) return (a.item.kind === "folder") ? -1 : 1;
+          return (a.item.name || "").length - (b.item.name || "").length;
+        });
+
+        return scored.slice(0, 8);
+      }
+
+      function showRecentsIfEmpty() {
+        var rec = getRecents();
+        if (!rec.length) {
+          if (searchResultsEl) searchResultsEl.style.display = "none";
+          return;
+        }
+        // Render as rows without scoring
+        var rows = rec.map(function (it) { return { item: it, score: 999, idxs: [] }; });
+        renderResults(rows, "", { defaultSelectTop: true });
+      }
+
+      // Keyboard shortcut: Cmd/Ctrl+F or Cmd/Ctrl+K opens Find
+      document.addEventListener("keydown", function (e) {
+        var key = (e.key || "").toLowerCase();
+        var combo = (e.metaKey || e.ctrlKey) && (key === "f" || key === "k");
+        if (!combo) return;
+        e.preventDefault();
+        toggleSearch();
+      });
+
+      if (searchInput) {
+        searchInput.addEventListener("input", function () {
+          var q = searchInput.value || "";
+          if (!q.trim()) {
+            showRecentsIfEmpty();
+            return;
+          }
+          renderResults(matchItems(q), q, { defaultSelectTop: true });
+        });
+
+        searchInput.addEventListener("keydown", function (e) {
+          if (!searchResultsEl || searchResultsEl.style.display !== "block") return;
+
+          if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setActiveRow(Math.min(currentMatches.length - 1, activeIdx + 1));
+          } else if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setActiveRow(Math.max(0, activeIdx - 1));
+          } else if (e.key === "Enter") {
+            e.preventDefault();
+            // Spotlight behavior: enter opens active, else top
+            var pick = null;
+            if (activeIdx >= 0 && currentMatches[activeIdx]) pick = currentMatches[activeIdx].item || currentMatches[activeIdx];
+            else if (currentMatches[0]) pick = currentMatches[0].item || currentMatches[0];
+            activateItem(pick);
+          } else if (e.key === "Escape") {
+            e.preventDefault();
+            hideSearch();
+          }
+        });
+      }
+
+      // When Find opens, show recents immediately
+      // (SEARCH_INDEX is rebuilt in showSearch())
+      var __oldShowSearch = showSearch;
+      showSearch = function () {
+        __oldShowSearch();
+        if (searchInput) {
+          if (!(searchInput.value || "").trim()) showRecentsIfEmpty();
+        }
+      };
 
       (function initClock() {
         if (!clockEl) return;
@@ -805,7 +1220,6 @@
           ]
         });
 
-        // Wave animation on the welcome line
         try {
           var welcomeLine = popupBodyEl ? popupBodyEl.querySelector(".popup-text.role-welcome") : null;
           if (welcomeLine && !welcomeLine.classList.contains("wave")) {
@@ -827,7 +1241,6 @@
           }
         } catch (e) {}
 
-        // Live date + time with blinking colon (like the menubar clock)
         try { if (window.__welcomeClockTimer) clearInterval(window.__welcomeClockTimer); } catch (e) {}
 
         var welcomeTitleEl = popupBodyEl ? popupBodyEl.querySelector(".popup-text.role-title") : null;
@@ -844,7 +1257,6 @@
           var mm = (m < 10 ? "0" + m : "" + m);
           var colon = (d.getSeconds() % 2 === 0) ? ":" : " ";
 
-          // newline works because .popup-text uses white-space: pre-wrap
           welcomeTitleEl.textContent = dateStr + "\n" + h + colon + mm + " " + ampm;
 
         }
