@@ -519,44 +519,24 @@
       }
 
       body {
-        background: #ffffff !important; /* desktop stays white */
+        background: #ffffff !important;
         min-height: 100vh;
         height: auto;
         overflow-y: scroll !important;
         overflow-x: hidden !important;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: none;
-        padding-bottom: 44px; /* room for bottom taskbar */
-      }
-
-      /* Give desktop extra bottom room so icons never peek under the fixed taskbar */
-      #desktop {
-        padding-bottom: 90px;
-      }
-
-      .taskbar {
-        top: auto !important;
-        bottom: 0 !important;
-        border-top: 1px solid #000000;
-        border-bottom: 1px solid #ffffff;
-        box-shadow:
-          inset 0 -1px 0 #ffffff,
-          inset 0 1px 0 #6e6e6e;
+        padding-bottom: 0; /* no bottom taskbar */
+        padding-top: 38px; /* keep icons clear of top taskbar (match desktop offset) */
       }
 
       .desktop {
-        top: 10px !important;
+        top: 0 !important;
         position: relative !important;
         background: transparent;
       }
 
-      .search-bar {
-        top: auto !important;
-        bottom: 30px !important;
-      }
-
-      /* Hide Find button on mobile */
-      #findBtn { display: none !important; }
+      
     }
 
   </style>
@@ -717,11 +697,7 @@
             wrap.appendChild(m);
           }
 
-          if (block.type === "spacer") {
-            var sp = document.createElement("div");
-            sp.style.height = (block.height || 120) + "px";
-            wrap.appendChild(sp);
-          }
+          
 
           if (block.type === "loader") {
             var lw = document.createElement("div");
@@ -857,7 +833,9 @@
           title: "Loading...",
           okText: null,
           preservePosition: true,
-          content: [,
+          content: [
+            
+            
             { type: "loader", id: fillId, label: opts.label || "Loading…", hint: opts.hint || "" }
           ]
         });
