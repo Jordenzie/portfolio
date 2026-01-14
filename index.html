@@ -197,7 +197,7 @@
     }
 
     .search-bar input {
-      width: 160px;
+      width: 240px;
       border: none;
       background: transparent;
       outline: none;
@@ -940,7 +940,7 @@
           var raw = localStorage.getItem(RECENTS_KEY);
           var arr = raw ? JSON.parse(raw) : [];
           if (!Array.isArray(arr)) return [];
-          return arr.map(normalizeItem).filter(Boolean).slice(0, 8);
+          return arr.map(normalizeItem).filter(Boolean).slice(0, 10);
         } catch (e) {
           return [];
         }
@@ -967,7 +967,7 @@
             return ((r.kind + "|" + r.href + "|" + r.name).toLowerCase() !== key);
           });
           rec.unshift(normalizeItem(it));
-          rec = rec.filter(Boolean).slice(0, 8);
+          rec = rec.filter(Boolean).slice(0, 10);
           localStorage.setItem(RECENTS_KEY, JSON.stringify(rec));
         } catch (e) {}
       }
@@ -980,26 +980,47 @@
         });
       }
 
+      function resolveLiveItem(it) {
+        try {
+          if (!it) return null;
+          var key = ((it.kind || "") + "|" + (it.href || "") + "|" + (it.name || "")).toLowerCase();
+          var combined = getCombinedIndex();
+          for (var i = 0; i < combined.length; i++) {
+            var c = combined[i];
+            var ckey = ((c.kind || "") + "|" + (c.href || "") + "|" + (c.name || "")).toLowerCase();
+            if (ckey === key) return c;
+          }
+        } catch (e) {}
+        return null;
+      }
+
       function activateItem(it) {
         hideSearch();
         if (!it) return;
 
+        // If this item exists on the current site/page, prefer the live copy (so it can actually open).
+        var live = resolveLiveItem(it);
+        if (live) it = live;
+
+        // Time-sensitive: re-clicking an existing recent bumps it to the top.
         pushRecent(it);
 
-        if (it.kind === "folder") {
-          if (it.href) window.location.href = it.href;
-          return;
-        }
-
+        // Prefer explicit open handlers
         if (typeof it.open === "function") {
           it.open();
           return;
         }
-        if (it.href) {
-          window.location.href = it.href;
+
+        // If this came from a real desktop icon, trigger its normal dblclick behavior
+        if (it.el) {
+          it.el.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
           return;
         }
-        if (it.el) it.el.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+
+        // Fall back to navigation only when href is meaningful
+        if (it.href && it.href !== "#") {
+          window.location.href = it.href;
+        }
       }
 
       function renderResults(list, q, opts) {
@@ -1088,7 +1109,18 @@
       }
 
       function showRecentsIfEmpty() {
-        var rec = getRecents();
+        // Only show recents that still exist in the current combined index.
+        var combined = getCombinedIndex();
+        var exists = Object.create(null);
+        combined.forEach(function (it) {
+          var k = ((it.kind || "") + "|" + (it.href || "") + "|" + (it.name || "")).toLowerCase();
+          exists[k] = 1;
+        });
+
+        var rec = getRecents().filter(function (it) {
+          var k = ((it.kind || "") + "|" + (it.href || "") + "|" + (it.name || "")).toLowerCase();
+          return !!exists[k];
+        });
         if (!rec.length) {
           if (searchResultsEl) searchResultsEl.style.display = "none";
           return;
