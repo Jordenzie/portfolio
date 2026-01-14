@@ -518,6 +518,10 @@
         background: #000; /* out-of-bounds */
       }
 
+      /* Hide the top taskbar entirely on mobile (for now) */
+      .taskbar { display: none !important; }
+      .search-bar { display: none !important; }
+
       body {
         background: #ffffff !important;
         min-height: 100vh;
@@ -526,8 +530,8 @@
         overflow-x: hidden !important;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: none;
-        padding-bottom: 0; /* no bottom taskbar */
-        padding-top: 38px; /* keep icons clear of top taskbar (match desktop offset) */
+        padding-bottom: 0;
+        padding-top: 0; /* taskbar hidden */
       }
 
       .desktop {
@@ -536,7 +540,10 @@
         background: transparent;
       }
 
-      
+      /* Tighter icons on mobile so we can fit 4 columns */
+      .icon { width: 80px; height: 104px; padding: 4px; }
+      .icon img { width: 54px; height: 54px; margin-top: 2px; }
+      .icon span { width: 72px; font-size: 8px; margin-top: 6px; height: 26px; }
     }
 
   </style>
@@ -1463,10 +1470,14 @@
       function layoutIcons() {
         if (!icons.length) return;
 
-        var gapX = 12;
-        var gapY = 30;
-        var iconW = 99;
-        var iconH = 120;
+        // Responsive spacing + sizing (mobile aims for 4 columns on iPhone)
+        var mobile = isMobile();
+        var gapX = mobile ? 8 : 12;
+        var gapY = mobile ? 16 : 30;
+
+        // Read actual icon dimensions (so CSS mobile overrides are honored)
+        var iconW = icons[0].offsetWidth || 99;
+        var iconH = icons[0].offsetHeight || 120;
 
         var margin = 10;
         var available = Math.max(1, window.innerWidth - margin * 2);
