@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>StahlMac — Interactive Archive</title>
+  <meta name="description" content="StahlMac — creatives, architects, engineers, and product designers set on a fantastic future." />
+  <style>
+    :root{
+      --bg0:#0b0d12;
+      --ink:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.70);
+      --dim:rgba(255,255,255,.52);
+      --line:rgba(255,255,255,.12);
+      --panel:rgba(0,0,0,.55);
+      --panel2:rgba(0,0,0,.42);
+      --blur:16px;
+      --r:10px;
+      --r2:6px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+
+      /* Replace with your own images if you want */
+      --bg-image: none; /* e.g. url('your-photo.jpg') */
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      font-family:var(--sans);
+      color:var(--ink);
+      background:var(--bg0);
+      overflow:hidden;
+    }
+
+    /* Fullscreen scene */
+    .scene{
+      position:fixed;
+      inset:0;
+      background:
+        radial-gradient(1200px 700px at 20% 15%, rgba(210,225,255,.12), transparent 60%),
+        radial-gradient(1000px 650px at 78% 18%, rgba(240,205,255,.10), transparent 62%),
+        radial-gradient(1200px 800px at 55% 92%, rgba(190,255,238,.08), transparent 62%),
+        linear-gradient(180deg, #070912 0%, #0a0d14 50%, #070912 100%);
+      isolation:isolate;
+    }
+
+    .scene::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background-image: var(--bg-image);
+      background-size: cover;
+      background-position: center;
+      opacity:.35;
+      filter:saturate(0.9) contrast(1.05);
+      transform:scale(1.03);
+    }
+
+    /* subtle scan + grain */
+    .scene::after{
+      content:"";
+      position:absolute;
+      inset:-2px;
+      pointer-events:none;
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,.05) 0 1px, transparent 1px 26px),
+        radial-gradient(800px 500px at var(--mx,50%) var(--my,50%), rgba(255,255,255,.10), transparent 65%);
+      mix-blend-mode: screen;
+      opacity:.22;
+      filter: blur(.2px);
+    }
+
+    /* Header title */
+    .title{
+      position:absolute;
+      left:28px;
+      top:18px;
+      font-size:42px;
+      letter-spacing:.3px;
+      font-weight:500;
+      text-transform:none;
+      text-shadow: 0 18px 60px rgba(0,0,0,.55);
+      user-select:none;
+    }
+
+    .title small{
+      display:block;
+      margin-top:6px;
+      font-family:var(--mono);
+      font-size:12px;
+      letter-spacing:.8px;
+      color:rgba(255,255,255,.62);
+      text-transform:uppercase;
+    }
+
+    /* Floating panels */
+    .panel{
+      position:absolute;
+      width: 320px;
+      background: linear-gradient(180deg, rgba(0,0,0,.58), rgba(0,0,0,.44));
+      border:1px solid var(--line);
+      border-radius: var(--r);
+      backdrop-filter: blur(var(--blur));
+      -webkit-backdrop-filter: blur(var(--blur));
+      box-shadow: 0 30px 110px rgba(0,0,0,.55);
+      overflow:hidden;
+    }
+
+    .panel .hd{
+      padding:12px 12px 10px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+    }
+
+    .panel .hd b{
+      font-size:12px;
+      font-family:var(--mono);
+      letter-spacing:.7px;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.84);
+    }
+
+    .panel .body{ padding:12px; }
+
+    .panel p{ margin:0; color:rgba(255,255,255,.74); line-height:1.45; font-size:12.8px; }
+
+    .meta{
+      margin-top:10px;
+      display:grid;
+      gap:6px;
+      font-family:var(--mono);
+      font-size:11px;
+      color:rgba(255,255,255,.62);
+      letter-spacing:.6px;
+      text-transform:uppercase;
+    }
+
+    .btn-link{
+      appearance:none;
+      border:none;
+      background:transparent;
+      color:rgba(255,255,255,.82);
+      font-family:var(--mono);
+      font-size:11px;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+      cursor:pointer;
+      padding:0;
+      text-decoration:underline;
+      text-underline-offset:3px;
+    }
+
+    .btn-link:hover{ color: rgba(255,255,255,.95); }
+
+    /* News list */
+    .news-item{
+      padding:10px 0;
+      border-bottom:1px solid rgba(255,255,255,.10);
+    }
+    .news-item:last-child{ border-bottom:none; }
+
+    .news-date{
+      font-family:var(--mono);
+      font-size:11px;
+      letter-spacing:.6px;
+      color:rgba(255,255,255,.60);
+      text-transform:uppercase;
+      margin-bottom:6px;
+    }
+    .news-title{ font-size:12.8px; color:rgba(255,255,255,.88); margin:0 0 6px; }
+    .news-snippet{ font-size:12.2px; color:rgba(255,255,255,.70); margin:0; }
+
+    /* Featured card */
+    .featured-img{
+      height:120px;
+      border:1px solid rgba(255,255,255,.10);
+      border-radius: var(--r2);
+      background:
+        linear-gradient(135deg, rgba(255,255,255,.12), transparent 55%),
+        radial-gradient(500px 220px at 30% 20%, rgba(210,225,255,.20), transparent 60%),
+        radial-gradient(450px 220px at 70% 60%, rgba(240,205,255,.16), transparent 62%),
+        rgba(255,255,255,.05);
+      box-shadow: inset 0 0 0 1px rgba(0,0,0,.25);
+    }
+
+    /* Portrait */
+    .portrait{
+      width: 210px;
+    }
+    .portrait .img{
+      height:150px;
+      border-radius: var(--r2);
+      border:1px solid rgba(255,255,255,.10);
+      background:
+        radial-gradient(240px 160px at 40% 30%, rgba(255,255,255,.16), transparent 62%),
+        linear-gradient(180deg, rgba(255,255,255,.10), rgba(255,255,255,.03));
+    }
+    .caption{
+      margin-top:10px;
+      font-size:12px;
+      color:rgba(255,255,255,.80);
+      line-height:1.35;
+    }
+    .caption span{
+      display:block;
+      margin-top:3px;
+      font-family:var(--mono);
+      font-size:11px;
+      color:rgba(255,255,255,.62);
+      letter-spacing:.6px;
+      text-transform:uppercase;
+    }
+
+    /* Search panel */
+    .search{
+      width: 270px;
+    }
+    .search .row{
+      display:flex;
+      gap:8px;
+      margin:8px 0 10px;
+    }
+    .search input{
+      flex:1;
+      background:rgba(255,255,255,.06);
+      border:1px solid rgba(255,255,255,.12);
+      border-radius: 6px;
+      padding:9px 10px;
+      color:rgba(255,255,255,.86);
+      outline:none;
+      font-size:12.6px;
+    }
+    .search button{
+      background:rgba(255,255,255,.10);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius: 6px;
+      padding:9px 12px;
+      color:rgba(255,255,255,.86);
+      font-family:var(--mono);
+      font-size:11px;
+      letter-spacing:.6px;
+      text-transform:uppercase;
+      cursor:pointer;
+    }
+    .search button:hover{ background:rgba(255,255,255,.14); }
+
+    .cat{
+      padding:9px 0;
+      border-top:1px solid rgba(255,255,255,.10);
+      font-size:12.4px;
+      color:rgba(255,255,255,.78);
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:10px;
+      cursor:pointer;
+      user-select:none;
+    }
+    .cat:hover{ color:rgba(255,255,255,.92); }
+    .cat small{ font-family:var(--mono); color:rgba(255,255,255,.55); letter-spacing:.6px; text-transform:uppercase; }
+
+    /* Center enter bar */
+    .enter{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%);
+      width:min(520px, calc(100% - 36px));
+      height:46px;
+      border-radius: 6px;
+      border:1px solid rgba(255,255,255,.16);
+      background: rgba(255,255,255,.08);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      box-shadow: 0 30px 100px rgba(0,0,0,.55);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:16px;
+      cursor:pointer;
+      user-select:none;
+    }
+
+    .enter span{
+      font-family:var(--mono);
+      font-size:12px;
+      letter-spacing:.8px;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.90);
+    }
+
+    .enter .icons{
+      position:absolute;
+      right:10px;
+      display:flex;
+      gap:10px;
+      opacity:.88;
+    }
+
+    .ic{
+      width:18px;height:18px;
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:4px;
+      background:rgba(0,0,0,.22);
+      display:grid;
+      place-items:center;
+      font-size:11px;
+      color:rgba(255,255,255,.75);
+    }
+
+    /* Up/down chevrons */
+    .chev{
+      position:absolute;
+      left:50%;
+      transform:translateX(-50%);
+      width:36px;height:22px;
+      display:grid;
+      place-items:center;
+      color:rgba(255,255,255,.75);
+      text-shadow: 0 12px 40px rgba(0,0,0,.55);
+      user-select:none;
+      cursor:pointer;
+    }
+    .chev.top{ top:12px; }
+    .chev.bot{ bottom:12px; transform:translateX(-50%) rotate(180deg); }
+
+    .chev svg{ width:26px; height:14px; }
+
+    /* Left/right arrows */
+    .navArrow{
+      position:absolute;
+      top:50%;
+      transform:translateY(-50%);
+      width:58px;height:58px;
+      display:grid;
+      place-items:center;
+      color:rgba(255,255,255,.78);
+      cursor:pointer;
+      user-select:none;
+    }
+
+    .navArrow.left{ left:14px; }
+    .navArrow.right{ right:14px; transform:translateY(-50%) rotate(180deg); }
+
+    .navArrow .ring{
+      width:46px;height:46px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,.18);
+      background:rgba(0,0,0,.18);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display:grid;
+      place-items:center;
+      box-shadow: 0 20px 80px rgba(0,0,0,.50);
+    }
+
+    .navArrow svg{ width:22px; height:22px; }
+
+    /* Overlay menu (Enter) */
+    .overlay{
+      position:fixed;
+      inset:0;
+      background: rgba(0,0,0,.62);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display:none;
+      align-items:center;
+      justify-content:center;
+      padding:18px;
+      z-index:50;
+    }
+    .overlay.show{ display:flex; }
+
+    .modal{
+      width:min(860px, 100%);
+      border-radius: 12px;
+      border:1px solid rgba(255,255,255,.14);
+      background: linear-gradient(180deg, rgba(0,0,0,.62), rgba(0,0,0,.46));
+      box-shadow: 0 40px 140px rgba(0,0,0,.65);
+      overflow:hidden;
+    }
+
+    .modal .mhd{
+      padding:14px 14px 12px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      border-bottom:1px solid rgba(255,255,255,.10);
+    }
+
+    .modal .mhd b{
+      font-family:var(--mono);
+      font-size:12px;
+      letter-spacing:.8px;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.86);
+    }
+
+    .x{
+      width:34px;height:34px;
+      border-radius: 8px;
+      border:1px solid rgba(255,255,255,.14);
+      background: rgba(255,255,255,.06);
+      color:rgba(255,255,255,.82);
+      cursor:pointer;
+      display:grid;
+      place-items:center;
+    }
+    .x:hover{ background: rgba(255,255,255,.10); }
+
+    .modal .mbody{
+      padding:14px;
+      display:grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap:12px;
+    }
+
+    @media (max-width: 860px){
+      .modal .mbody{ grid-template-columns: 1fr; }
+      .title{ font-size:34px; }
+    }
+
+    .tile{
+      border-radius: 10px;
+      border:1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.05);
+      padding:12px;
+    }
+
+    .tile b{
+      display:block;
+      font-family:var(--mono);
+      font-size:11px;
+      letter-spacing:.8px;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.86);
+    }
+
+    .tile p{ margin:8px 0 0; font-size:12.4px; color:rgba(255,255,255,.70); line-height:1.5; }
+
+    .toast{
+      position:fixed;
+      left:50%;
+      bottom:16px;
+      transform:translateX(-50%) translateY(14px);
+      opacity:0;
+      pointer-events:none;
+      z-index:60;
+      background:rgba(0,0,0,.52);
+      border:1px solid rgba(255,255,255,.14);
+      border-radius:999px;
+      padding:10px 12px;
+      font-family:var(--mono);
+      font-size:11px;
+      letter-spacing:.7px;
+      text-transform:uppercase;
+      color:rgba(255,255,255,.84);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      transition: opacity .22s ease, transform .22s ease;
+    }
+    .toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+    /* Layout positions (ZHA-ish) */
+    #about{ left:28px; top:84px; }
+    #news{ left:280px; top:210px; width:300px; }
+    #portrait{ left:50%; top:120px; transform:translateX(-50%); }
+    #featured{ right:28px; top:88px; width:320px; }
+    #search{ left:50%; top:60%; transform:translateX(-50%); width:300px; }
+
+    /* mobile: stack panels */
+    @media (max-width: 760px){
+      body{ overflow:auto; }
+      .scene{ position:relative; min-height:100vh; }
+      .enter, .navArrow, .chev{ display:none; }
+      .title{ position:relative; left:auto; top:auto; padding:18px 18px 0; }
+      .panel{ position:relative; left:auto !important; right:auto !important; top:auto !important; transform:none !important; width:calc(100% - 36px); margin:14px 18px; }
+      #portrait{ width:calc(100% - 36px); }
+      #search{ width:calc(100% - 36px); }
+    }
+  </style>
+</head>
+<body>
+  <div class="scene" id="scene">
+    <div class="title">
+      StahlMac
+      <small>interactive archive / studio index</small>
+    </div>
+
+    <div class="chev top" id="chevTop" title="Scroll">
+      <svg viewBox="0 0 24 12" fill="none" aria-hidden="true">
+        <path d="M3 9 12 2l9 7" stroke="rgba(255,255,255,.82)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+    <div class="chev bot" id="chevBot" title="Scroll">
+      <svg viewBox="0 0 24 12" fill="none" aria-hidden="true">
+        <path d="M3 9 12 2l9 7" stroke="rgba(255,255,255,.82)" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <div class="navArrow left" id="prev" title="Previous">
+      <div class="ring">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M14.5 5 8 12l6.5 7" stroke="rgba(255,255,255,.86)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+    <div class="navArrow right" id="next" title="Next">
+      <div class="ring">
+        <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M14.5 5 8 12l6.5 7" stroke="rgba(255,255,255,.86)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    </div>
+
+    <div class="panel" id="about">
+      <div class="hd">
+        <b>About</b>
+        <button class="btn-link" id="moreAbout" type="button">More</button>
+      </div>
+      <div class="body">
+        <p>
+          We work across scales and sectors. We design spaces, products, and systems that feel inevitable —
+          grounded in engineering, finished with clarity.
+        </p>
+        <div class="meta">
+          <div>Capabilities: Architecture / Engineering / Product</div>
+          <div>Material: Silver / Metal / Iridescent</div>
+          <div>Future: nothing less than fantastic</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="news">
+      <div class="hd">
+        <b>News</b>
+        <button class="btn-link" id="moreNews" type="button">More</button>
+      </div>
+      <div class="body" id="newsBody">
+        <div class="news-item">
+          <div class="news-date">26-01-14</div>
+          <div class="news-title">Material study: Foil finishes</div>
+          <p class="news-snippet">A quick archive drop on coatings, specular control, and how to keep “silver” calm.</p>
+        </div>
+        <div class="news-item">
+          <div class="news-date">26-01-10</div>
+          <div class="news-title">Prototype week</div>
+          <p class="news-snippet">We’re iterating on a compact kinetic joint: fewer parts, better feel, tighter tolerance.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel portrait" id="portrait">
+      <div class="hd"><b>Studio</b><span style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.58);letter-spacing:.6px;text-transform:uppercase;">index</span></div>
+      <div class="body">
+        <div class="img" aria-hidden="true"></div>
+        <div class="caption">
+          StahlMac (S + M)
+          <span>Creative / Architecture / Engineering</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="featured">
+      <div class="hd">
+        <b>Featured</b>
+        <button class="btn-link" id="openFeatured" type="button">Open</button>
+      </div>
+      <div class="body">
+        <div class="featured-img" aria-hidden="true"></div>
+        <div style="margin-top:10px; font-size:12.8px; color:rgba(255,255,255,.88);">Project: Silverline Pavilion</div>
+        <div style="margin-top:4px; font-size:12.2px; color:rgba(255,255,255,.68);">Location: concept study</div>
+      </div>
+    </div>
+
+    <div class="enter" id="enter" role="button" tabindex="0" aria-label="Enter">
+      <span>Enter</span>
+      <div class="icons" aria-hidden="true">
+        <div class="ic">≡</div>
+        <div class="ic">⤢</div>
+      </div>
+    </div>
+
+    <div class="panel search" id="search">
+      <div class="hd"><b>Archive Search</b><span style="font-family:var(--mono);font-size:11px;color:rgba(255,255,255,.58);letter-spacing:.6px;text-transform:uppercase;">keyword</span></div>
+      <div class="body">
+        <div class="row">
+          <input id="q" placeholder="Keyword" />
+          <button id="go" type="button">Go</button>
+        </div>
+        <div class="cat" data-cat="Architecture"><span>Architecture</span><small>open</small></div>
+        <div class="cat" data-cat="Engineering"><span>Engineering</span><small>open</small></div>
+        <div class="cat" data-cat="Product"><span>Product</span><small>open</small></div>
+        <div class="cat" data-cat="Research"><span>Research</span><small>open</small></div>
+        <div class="cat" data-cat="People"><span>People</span><small>open</small></div>
+        <div class="cat" data-cat="Publications"><span>Publications</span><small>open</small></div>
+        <div class="cat" data-cat="Videos"><span>Videos</span><small>open</small></div>
+        <div class="cat" data-cat="Careers"><span>Careers</span><small>open</small></div>
+      </div>
+    </div>
+
+    <div class="overlay" id="overlay" aria-hidden="true">
+      <div class="modal" role="dialog" aria-modal="true" aria-label="Enter menu">
+        <div class="mhd">
+          <b>StahlMac / Index</b>
+          <button class="x" id="close" type="button" aria-label="Close">✕</button>
+        </div>
+        <div class="mbody">
+          <div class="tile">
+            <b>Projects</b>
+            <p>Browse selected work and studies. Filter by discipline.</p>
+          </div>
+          <div class="tile">
+            <b>Archive</b>
+            <p>Search by keyword, category, or material. Save links to entries.</p>
+          </div>
+          <div class="tile">
+            <b>Contact</b>
+            <p>Start a project. We reply with a first step and a clean timeline.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast">OK</div>
+  </div>
+
+  <script>
+    (function(){
+      const $ = (s, el=document) => el.querySelector(s);
+      const $$ = (s, el=document) => Array.from(el.querySelectorAll(s));
+
+      // mouse highlight
+      const scene = $('#scene');
+      window.addEventListener('pointermove', (e)=>{
+        const x = Math.max(0, Math.min(100, (e.clientX / window.innerWidth) * 100));
+        const y = Math.max(0, Math.min(100, (e.clientY / window.innerHeight) * 100));
+        scene.style.setProperty('--mx', x + '%');
+        scene.style.setProperty('--my', y + '%');
+      }, {passive:true});
+
+      // faux “background slides” (no external images)
+      const slides = [
+        {
+          name: 'Slate',
+          css: "radial-gradient(1200px 700px at 20% 15%, rgba(210,225,255,.12), transparent 60%),radial-gradient(1000px 650px at 78% 18%, rgba(240,205,255,.10), transparent 62%),radial-gradient(1200px 800px at 55% 92%, rgba(190,255,238,.08), transparent 62%),linear-gradient(180deg, #070912 0%, #0a0d14 50%, #070912 100%)"
+        },
+        {
+          name: 'Steel',
+          css: "radial-gradient(900px 600px at 30% 20%, rgba(255,255,255,.10), transparent 62%),radial-gradient(1200px 900px at 70% 70%, rgba(188,226,255,.08), transparent 62%),linear-gradient(180deg, #07070a 0%, #0b0f14 55%, #07070a 100%)"
+        },
+        {
+          name: 'Iridescent',
+          css: "radial-gradient(1100px 720px at 22% 18%, rgba(186,255,235,.10), transparent 62%),radial-gradient(1000px 650px at 80% 28%, rgba(230,198,255,.10), transparent 62%),radial-gradient(1200px 900px at 55% 90%, rgba(255,238,200,.08), transparent 62%),linear-gradient(180deg, #06070c 0%, #0b0d12 55%, #06070c 100%)"
+        }
+      ];
+
+      let idx = 0;
+      function setSlide(i){
+        idx = (i + slides.length) % slides.length;
+        scene.style.background = slides[idx].css;
+        toast(slides[idx].name);
+      }
+
+      // enter overlay
+      const overlay = $('#overlay');
+      const enter = $('#enter');
+      const close = $('#close');
+
+      function openOverlay(){ overlay.classList.add('show'); overlay.setAttribute('aria-hidden','false'); }
+      function closeOverlay(){ overlay.classList.remove('show'); overlay.setAttribute('aria-hidden','true'); }
+
+      enter.addEventListener('click', openOverlay);
+      enter.addEventListener('keydown', (e)=>{ if(e.key==='Enter' || e.key===' ') { e.preventDefault(); openOverlay(); } });
+      close.addEventListener('click', closeOverlay);
+      overlay.addEventListener('click', (e)=>{ if(e.target === overlay) closeOverlay(); });
+      window.addEventListener('keydown', (e)=>{ if(e.key === 'Escape') closeOverlay(); });
+
+      // arrows
+      $('#prev').addEventListener('click', ()=> setSlide(idx - 1));
+      $('#next').addEventListener('click', ()=> setSlide(idx + 1));
+      window.addEventListener('keydown', (e)=>{
+        if (e.key === 'ArrowLeft') setSlide(idx - 1);
+        if (e.key === 'ArrowRight') setSlide(idx + 1);
+      });
+
+      // search interactions (demo)
+      const q = $('#q');
+      $('#go').addEventListener('click', ()=>{
+        toast(q.value.trim() ? ('Search: ' + q.value.trim()) : 'Type a keyword');
+      });
+      q.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); $('#go').click(); } });
+
+      $$('.cat').forEach((el)=>{
+        el.addEventListener('click', ()=> toast('Open: ' + el.dataset.cat));
+      });
+
+      // more buttons
+      $('#moreAbout').addEventListener('click', ()=> openOverlay());
+      $('#moreNews').addEventListener('click', ()=> toast('More news (demo)'));
+      $('#openFeatured').addEventListener('click', ()=> toast('Featured opened (demo)'));
+
+      // chevrons scroll hint
+      function nudge(dir){
+        const y = window.scrollY || 0;
+        window.scrollTo({ top: Math.max(0, y + dir * 240), behavior: 'smooth' });
+      }
+      $('#chevTop').addEventListener('click', ()=> nudge(-1));
+      $('#chevBot').addEventListener('click', ()=> nudge(1));
+
+      // toast
+      const t = $('#toast');
+      function toast(msg){
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(toast._tt);
+        toast._tt = setTimeout(()=> t.classList.remove('show'), 1600);
+      }
+
+      // init
+      setSlide(0);
+    })();
+  </script>
+</body>
+</html>

@@ -541,9 +541,9 @@
       }
 
       /* Tighter icons on mobile so we can fit 4 columns */
-      .icon { width: 80px; height: 104px; padding: 4px; }
-      .icon img { width: 54px; height: 54px; margin-top: 2px; }
-      .icon span { width: 72px; font-size: 8px; margin-top: 6px; height: 26px; }
+      .icon { width: 86px; height: 110px; padding: 4px; }
+      .icon img { width: 58px; height: 58px; margin-top: 2px; }
+      .icon span { width: 78px; font-size: 8px; margin-top: 6px; height: 26px; }
 
       body::before { display: none; }
     }
@@ -598,11 +598,6 @@
     <a href="#" class="icon" data-kind="file"><img src="images/folder-64.png" alt="Image" /><span>folder-64.png</span></a>
     <a href="#" class="icon" data-kind="file"><img src="images/folder-160.png" alt="Image" /><span>folder-160.png</span></a>
 
-    <!-- extra non-image files (still searchable) -->
-    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>readme.txt</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>changelog.txt</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>specs.txt</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/text-160.png" alt="Text" /><span>archive_list.txt</span></a>
   </div>
 
   <div class="taskbar">
@@ -729,6 +724,7 @@
         var hasPopups = popupOrder.length > 0;
         popupOverlay.classList.toggle("show", hasPopups);
         popupOverlay.setAttribute("aria-hidden", hasPopups ? "false" : "true");
+        popupOverlay.style.pointerEvents = (hasPopups && isMobile()) ? "auto" : "none";
       }
 
       function getActivePopup() {
@@ -831,6 +827,7 @@
       function openPopup(opts) {
         opts = opts || {};
         if (!popupOverlay) return null;
+        if (isMobile() && popupOrder.length) closeAllPopups();
         if (opts.key && popupKeyRegistry[opts.key]) {
           var existing = popupKeyRegistry[opts.key];
           focusPopup(existing);
@@ -954,6 +951,14 @@
         setOverlayVisible();
       }
 
+      function closeAllPopups() {
+        var ids = popupOrder.slice(0);
+        ids.forEach(function (id) {
+          var popup = popupRegistry[id];
+          if (popup) closePopup(popup);
+        });
+      }
+
       window.openPopup = openPopup;
       window.closePopup = closePopup;
 
@@ -1067,6 +1072,14 @@
       window.showLoadingScreen = showLoadingScreen;
       window.showLoadingUntilPageLoad = showLoadingUntilPageLoad;
       window.maybeStartPendingLoader = maybeStartPendingLoader;
+
+      if (popupOverlay) {
+        popupOverlay.addEventListener("mousedown", function (e) {
+          if (!isMobile()) return;
+          if (e.target !== popupOverlay) return;
+          closePopup();
+        });
+      }
 
       function openAboutPopup() {
         openPopup({
@@ -1564,6 +1577,27 @@
 
       var icons = Array.prototype.slice.call(document.querySelectorAll(".icon"));
 
+      function fitIconLabel(icon) {
+        var label = icon ? icon.querySelector("span") : null;
+        if (!label) return;
+
+        label.style.fontSize = "";
+        var maxH = label.clientHeight;
+        var maxW = label.clientWidth;
+        var size = parseFloat(window.getComputedStyle(label).fontSize) || 8;
+        var minSize = 6;
+
+        for (var i = 0; i < 10; i++) {
+          if ((label.scrollWidth <= maxW && label.scrollHeight <= maxH) || size <= minSize) break;
+          size = Math.max(minSize, size - 1);
+          label.style.fontSize = size + "px";
+        }
+      }
+
+      function adjustIconLabels() {
+        icons.forEach(function (icon) { fitIconLabel(icon); });
+      }
+
       function openIcon(icon) {
         if (!icon) return;
         var href = icon.getAttribute("href");
@@ -1606,14 +1640,14 @@
 
         // Responsive spacing + sizing (mobile aims for 4 columns on iPhone)
         var mobile = isMobile();
-        var gapX = mobile ? 8 : 8;
-        var gapY = mobile ? 16 : 20;
+        var gapX = mobile ? 6 : 8;
+        var gapY = mobile ? 12 : 20;
 
         // Read actual icon dimensions (so CSS mobile overrides are honored)
         var iconW = icons[0].offsetWidth || 99;
         var iconH = icons[0].offsetHeight || 120;
 
-        var margin = 10;
+        var margin = mobile ? 4 : 10;
         var available = Math.max(1, window.innerWidth - margin * 2);
         var cols = Math.max(1, Math.floor((available + gapX) / (iconW + gapX)));
 
@@ -1643,6 +1677,8 @@
             x += iconW + gapX;
           }
         });
+
+        adjustIconLabels();
 
         // Make the page scrollable on mobile by giving the desktop a real height.
         // (Icons are absolutely positioned, so without this the document height stays tiny.)
