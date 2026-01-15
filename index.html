@@ -442,6 +442,10 @@
       line-height: 1.8;
     }
 
+    .popup-content > * + * {
+      margin-top: 5px;
+    }
+
     .popup-text.align-justify-last-left {
       text-align: justify;
       text-align-last: left;
@@ -489,6 +493,12 @@
       image-rendering: pixelated;
       max-width: 100%;
       height: auto;
+      border: 1px solid #000;
+      box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000;
+      background: #fff;
+    }
+
+    .popup-media.no-frame img {
       border: none;
       box-shadow: none;
       background: transparent;
@@ -499,6 +509,70 @@
     .popup-media.size-md img { max-width: 240px; }
     .popup-media.size-lg img { max-width: 320px; }
     .popup-media.size-xl img { max-width: 420px; }
+
+    .popup-embed {
+      display: flex;
+      justify-content: center;
+      margin: 10px 10px 6px;
+    }
+
+    .popup-embed-frame {
+      width: 100%;
+      max-width: none;
+      aspect-ratio: 16 / 9;
+      background: #fff;
+      border: 1px solid #000;
+      box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .popup-embed-bar {
+      height: 18px;
+      display: flex;
+      align-items: center;
+      padding: 0 6px;
+      background: #dfdfdf;
+      border-bottom: 1px solid #000;
+      box-shadow: inset 0 1px 0 #fff;
+      font-size: 10px;
+    }
+
+    .popup-embed-body {
+      flex: 1;
+      position: relative;
+      background: #fff;
+    }
+
+    .popup-embed-body iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+    }
+
+    .popup-quote {
+      background: #dfdfdf;
+      margin: 14px 10px 8px;
+      padding: 10px;
+      font-style: oblique;
+      font-size: 9px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      text-align: justify;
+      text-align-last: left;
+      border: 1px solid #000;
+      box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000;
+    }
+
+    .popup-quote-signature {
+      display: block;
+      width: 100%;
+      text-align: right;
+      text-align-last: right;
+      font-size: inherit;
+    }
 
     /* Desktop taskbar: pinned to top */
     .taskbar {
@@ -558,45 +632,13 @@
       <span>J-Mac</span>
     </a>
 
-    <a href="pages/projects.html" class="icon" data-kind="folder">
-      <img src="images/folder-160.png" alt="Folder" />
-      <span>Projects</span>
-    </a>
-
-    <a href="pages/archive.html" class="icon" data-kind="folder">
-      <img src="images/folder-160.png" alt="Folder" />
-      <span>Archive</span>
-    </a>
-
     <a href="#" class="icon" data-kind="file">
       <img src="images/nike.jpg" alt="Image" />
       <span>Nike.jpg</span>
     </a>
-
-    <a href="#" class="icon" data-kind="file">
-      <img src="images/text-160.png" alt="Text File" />
-      <span>notes_03.txt</span>
-    </a>
-
-    <!-- Example files (real images for stress testing) -->
-    <a href="#" class="icon" data-kind="file"><img src="images/apple folder.png" alt="Image" /><span>apple folder.png</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/apple folder copy.png" alt="Image" /><span>apple folder copy.png</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/return folder.png" alt="Image" /><span>return folder.png</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/return folder copy.png" alt="Image" /><span>return folder copy.png</span></a>
-
-    <a href="#" class="icon" data-kind="file"><img src="images/green.gif" alt="GIF" /><span>green.gif</span></a>
     <a href="#" class="icon" data-kind="file"><img src="images/star.gif" alt="GIF" /><span>star.gif</span></a>
     <a href="#" class="icon" data-kind="file"><img src="images/earth.gif" alt="GIF" /><span>earth.gif</span></a>
-
     <a href="#" class="icon" data-kind="file"><img src="images/LV.png" alt="Image" /><span>LV.png</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/Nike_swoosh_logo71.png" alt="Image" /><span>Nike_swoosh_logo71.png</span></a>
-
-    <a href="#" class="icon" data-kind="file"><img src="images/search icon-32.png" alt="Image" /><span>search icon-32.png</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/search icon-64.png" alt="Image" /><span>search icon-64.png</span></a>
-
-    <a href="#" class="icon" data-kind="file"><img src="images/folder-32.png" alt="Image" /><span>folder-32.png</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/folder-64.png" alt="Image" /><span>folder-64.png</span></a>
-    <a href="#" class="icon" data-kind="file"><img src="images/folder-160.png" alt="Image" /><span>folder-160.png</span></a>
 
   </div>
 
@@ -665,14 +707,31 @@
             var role = block.role || (idx === 0 ? "title" : "body");
 
             d.className = "popup-text size-" + size + " align-" + align + " role-" + role;
-            d.textContent = block.text || "";
+            if (block.html != null) d.innerHTML = String(block.html);
+            else d.textContent = block.text || "";
             wrap.appendChild(d);
+          }
+
+          if (block.type === "embed") {
+            var e = document.createElement("div");
+            e.className = "popup-embed";
+            e.innerHTML = String(block.html || "");
+            wrap.appendChild(e);
+          }
+
+          if (block.type === "quote") {
+            var q = document.createElement("div");
+            q.className = "popup-quote";
+            if (block.html != null) q.innerHTML = String(block.html);
+            else q.textContent = block.text || "";
+            wrap.appendChild(q);
           }
 
           if (block.type === "image") {
             var m = document.createElement("div");
             var size2 = block.size || "md";
             m.className = "popup-media size-" + size2;
+            if (block.noFrame) m.classList.add("no-frame");
 
             var img = document.createElement("img");
             img.src = block.src || "";
@@ -1783,14 +1842,16 @@
           sessionStorage.setItem("welcomeShown", "1");
         } catch (e) {}
 
+        var now = new Date();
+        var dateStr = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
         var popup = openPopup({
-          title: "Loading...",
+          title: dateStr,
           okText: "Enter",
           content: [
             { type: "text", role: "title", text: "", size: "xl", align: "center" },
-            { type: "image", src: "images/earth.gif", alt: "Welcome", size: "lg" },
-            { type: "text", role: "welcome", size: "md", align: "center", text: "Welcome to my portfolio!" },
-            { type: "text", role: "body", size: "md", align: "justify-last-left", text: "Here you can find a collection of my work, personal projects, and ideas-in-progress. Feel free to take a look around and see what I’ve been building. I hope you enjoy your time spent while you're here." }
+            { type: "image", src: "images/star.gif", alt: "Welcome", size: "lg", noFrame: true },
+            { type: "embed", html: "<div class=\"popup-embed-frame\"><div class=\"popup-embed-bar\">The Prelude</div><div class=\"popup-embed-body\"><iframe src=\"https://www.youtube.com/embed/nmaaJQwAhSU?start=922\" title=\"The Prelude\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe></div></div>" },
+            { type: "quote", html: "“Welcome to my portfolio! This is a collection of my work, creative projects, and ideas-in-progress. Take a look around to see what I’ve been building. I hope you enjoy your experience…<br><br>The intention of this website is to serve both as a convenient place to document my growth over time and as a way to provide personal context around how I approach art, music, design, etc.”<br><br><div class=\"popup-quote-signature\">&mdash; Jordan A. McKenzie</div>" }
           ]
         });
         if (!popup) return;
@@ -1816,12 +1877,18 @@
           }
         } catch (e) {}
 
+        var titleTimer = setInterval(function () {
+          if (!popup.titleEl) return;
+          var d = new Date();
+          var dateStrNow = d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+          popup.titleEl.textContent = dateStrNow;
+        }, 60000);
+        addPopupTimer(popup, "interval", titleTimer);
+
         var welcomeTitleEl = popup.bodyEl ? popup.bodyEl.querySelector(".popup-text.role-title") : null;
         function tickWelcomeTitle() {
           if (!welcomeTitleEl) return;
           var d = new Date();
-          var dateStr = d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-
           var h = d.getHours();
           var m = d.getMinutes();
           var ampm = h >= 12 ? "PM" : "AM";
@@ -1829,8 +1896,7 @@
           if (h === 0) h = 12;
           var mm = (m < 10 ? "0" + m : "" + m);
           var colon = (d.getSeconds() % 2 === 0) ? ":" : " ";
-
-          welcomeTitleEl.textContent = dateStr + " " + h + colon + mm + " " + ampm;
+          welcomeTitleEl.textContent = h + colon + mm + " " + ampm;
         }
         tickWelcomeTitle();
         var clockTimer = setInterval(tickWelcomeTitle, 1000);
