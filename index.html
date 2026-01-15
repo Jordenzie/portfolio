@@ -916,6 +916,8 @@
           cleanup: []
         };
 
+        if (isMobile()) popup.closeOnBackdrop = true;
+
         var win = document.createElement("div");
         win.className = "popup-window";
         win.setAttribute("data-popup-id", popup.id);
@@ -1160,7 +1162,6 @@
 
       function openAboutPopup() {
         openPopup({
-          title: "About",
           title: "About Me",
           okText: "Done",
           content: [
@@ -1682,6 +1683,8 @@
         var imgEl = icon.querySelector("img");
         var labelEl = icon.querySelector("span");
         var name = labelEl ? labelEl.textContent : "";
+        var dataFile = icon.getAttribute("data-file") || "";
+        var dataText = icon.getAttribute("data-text") || "";
 
         // Image preview (desktop files)
         if (kind === "file" && imgEl && imgEl.src && /\.(png|jpg|jpeg|gif|webp)$/i.test(imgEl.src)) {
@@ -1696,11 +1699,22 @@
         }
 
         if (kind === "text") {
+          if (dataFile === "quote") {
+            openPopup({
+              title: name || "note.txt",
+              key: "text:" + (name || "note.txt"),
+              content: [
+                { type: "quote", html: "“Everything I do is for the 17-year-old version of myself.”<br><br><div class=\"popup-quote-signature\">&mdash; Virgil Abloh</div>" }
+              ]
+            });
+            return;
+          }
+
           openPopup({
             title: name || "note.txt",
             key: "text:" + (name || "note.txt"),
             content: [
-              { type: "quote", html: "“Everything I do is for the 17-year-old version of myself.”<br><br><div class=\"popup-quote-signature\">&mdash; Virgil Abloh</div>" }
+              { type: "text", role: "body", size: "md", align: "left", text: dataText || "Placeholder text." }
             ]
           });
           return;
