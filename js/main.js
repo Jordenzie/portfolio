@@ -7,6 +7,31 @@
       function isSubpage() { return window.location.pathname.indexOf("/pages/") !== -1; }
       var assetBase = isSubpage() ? "../" : "";
       function assetPath(path) { return assetBase + path; }
+      function currentPageHref() {
+        var path = window.location.pathname || "";
+        if (isSubpage()) {
+          var parts = path.split("/");
+          return "pages/" + (parts[parts.length - 1] || "");
+        }
+        return "index.html";
+      }
+      function normalizeHrefForKey(it) {
+        var href = safeText(it && it.href).trim();
+        if (!href || href === "#") href = currentPageHref();
+        if (href.indexOf("../") === 0) href = href.slice(3);
+        return href;
+      }
+      function normalizeIconPath(src) {
+        var s = safeText(src);
+        if (!s) return "";
+        if (/^(https?:|data:|blob:|\/)/.test(s)) return s;
+        if (isSubpage()) {
+          if (s.indexOf("../") === 0) return s;
+          return "../" + s;
+        }
+        if (s.indexOf("../") === 0) return s.slice(3);
+        return s;
+      }
 
       var aboutBtn = $("aboutBtn");
       var desktopEl = $("desktop");
@@ -573,6 +598,7 @@
 
       var SEARCH_INDEX = buildLocalIndex();
       var GLOBAL_INDEX = [];
+      var GLOBAL_INDEX_READY = false;
       var activeIdx = -1;
       var currentMatches = [];
       var findIsRecentsView = false;
@@ -583,11 +609,18 @@
         var out = {
           name: safeText(it.name).trim(),
           kind: safeText(it.kind || "").trim() || "file",
-          href: safeText(it.href || "").trim(),
+          href: normalizeHrefForKey({ href: safeText(it.href || "").trim(), name: it.name, kind: it.kind }),
           icon: safeText(it.icon || "").trim()
         };
         if (!out.name) return null;
         if (!out.kind) out.kind = "file";
+        return out;
+      }
+
+      function normalizeRecentItem(it) {
+        var out = normalizeItem(it);
+        if (!out) return null;
+        out.href = normalizeHrefForKey(out);
         return out;
       }
 
@@ -602,6 +635,10 @@
             .then(function (data) {
               if (!Array.isArray(data)) return;
               GLOBAL_INDEX = data.map(normalizeItem).filter(Boolean);
+              GLOBAL_INDEX_READY = true;
+              if (searchBarEl && searchBarEl.style.display === "flex" && searchInput && !(searchInput.value || "").trim()) {
+                showRecentsIfEmpty();
+              }
             })
             .catch(function () {});
         } catch (e) {}
@@ -614,7 +651,7 @@
         var out = [];
 
         function add(it) {
-          var key = (it.kind + "|" + it.href + "|" + it.name).toLowerCase();
+          var key = (it.kind + "|" + normalizeHrefForKey(it) + "|" + it.name).toLowerCase();
           if (seen[key]) return;
           seen[key] = 1;
           out.push(it);
@@ -694,7 +731,15 @@
           var raw = localStorage.getItem(RECENTS_KEY);
           var arr = raw ? JSON.parse(raw) : [];
           if (!Array.isArray(arr)) return [];
-          return arr.map(normalizeItem).filter(Boolean).slice(0, 10);
+          var seen = Object.create(null);
+          var out = [];
+          arr.map(normalizeRecentItem).filter(Boolean).forEach(function (it) {
+            var key = (it.kind + "|" + it.href + "|" + it.name).toLowerCase();
+            if (seen[key]) return;
+            seen[key] = 1;
+            out.push(it);
+          });
+          return out.slice(0, 10);
         } catch (e) {
           return [];
         }
@@ -703,11 +748,13 @@
       function pushRecent(it) {
         try {
           var rec = getRecents();
-          var key = (it.kind + "|" + it.href + "|" + it.name).toLowerCase();
+          var norm = normalizeRecentItem(it);
+          if (!norm) return;
+          var key = (norm.kind + "|" + norm.href + "|" + norm.name).toLowerCase();
           rec = rec.filter(function (r) {
             return ((r.kind + "|" + r.href + "|" + r.name).toLowerCase() !== key);
           });
-          rec.unshift(normalizeItem(it));
+          rec.unshift(norm);
           rec = rec.filter(Boolean).slice(0, 10);
           localStorage.setItem(RECENTS_KEY, JSON.stringify(rec));
         } catch (e) {}
@@ -746,6 +793,16 @@
             var ckey = ((c.kind || "") + "|" + (c.href || "") + "|" + (c.name || "")).toLowerCase();
             if (ckey === key) return c;
           }
+          // Fallback: match by name/kind against the current page icons.
+          var name = safeText(it.name).trim().toLowerCase();
+          var kind = safeText(it.kind || "").trim().toLowerCase();
+          for (var j = 0; j < SEARCH_INDEX.length; j++) {
+            var local = SEARCH_INDEX[j];
+            if (!local) continue;
+            var lname = safeText(local.name).trim().toLowerCase();
+            var lkind = safeText(local.kind || "").trim().toLowerCase();
+            if (lname === name && lkind === kind) return local;
+          }
         } catch (e) {}
         return null;
       }
@@ -775,7 +832,18 @@
 
         // Fall back to navigation only when href is meaningful
         if (it.href && it.href !== "#") {
-          window.location.href = it.href;
+          var targetHref = it.href;
+          if (isSubpage()) {
+            var isAbsolute = targetHref.indexOf("http:") === 0 || targetHref.indexOf("https:") === 0;
+            var isMail = targetHref.indexOf("mailto:") === 0;
+            var isTel = targetHref.indexOf("tel:") === 0;
+            var isRoot = targetHref.indexOf("/") === 0;
+            var isUp = targetHref.indexOf("../") === 0;
+            if (!(isAbsolute || isMail || isTel || isRoot || isUp)) {
+              targetHref = "../" + targetHref;
+            }
+          }
+          window.location.href = targetHref;
         }
       }
 
@@ -808,7 +876,7 @@
           var icon = document.createElement("img");
           icon.className = "search-result-icon";
           icon.alt = "";
-          if (it.icon) icon.src = it.icon;
+          if (it.icon) icon.src = normalizeIconPath(it.icon);
 
           var nameEl = document.createElement("span");
           nameEl.className = "search-result-name";
@@ -866,17 +934,20 @@
 
       function showRecentsIfEmpty() {
         // Only show recents that still exist in the current combined index.
-        var combined = getCombinedIndex();
-        var exists = Object.create(null);
-        combined.forEach(function (it) {
-          var k = ((it.kind || "") + "|" + (it.href || "") + "|" + (it.name || "")).toLowerCase();
-          exists[k] = 1;
-        });
+        var rec = getRecents();
+        if (GLOBAL_INDEX_READY) {
+          var combined = getCombinedIndex();
+          var exists = Object.create(null);
+          combined.forEach(function (it) {
+            var k = ((it.kind || "") + "|" + normalizeHrefForKey(it) + "|" + (it.name || "")).toLowerCase();
+            exists[k] = 1;
+          });
 
-        var rec = getRecents().filter(function (it) {
-          var k = ((it.kind || "") + "|" + (it.href || "") + "|" + (it.name || "")).toLowerCase();
-          return !!exists[k];
-        });
+          rec = rec.filter(function (it) {
+            var k = ((it.kind || "") + "|" + normalizeHrefForKey(it) + "|" + (it.name || "")).toLowerCase();
+            return !!exists[k];
+          });
+        }
 
         if (!rec.length) {
           if (searchResultsEl) searchResultsEl.style.display = "none";
