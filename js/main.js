@@ -477,15 +477,17 @@
       function showLoadingUntilPageLoad(opts) {
         opts = opts || {};
         var fillId = "loaderFill_" + Math.random().toString(16).slice(2);
+        var blocks = [];
+        if (opts.icon !== null) {
+          blocks.push({ type: "image", src: opts.icon || assetPath("images/earth.gif"), alt: "", size: "sm" });
+        }
+        blocks.push({ type: "loader", id: fillId, label: opts.label || "Loading…", hint: opts.hint || "" });
 
         var popup = openPopup({
           title: "",
           okText: null,
           preservePosition: true,
-          content: [
-            { type: "image", src: opts.icon || assetPath("images/earth.gif"), alt: "", size: "sm" },
-            { type: "loader", id: fillId, label: opts.label || "Loading…", hint: opts.hint || "" }
-          ]
+          content: blocks
         });
         if (!popup) return;
 
@@ -1419,27 +1421,27 @@
 
       // Otherwise, show an OS9-style boot/loading screen on page load (timed), then the welcome popup (home only).
       if (!hadPending) {
-        window.addEventListener("load", function () {
-          var page = document.body ? document.body.getAttribute("data-page") : "";
-          var loadHints = [
-            "Flipping switches",
-            "Tightening screws",
-            "Checking wires",
-            "Filing papers",
-            "Submitting taxes"
-          ];
-          var loadLabel = loadHints[Math.floor(Math.random() * loadHints.length)];
-          showLoadingScreen({
-            title: "Welcome",
-            headline: "",
+        var page = document.body ? document.body.getAttribute("data-page") : "";
+        var loadHints = [
+          "Flipping switches",
+          "Tightening screws",
+          "Checking wires",
+          "Filing papers",
+          "Submitting taxes"
+        ];
+        var loadLabel = loadHints[Math.floor(Math.random() * loadHints.length)];
+        if (document.readyState === "complete") {
+          if (page === "home") maybeWelcome();
+        } else {
+          showLoadingUntilPageLoad({
+            icon: null,
             label: "Loading...",
             hint: loadLabel,
-            durationMs: 800,
             onDone: function () {
               if (page === "home") maybeWelcome();
             }
           });
-        });
+        }
       } else {
         // If pending loader just ran and we're on home, show welcome after load.
         window.addEventListener("load", function () {
