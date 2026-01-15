@@ -1,56 +1,59 @@
-[
-  {
-    "name": "J-Mac",
-    "kind": "folder",
-    "href": "pages/j-mac.html",
-    "icon": "images/folder-160.png"
-  },
-  {
-    "name": "1999 Worldwide",
-    "kind": "folder",
-    "href": "index.html",
-    "icon": "images/folder-160.png"
-  },
-  {
-    "name": "quote.txt",
-    "kind": "file",
-    "href": "index.html",
-    "icon": "images/txt.png"
-  },
-  {
-    "name": "Nike.jpg",
-    "kind": "file",
-    "href": "index.html",
-    "icon": "images/nike.jpg"
-  },
-  {
-    "name": "1999.gif",
-    "kind": "file",
-    "href": "index.html",
-    "icon": "images/1999.gif"
-  },
-  {
-    "name": "earth.gif",
-    "kind": "file",
-    "href": "index.html",
-    "icon": "images/earth.gif"
-  },
-  {
-    "name": "LV.png",
-    "kind": "file",
-    "href": "index.html",
-    "icon": "images/LV.png"
-  },
-  {
-    "name": "Return to Desktop",
-    "kind": "folder",
-    "href": "index.html",
-    "icon": "images/folder-160.png"
-  },
-  {
-    "name": "notes.txt",
-    "kind": "file",
-    "href": "pages/j-mac.html",
-    "icon": "images/txt.png"
-  }
-]
+{
+  "_note": "Update this list when desktop icons change so Find stays accurate.",
+  "items": [
+    {
+      "name": "J-Mac",
+      "kind": "folder",
+      "href": "pages/j-mac.html",
+      "icon": "images/folder-160.png"
+    },
+    {
+      "name": "1999 Worldwide",
+      "kind": "folder",
+      "href": "index.html",
+      "icon": "images/folder-160.png"
+    },
+    {
+      "name": "quote.txt",
+      "kind": "file",
+      "href": "index.html",
+      "icon": "images/txt.png"
+    },
+    {
+      "name": "Nike.jpg",
+      "kind": "file",
+      "href": "index.html",
+      "icon": "images/nike.jpg"
+    },
+    {
+      "name": "1999.gif",
+      "kind": "file",
+      "href": "index.html",
+      "icon": "images/1999.gif"
+    },
+    {
+      "name": "earth.gif",
+      "kind": "file",
+      "href": "index.html",
+      "icon": "images/earth.gif"
+    },
+    {
+      "name": "LV.png",
+      "kind": "file",
+      "href": "index.html",
+      "icon": "images/LV.png"
+    },
+    {
+      "name": "Return to Desktop",
+      "kind": "folder",
+      "href": "index.html",
+      "icon": "images/folder-160.png"
+    },
+    {
+      "name": "notes.txt",
+      "kind": "file",
+      "href": "pages/j-mac.html",
+      "icon": "images/txt.png"
+    }
+  ]
+}

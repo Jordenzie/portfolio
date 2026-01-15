@@ -573,6 +573,7 @@
       .search-bar { top: 30px !important; bottom: auto !important; }
     }
 
+    /* ---------- Mobile Tweaks ---------- */
     @media (max-width: 768px) {
       html {
         background: #000; /* out-of-bounds */

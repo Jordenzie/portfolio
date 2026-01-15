@@ -134,6 +134,34 @@
         return wrap;
       }
 
+      var POPUP_CONTENT = {
+        welcome: function () {
+          return [
+            { type: "text", role: "title", text: "", size: "xl", align: "center" },
+            { type: "embed", html: "<div class=\"popup-embed-frame\"><div class=\"popup-embed-bar\">The Prelude</div><div class=\"popup-embed-body\"><iframe src=\"https://www.youtube.com/embed/nmaaJQwAhSU?start=922\" title=\"The Prelude\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe></div></div>" },
+            { type: "quote", html: "“Welcome to my portfolio! This is a collection of my work, creative projects, and ideas-in-progress. Take a look around to see what I’ve been building. I hope you enjoy your experience…<br><br>The intention of this website is to serve both as a convenient place to document my growth over time and as a way to provide personal context around how I approach art, music, design, etc.”<br><br><div class=\"popup-quote-signature\">&mdash; Jordan A. McKenzie</div>" }
+          ];
+        },
+        about: function () {
+          return [
+            {
+              type: "quote",
+              text:
+                "Jordan A. McKenzie was born and raised in Redding, California, on August 9, 1999. " +
+                "He graduated from Enterprise High School in 2017 and went to community college for civil engineering " +
+                "before switching to audio engineering and then business. After getting married in 2023, he and his wife " +
+                "returned to school and transferred to Chico State together. He is currently living, working, and attending " +
+                "university In Chico where he is expected to earn his bachelor’s degree in civil–structural engineering after the spring semester of 2027."
+            }
+          ];
+        },
+        quoteFile: function () {
+          return [
+            { type: "quote", html: "“Everything I do is for the 17-year-old version of myself.”<br><br><div class=\"popup-quote-signature\">&mdash; Virgil Abloh</div>" }
+          ];
+        }
+      };
+
       function setOverlayVisible() {
         if (!popupOverlay) return;
         var hasPopups = popupOrder.length > 0;
@@ -515,17 +543,7 @@
         openPopup({
           title: "About Me",
           okText: "Done",
-          content: [
-            {
-              type: "quote",
-              text:
-                "Jordan A. McKenzie was born and raised in Redding, California, on August 9, 1999. " +
-                "He graduated from Enterprise High School in 2017 and went to community college for civil engineering " +
-                "before switching to audio engineering and then business. After getting married in 2023, he and his wife " +
-                "returned to school and transferred to Chico State together. He is currently living, working, and attending " +
-                "university In Chico where he is expected to earn his bachelor’s degree in civil–structural engineering after the spring semester of 2027."
-            }
-          ]
+          content: POPUP_CONTENT.about()
         });
       }
 
@@ -626,15 +644,18 @@
 
       function loadGlobalIndex() {
         // Optional: create a search-index.json at site root.
-        // Format: [{"name":"J-Mac","kind":"folder","href":"pages/j-mac.html","icon":"images/folder-160.png"}, ...]
+        // Format: {"_note":"...","items":[{"name":"J-Mac","kind":"folder","href":"pages/j-mac.html","icon":"images/folder-160.png"}, ...]}
         try {
           if (!window.fetch) return;
           var indexPath = isSubpage() ? "../search-index.json" : "search-index.json";
           fetch(indexPath, { cache: "no-store" })
             .then(function (r) { return r.ok ? r.json() : null; })
             .then(function (data) {
-              if (!Array.isArray(data)) return;
-              GLOBAL_INDEX = data.map(normalizeItem).filter(Boolean);
+              var items = null;
+              if (Array.isArray(data)) items = data;
+              else if (data && Array.isArray(data.items)) items = data.items;
+              if (!items) return;
+              GLOBAL_INDEX = items.map(normalizeItem).filter(Boolean);
               GLOBAL_INDEX_READY = true;
               if (searchBarEl && searchBarEl.style.display === "flex" && searchInput && !(searchInput.value || "").trim()) {
                 showRecentsIfEmpty();
@@ -1052,6 +1073,52 @@
       })();
 
       var icons = Array.prototype.slice.call(document.querySelectorAll(".icon"));
+      var pageKey = (document.body && document.body.getAttribute("data-page")) || "home";
+      var ICON_POS_KEY = "prtf_icon_positions_v1_" + pageKey;
+      var savedIconPositions = loadIconPositions();
+
+      function iconKey(icon) {
+        var label = icon.querySelector("span");
+        var name = label ? label.textContent : "";
+        var href = icon.getAttribute("href") || "";
+        var kind = icon.getAttribute("data-kind") || "";
+        return (kind + "|" + href + "|" + name).toLowerCase();
+      }
+
+      function loadIconPositions() {
+        try {
+          var raw = localStorage.getItem(ICON_POS_KEY);
+          var data = raw ? JSON.parse(raw) : null;
+          return (data && typeof data === "object") ? data : null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function saveIconPositions() {
+        try {
+          var out = {};
+          icons.forEach(function (icon) {
+            out[iconKey(icon)] = { x: icon.offsetLeft, y: icon.offsetTop };
+          });
+          savedIconPositions = out;
+          localStorage.setItem(ICON_POS_KEY, JSON.stringify(out));
+        } catch (e) {}
+      }
+
+      function hasSavedPositions() {
+        return !!(savedIconPositions && Object.keys(savedIconPositions).length);
+      }
+
+      function applySavedPositions() {
+        if (!hasSavedPositions() || isMobile()) return;
+        icons.forEach(function (icon) {
+          var pos = savedIconPositions[iconKey(icon)];
+          if (!pos) return;
+          if (typeof pos.x === "number") icon.style.left = pos.x + "px";
+          if (typeof pos.y === "number") icon.style.top = pos.y + "px";
+        });
+      }
 
       function fitIconLabel(icon) {
         var label = icon ? icon.querySelector("span") : null;
@@ -1101,9 +1168,7 @@
             openPopup({
               title: name || "note.txt",
               key: "text:" + (name || "note.txt"),
-              content: [
-                { type: "quote", html: "“Everything I do is for the 17-year-old version of myself.”<br><br><div class=\"popup-quote-signature\">&mdash; Virgil Abloh</div>" }
-              ]
+              content: POPUP_CONTENT.quoteFile()
             });
             return;
           }
@@ -1180,6 +1245,7 @@
         });
 
         adjustIconLabels();
+        applySavedPositions();
 
         // Make the page scrollable on mobile by giving the desktop a real height.
         // (Icons are absolutely positioned, so without this the document height stays tiny.)
@@ -1255,6 +1321,7 @@
       });
 
       document.addEventListener("mouseup", function () {
+        if (draggingIcon) saveIconPositions();
         possibleDrag = false;
         draggingIcon = false;
         if (activeIcon) activeIcon.style.zIndex = "";
@@ -1291,11 +1358,7 @@
           okText: "Enter",
           closeOnBackdrop: true,
           dimOverlay: true,
-          content: [
-            { type: "text", role: "title", text: "", size: "xl", align: "center" },
-            { type: "embed", html: "<div class=\"popup-embed-frame\"><div class=\"popup-embed-bar\">The Prelude</div><div class=\"popup-embed-body\"><iframe src=\"https://www.youtube.com/embed/nmaaJQwAhSU?start=922\" title=\"The Prelude\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe></div></div>" },
-            { type: "quote", html: "“Welcome to my portfolio! This is a collection of my work, creative projects, and ideas-in-progress. Take a look around to see what I’ve been building. I hope you enjoy your experience…<br><br>The intention of this website is to serve both as a convenient place to document my growth over time and as a way to provide personal context around how I approach art, music, design, etc.”<br><br><div class=\"popup-quote-signature\">&mdash; Jordan A. McKenzie</div>" }
-          ]
+          content: POPUP_CONTENT.welcome()
         });
         if (!popup) return;
 
