@@ -324,6 +324,7 @@
     }
 
     .popup-overlay.show { display: block; }
+    .popup-overlay.dim { background: rgba(255, 255, 255, 0.55); }
 
     .popup-window {
       width: min(520px, calc(100vw - 40px));
@@ -493,12 +494,6 @@
       image-rendering: pixelated;
       max-width: 100%;
       height: auto;
-      border: 1px solid #000;
-      box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000;
-      background: #fff;
-    }
-
-    .popup-media.no-frame img {
       border: none;
       box-shadow: none;
       background: transparent;
@@ -632,11 +627,21 @@
       <span>J-Mac</span>
     </a>
 
+    <a href="#" class="icon" data-kind="folder">
+      <img src="images/folder-160.png" alt="Folder" />
+      <span>1999 Worldwide</span>
+    </a>
+
+    <a href="#" class="icon" data-kind="text" data-file="quote">
+      <img src="images/txt.png" alt="Text File" />
+      <span>quote.txt</span>
+    </a>
+
     <a href="#" class="icon" data-kind="file">
       <img src="images/nike.jpg" alt="Image" />
       <span>Nike.jpg</span>
     </a>
-    <a href="#" class="icon" data-kind="file"><img src="images/star.gif" alt="GIF" /><span>star.gif</span></a>
+    <a href="#" class="icon" data-kind="file"><img src="images/1999.gif" alt="GIF" /><span>1999.gif</span></a>
     <a href="#" class="icon" data-kind="file"><img src="images/earth.gif" alt="GIF" /><span>earth.gif</span></a>
     <a href="#" class="icon" data-kind="file"><img src="images/LV.png" alt="Image" /><span>LV.png</span></a>
 
@@ -783,7 +788,16 @@
         var hasPopups = popupOrder.length > 0;
         popupOverlay.classList.toggle("show", hasPopups);
         popupOverlay.setAttribute("aria-hidden", hasPopups ? "false" : "true");
-        popupOverlay.style.pointerEvents = (hasPopups && isMobile()) ? "auto" : "none";
+        var needBackdrop = false;
+        var shouldDim = false;
+        popupOrder.forEach(function (id) {
+          var p = popupRegistry[id];
+          if (!p) return;
+          if (p.closeOnBackdrop) needBackdrop = true;
+          if (p.dimOverlay) shouldDim = true;
+        });
+        popupOverlay.classList.toggle("dim", shouldDim);
+        popupOverlay.style.pointerEvents = (hasPopups && needBackdrop) ? "auto" : "none";
       }
 
       function getActivePopup() {
@@ -896,6 +910,8 @@
         var popup = {
           id: "popup_" + (++popupSeq),
           key: opts.key || null,
+          closeOnBackdrop: !!opts.closeOnBackdrop,
+          dimOverlay: !!opts.dimOverlay,
           timers: [],
           cleanup: []
         };
@@ -916,7 +932,7 @@
 
         var titleEl = document.createElement("div");
         titleEl.className = "popup-title";
-        titleEl.textContent = opts.title || "Notice";
+        titleEl.textContent = (opts.title != null) ? String(opts.title) : "";
 
         titlebar.appendChild(closeBtn);
         titlebar.appendChild(titleEl);
@@ -934,7 +950,7 @@
         var okBtn = document.createElement("button");
         okBtn.className = "popup-ok";
         okBtn.type = "button";
-        okBtn.textContent = (opts.okText != null) ? String(opts.okText) : "Enter";
+        okBtn.textContent = (opts.okText != null) ? String(opts.okText) : "Done";
 
         actions.appendChild(caption);
         actions.appendChild(okBtn);
@@ -955,7 +971,7 @@
         if (Array.isArray(opts.content)) body.appendChild(renderPopupContent(opts.content));
         else if (opts.text != null) body.textContent = String(opts.text);
 
-        var hasOk = (opts.okText != null);
+        var hasOk = (opts.okText !== null);
         okBtn.style.display = hasOk ? "inline-flex" : "none";
         win.classList.toggle("has-ok", hasOk);
 
@@ -1040,15 +1056,15 @@
         addPopupTimer(popup, "interval", t);
       }
 
-      function startLoaderDots(popup) {
-        if (!popup || !popup.titleEl) return;
+      function startLoaderDots(popup, labelEl) {
+        if (!popup || !popup.titleEl || !labelEl) return;
         var i = 0;
         var t = setInterval(function () {
           i = (i + 1) % 4;
-          popup.titleEl.textContent = "Loading" + ".".repeat(i);
+          labelEl.textContent = "Loading" + ".".repeat(i);
         }, 350);
         addPopupTimer(popup, "interval", t);
-        popup.titleEl.textContent = "Loading";
+        labelEl.textContent = "Loading";
       }
 
       function showLoadingScreen(opts) {
@@ -1057,7 +1073,7 @@
         var fillId = "loaderFill_" + Math.random().toString(16).slice(2);
 
         var popup = openPopup({
-          title: "Loading...",
+          title: "",
           okText: null,
           preservePosition: true,
           content: [
@@ -1066,7 +1082,8 @@
         });
         if (!popup) return;
 
-        startLoaderDots(popup);
+        var labelEl = popup.el ? popup.el.querySelector(".loader-label") : null;
+        startLoaderDots(popup, labelEl);
         var fill = popup.el ? popup.el.querySelector("#" + fillId) : null;
 
         runLoader(popup, fill, opts.durationMs || 750, function () {
@@ -1081,7 +1098,7 @@
         var fillId = "loaderFill_" + Math.random().toString(16).slice(2);
 
         var popup = openPopup({
-          title: "Loading...",
+          title: "",
           okText: null,
           preservePosition: true,
           content: [
@@ -1091,7 +1108,8 @@
         });
         if (!popup) return;
 
-        startLoaderDots(popup);
+        var labelEl = popup.el ? popup.el.querySelector(".loader-label") : null;
+        startLoaderDots(popup, labelEl);
 
         // Indeterminate barber-pole until load completes
         var indeterminateTimer = setTimeout(function () {
@@ -1134,26 +1152,26 @@
 
       if (popupOverlay) {
         popupOverlay.addEventListener("mousedown", function (e) {
-          if (!isMobile()) return;
           if (e.target !== popupOverlay) return;
-          closePopup();
+          var activePopup = getActivePopup();
+          if (activePopup && activePopup.closeOnBackdrop) closePopup(activePopup);
         });
       }
 
       function openAboutPopup() {
         openPopup({
           title: "About",
-          okText: "Enter",
+          title: "About Me",
+          okText: "Done",
           content: [
-            { type: "text", role: "title", text: "About This Portfolio", size: "lg", align: "center" },
             {
-              type: "text",
-              role: "body",
-              size: "md",
-              align: "left",
+              type: "quote",
               text:
-                "This site is a portfolio presented as a classic Macintosh desktop." +
-                "Click folders to explore projects and work."
+                "Jordan A. McKenzie was born and raised in Redding, California, on August 9, 1999. " +
+                "He graduated from Enterprise High School in 2017 and went to community college for civil engineering " +
+                "before switching to audio engineering and then business. After getting married in 2023, he and his wife " +
+                "returned to school and transferred to Chico State together. He is currently living, working, and attending " +
+                "university In Chico where he is expected to earn his bachelor’s degree in civil–structural engineering after the spring semester of 2027."
             }
           ]
         });
@@ -1662,15 +1680,27 @@
         var href = icon.getAttribute("href");
         var kind = icon.getAttribute("data-kind") || "folder";
         var imgEl = icon.querySelector("img");
+        var labelEl = icon.querySelector("span");
+        var name = labelEl ? labelEl.textContent : "";
 
         // Image preview (desktop files)
         if (kind === "file" && imgEl && imgEl.src && /\.(png|jpg|jpeg|gif|webp)$/i.test(imgEl.src)) {
+            openPopup({
+              title: icon.querySelector("span") ? icon.querySelector("span").textContent : "Image",
+              key: "file:" + (imgEl.getAttribute("src") || imgEl.src || ""),
+              content: [
+                { type: "image", src: imgEl.src, alt: "Preview", size: "xl" }
+              ]
+            });
+          return;
+        }
+
+        if (kind === "text") {
           openPopup({
-            title: icon.querySelector("span") ? icon.querySelector("span").textContent : "Image",
-            okText: "Close",
-            key: "file:" + (imgEl.getAttribute("src") || imgEl.src || ""),
+            title: name || "note.txt",
+            key: "text:" + (name || "note.txt"),
             content: [
-              { type: "image", src: imgEl.src, alt: "Preview", size: "xl" }
+              { type: "quote", html: "“Everything I do is for the 17-year-old version of myself.”<br><br><div class=\"popup-quote-signature\">&mdash; Virgil Abloh</div>" }
             ]
           });
           return;
@@ -1847,9 +1877,10 @@
         var popup = openPopup({
           title: dateStr,
           okText: "Enter",
+          closeOnBackdrop: true,
+          dimOverlay: true,
           content: [
             { type: "text", role: "title", text: "", size: "xl", align: "center" },
-            { type: "image", src: "images/star.gif", alt: "Welcome", size: "lg", noFrame: true },
             { type: "embed", html: "<div class=\"popup-embed-frame\"><div class=\"popup-embed-bar\">The Prelude</div><div class=\"popup-embed-body\"><iframe src=\"https://www.youtube.com/embed/nmaaJQwAhSU?start=922\" title=\"The Prelude\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe></div></div>" },
             { type: "quote", html: "“Welcome to my portfolio! This is a collection of my work, creative projects, and ideas-in-progress. Take a look around to see what I’ve been building. I hope you enjoy your experience…<br><br>The intention of this website is to serve both as a convenient place to document my growth over time and as a way to provide personal context around how I approach art, music, design, etc.”<br><br><div class=\"popup-quote-signature\">&mdash; Jordan A. McKenzie</div>" }
           ]
@@ -1911,11 +1942,19 @@
       if (!hadPending) {
         window.addEventListener("load", function () {
           var page = document.body ? document.body.getAttribute("data-page") : "";
+          var loadHints = [
+            "Flipping switches",
+            "Tightening screws",
+            "Checking wires",
+            "Filing papers",
+            "Submitting taxes"
+          ];
+          var loadLabel = loadHints[Math.floor(Math.random() * loadHints.length)];
           showLoadingScreen({
             title: "Welcome",
             headline: "",
-            label: "Loading desktop…",
-            hint: "Initializing extensions…",
+            label: "Loading...",
+            hint: loadLabel,
             durationMs: 800,
             onDone: function () {
               if (page === "home") maybeWelcome();
