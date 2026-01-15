@@ -318,13 +318,12 @@
       position: fixed;
       inset: 0;
       display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255, 255, 255, 0.55);
+      background: transparent;
       z-index: 3001;
+      pointer-events: none;
     }
 
-    .popup-overlay.show { display: flex; }
+    .popup-overlay.show { display: block; }
 
     .popup-window {
       width: min(520px, calc(100vw - 40px));
@@ -335,6 +334,7 @@
       display: flex;
       flex-direction: column;
       position: fixed;
+      pointer-events: auto;
     }
 
     .popup-titlebar {
@@ -629,21 +629,7 @@
     <div class="search-results" id="searchResults"></div>
   </div>
 
-  <div class="popup-overlay" id="popupOverlay" role="dialog" aria-modal="true" aria-hidden="true">
-    <div class="popup-window" id="popupWindow">
-      <div class="popup-titlebar" id="popupTitlebar">
-        <button class="popup-close" id="popupClose" type="button" aria-label="Close"></button>
-        <div class="popup-title" id="popupTitle">Window</div>
-      </div>
-
-      <div class="popup-body" id="popupBody"></div>
-
-      <div class="popup-actions" id="popupActions">
-        <div class="popup-caption" id="popupCaption"></div>
-        <button class="popup-ok" id="popupOk" type="button">Enter</button>
-      </div>
-    </div>
-  </div>
+  <div class="popup-overlay" id="popupOverlay" aria-hidden="true"></div>
 
   <script defer>
     (function () {
@@ -661,13 +647,12 @@
       var clockEl = $("menubarClock");
 
       var popupOverlay = $("popupOverlay");
-      var popupWindow = $("popupWindow");
-      var popupTitlebar = $("popupTitlebar");
-      var popupClose = $("popupClose");
-      var popupTitleEl = $("popupTitle");
-      var popupBodyEl = $("popupBody");
-      var popupCaptionEl = $("popupCaption");
-      var popupOkBtn = $("popupOk");
+      var popupRegistry = Object.create(null);
+      var popupKeyRegistry = Object.create(null);
+      var popupOrder = [];
+      var activePopupId = null;
+      var popupZ = 3005;
+      var popupSeq = 0;
 
       function renderPopupContent(content) {
         var wrap = document.createElement("div");
@@ -737,98 +722,267 @@
         return wrap;
       }
 
-      function resetPopupPosition() {
-        if (!popupWindow) return;
-        popupWindow.style.left = "50%";
-        popupWindow.style.top = "50%";
-        popupWindow.style.transform = "translate(-50%, -50%)";
+      function setOverlayVisible() {
+        if (!popupOverlay) return;
+        var hasPopups = popupOrder.length > 0;
+        popupOverlay.classList.toggle("show", hasPopups);
+        popupOverlay.setAttribute("aria-hidden", hasPopups ? "false" : "true");
+      }
+
+      function getActivePopup() {
+        return activePopupId ? popupRegistry[activePopupId] : null;
+      }
+
+      function resetPopupPosition(popup) {
+        if (!popup || !popup.el) return;
+        popup.el.style.left = "50%";
+        popup.el.style.top = "50%";
+        popup.el.style.transform = "translate(-50%, -50%)";
+      }
+
+      function focusPopup(popup) {
+        if (!popup || !popup.el) return;
+        activePopupId = popup.id;
+        popup.el.style.zIndex = String(++popupZ);
+      }
+
+      function addPopupTimer(popup, kind, id) {
+        if (!popup) return;
+        if (!popup.timers) popup.timers = [];
+        popup.timers.push({ kind: kind, id: id });
+      }
+
+      function clearPopupTimers(popup) {
+        if (!popup || !popup.timers) return;
+        popup.timers.forEach(function (t) {
+          if (t.kind === "interval") clearInterval(t.id);
+          else clearTimeout(t.id);
+        });
+        popup.timers = [];
+      }
+
+      function bindPopupDrag(popup) {
+        if (!popup || !popup.titlebarEl || !popup.el) return;
+        var titlebar = popup.titlebarEl;
+        var win = popup.el;
+        var dragging = false;
+        var offX = 0;
+        var offY = 0;
+
+        function onMouseDown(e) {
+          if (e.target && e.target.closest && e.target.closest(".popup-close")) return;
+          e.preventDefault();
+          focusPopup(popup);
+
+          var r = win.getBoundingClientRect();
+          win.style.left = r.left + "px";
+          win.style.top = r.top + "px";
+          win.style.transform = "none";
+
+          dragging = true;
+          offX = e.clientX - r.left;
+          offY = e.clientY - r.top;
+        }
+
+        function onMouseMove(e) {
+          if (!dragging) return;
+          var r = win.getBoundingClientRect();
+          var x = e.clientX - offX;
+          var y = e.clientY - offY;
+          var margin = 10;
+          var maxX = window.innerWidth - r.width - margin;
+          var maxY = window.innerHeight - r.height - margin;
+          x = Math.max(margin, Math.min(maxX, x));
+          y = Math.max(margin, Math.min(maxY, y));
+          win.style.left = x + "px";
+          win.style.top = y + "px";
+        }
+
+        function onMouseUp() { dragging = false; }
+
+        function onResize() {
+          if (!win) return;
+          if (win.style.transform && win.style.transform !== "none") return;
+
+          var r = win.getBoundingClientRect();
+          var margin = 10;
+          var x = Math.max(margin, Math.min(window.innerWidth - r.width - margin, r.left));
+          var y = Math.max(margin, Math.min(window.innerHeight - r.height - margin, r.top));
+          win.style.left = x + "px";
+          win.style.top = y + "px";
+        }
+
+        titlebar.addEventListener("mousedown", onMouseDown);
+        document.addEventListener("mousemove", onMouseMove);
+        document.addEventListener("mouseup", onMouseUp);
+        window.addEventListener("resize", onResize);
+
+        if (!popup.cleanup) popup.cleanup = [];
+        popup.cleanup.push(function () {
+          titlebar.removeEventListener("mousedown", onMouseDown);
+          document.removeEventListener("mousemove", onMouseMove);
+          document.removeEventListener("mouseup", onMouseUp);
+          window.removeEventListener("resize", onResize);
+        });
       }
 
       function openPopup(opts) {
         opts = opts || {};
-        if (!popupOverlay) return;
-
-        if (!opts.preservePosition) resetPopupPosition();
-        if (popupTitleEl) popupTitleEl.textContent = opts.title || "Notice";
-
-        var caption = (opts.caption != null) ? String(opts.caption) : "";
-        if (popupCaptionEl) popupCaptionEl.textContent = caption;
-
-        if (popupBodyEl) {
-          popupBodyEl.innerHTML = "";
-          if (Array.isArray(opts.content)) popupBodyEl.appendChild(renderPopupContent(opts.content));
-          else popupBodyEl.textContent = (opts.text != null) ? String(opts.text) : "";
+        if (!popupOverlay) return null;
+        if (opts.key && popupKeyRegistry[opts.key]) {
+          var existing = popupKeyRegistry[opts.key];
+          focusPopup(existing);
+          return existing;
         }
+
+        var popup = {
+          id: "popup_" + (++popupSeq),
+          key: opts.key || null,
+          timers: [],
+          cleanup: []
+        };
+
+        var win = document.createElement("div");
+        win.className = "popup-window";
+        win.setAttribute("data-popup-id", popup.id);
+        win.setAttribute("role", "dialog");
+        win.setAttribute("aria-modal", "false");
+
+        var titlebar = document.createElement("div");
+        titlebar.className = "popup-titlebar";
+
+        var closeBtn = document.createElement("button");
+        closeBtn.className = "popup-close";
+        closeBtn.type = "button";
+        closeBtn.setAttribute("aria-label", "Close");
+
+        var titleEl = document.createElement("div");
+        titleEl.className = "popup-title";
+        titleEl.textContent = opts.title || "Notice";
+
+        titlebar.appendChild(closeBtn);
+        titlebar.appendChild(titleEl);
+
+        var body = document.createElement("div");
+        body.className = "popup-body";
+
+        var actions = document.createElement("div");
+        actions.className = "popup-actions";
+
+        var caption = document.createElement("div");
+        caption.className = "popup-caption";
+        caption.textContent = (opts.caption != null) ? String(opts.caption) : "";
+
+        var okBtn = document.createElement("button");
+        okBtn.className = "popup-ok";
+        okBtn.type = "button";
+        okBtn.textContent = (opts.okText != null) ? String(opts.okText) : "Enter";
+
+        actions.appendChild(caption);
+        actions.appendChild(okBtn);
+
+        win.appendChild(titlebar);
+        win.appendChild(body);
+        win.appendChild(actions);
+
+        popup.el = win;
+        popup.titlebarEl = titlebar;
+        popup.titleEl = titleEl;
+        popup.bodyEl = body;
+        popup.captionEl = caption;
+        popup.okBtn = okBtn;
+        popup.closeBtn = closeBtn;
+        popup.actionsEl = actions;
+
+        if (Array.isArray(opts.content)) body.appendChild(renderPopupContent(opts.content));
+        else if (opts.text != null) body.textContent = String(opts.text);
 
         var hasOk = (opts.okText != null);
-        if (popupOkBtn) {
-          if (hasOk) {
-            popupOkBtn.textContent = String(opts.okText);
-            popupOkBtn.style.display = "inline-flex";
-          } else {
-            popupOkBtn.style.display = "none";
-          }
-        }
-        if (popupWindow) popupWindow.classList.toggle("has-ok", hasOk);
+        okBtn.style.display = hasOk ? "inline-flex" : "none";
+        win.classList.toggle("has-ok", hasOk);
 
-        popupOverlay.classList.add("show");
-        popupOverlay.setAttribute("aria-hidden", "false");
+        win.addEventListener("mousedown", function () { focusPopup(popup); });
+        closeBtn.addEventListener("click", function (e) { e.stopPropagation(); closePopup(popup); });
+        okBtn.addEventListener("click", function (e) { e.stopPropagation(); closePopup(popup); });
+
+        popupOverlay.appendChild(win);
+        popupRegistry[popup.id] = popup;
+        if (popup.key) popupKeyRegistry[popup.key] = popup;
+        popupOrder.push(popup.id);
+
+        if (!opts.preservePosition || (!popup.el.style.left && !popup.el.style.top)) {
+          resetPopupPosition(popup);
+        }
+        bindPopupDrag(popup);
+        focusPopup(popup);
+        setOverlayVisible();
+
+        return popup;
       }
 
-      function closePopup() {
-        if (!popupOverlay) return;
-        popupOverlay.classList.remove("show");
-        popupOverlay.setAttribute("aria-hidden", "true");
+      function closePopup(popup) {
+        var target = popup || getActivePopup();
+        if (!target) return;
 
-        try {
-          if (window.__welcomeClockTimer) {
-            clearInterval(window.__welcomeClockTimer);
-            window.__welcomeClockTimer = null;
-          }
-        } catch (e) {}
+        clearPopupTimers(target);
 
-        try {
-          if (window.__loaderDotsTimer) {
-            clearInterval(window.__loaderDotsTimer);
-            window.__loaderDotsTimer = null;
-          }
-        } catch (e) {}
+        if (target.cleanup && target.cleanup.length) {
+          target.cleanup.forEach(function (fn) {
+            try { fn(); } catch (e) {}
+          });
+          target.cleanup = [];
+        }
 
-        resetPopupPosition();
+        if (target.el && target.el.parentNode) {
+          target.el.parentNode.removeChild(target.el);
+        }
+
+        delete popupRegistry[target.id];
+        if (target.key && popupKeyRegistry[target.key] === target) {
+          delete popupKeyRegistry[target.key];
+        }
+        popupOrder = popupOrder.filter(function (id) { return id !== target.id; });
+
+        if (activePopupId === target.id) activePopupId = null;
+        if (popupOrder.length) {
+          var next = popupRegistry[popupOrder[popupOrder.length - 1]];
+          if (next) focusPopup(next);
+        }
+
+        setOverlayVisible();
       }
 
       window.openPopup = openPopup;
       window.closePopup = closePopup;
 
       // OS9-style loading popup + progress bar
-      function runLoader(fillId, durationMs, done) {
+      function runLoader(popup, fillEl, durationMs, done) {
         durationMs = Number(durationMs) || 800;
         var start = Date.now();
-        var fill = fillId ? document.getElementById(fillId) : null;
-        if (fill) fill.style.width = "0%";
+        if (fillEl) fillEl.style.width = "0%";
 
         var t = setInterval(function () {
           var p = (Date.now() - start) / durationMs;
           p = 1 - Math.pow(1 - Math.min(1, p), 2); // ease-out
           var pct = Math.round(p * 100);
-          if (fill) fill.style.width = pct + "%";
+          if (fillEl) fillEl.style.width = pct + "%";
           if (p >= 1) {
             clearInterval(t);
             if (typeof done === "function") done();
           }
         }, 50);
+        addPopupTimer(popup, "interval", t);
       }
 
-      function startLoaderDots() {
-        // Animate titlebar: Loading. -> Loading...
-        try { if (window.__loaderDotsTimer) clearInterval(window.__loaderDotsTimer); } catch (e) {}
+      function startLoaderDots(popup) {
+        if (!popup || !popup.titleEl) return;
         var i = 0;
-        window.__loaderDotsTimer = setInterval(function () {
+        var t = setInterval(function () {
           i = (i + 1) % 4;
-          if (popupTitleEl) popupTitleEl.textContent = "Loading" + ".".repeat(i);
+          popup.titleEl.textContent = "Loading" + ".".repeat(i);
         }, 350);
-        // set immediately
-        if (popupTitleEl) popupTitleEl.textContent = "Loading";
+        addPopupTimer(popup, "interval", t);
+        popup.titleEl.textContent = "Loading";
       }
 
       function showLoadingScreen(opts) {
@@ -836,21 +990,21 @@
         opts = opts || {};
         var fillId = "loaderFill_" + Math.random().toString(16).slice(2);
 
-        openPopup({
+        var popup = openPopup({
           title: "Loading...",
           okText: null,
           preservePosition: true,
           content: [
-            
-            
             { type: "loader", id: fillId, label: opts.label || "Loading…", hint: opts.hint || "" }
           ]
         });
+        if (!popup) return;
 
-        startLoaderDots();
+        startLoaderDots(popup);
+        var fill = popup.el ? popup.el.querySelector("#" + fillId) : null;
 
-        runLoader(fillId, opts.durationMs || 750, function () {
-          try { closePopup(); } catch (e) {}
+        runLoader(popup, fill, opts.durationMs || 750, function () {
+          try { closePopup(popup); } catch (e) {}
           if (typeof opts.onDone === "function") opts.onDone();
         });
       }
@@ -860,32 +1014,33 @@
         opts = opts || {};
         var fillId = "loaderFill_" + Math.random().toString(16).slice(2);
 
-        openPopup({
+        var popup = openPopup({
           title: "Loading...",
           okText: null,
           preservePosition: true,
           content: [
-            
             { type: "image", src: opts.icon || "images/earth.gif", alt: "", size: "sm" },
             { type: "loader", id: fillId, label: opts.label || "Loading…", hint: opts.hint || "" }
           ]
         });
+        if (!popup) return;
 
-        startLoaderDots();
+        startLoaderDots(popup);
 
         // Indeterminate barber-pole until load completes
-        setTimeout(function () {
-          var fill = document.getElementById(fillId);
+        var indeterminateTimer = setTimeout(function () {
+          var fill = popup.el ? popup.el.querySelector("#" + fillId) : null;
           if (fill) {
             fill.classList.add("indeterminate");
             fill.style.width = "100%";
           }
         }, 0);
+        addPopupTimer(popup, "timeout", indeterminateTimer);
 
         // Close when the page is fully loaded
         window.addEventListener("load", function onL() {
           window.removeEventListener("load", onL);
-          try { closePopup(); } catch (e) {}
+          try { closePopup(popup); } catch (e) {}
           if (typeof opts.onDone === "function") opts.onDone();
         });
       }
@@ -968,68 +1123,7 @@
       if (findBtn) findBtn.addEventListener("click", function (e) { e.preventDefault(); toggleSearch(); });
       if (searchInput) searchInput.addEventListener("blur", function () { hideSearch(); });
 
-      if (popupClose) popupClose.addEventListener("click", function (e) { e.stopPropagation(); closePopup(); });
-      if (popupOkBtn) popupOkBtn.addEventListener("click", function (e) { e.stopPropagation(); closePopup(); });
 
-      if (popupOverlay) {
-        popupOverlay.addEventListener("mousedown", function (e) {
-          if (e.target === popupOverlay) closePopup();
-        });
-      }
-
-      (function bindPopupDrag() {
-        if (!popupTitlebar || !popupWindow) return;
-
-        var dragging = false;
-        var offX = 0;
-        var offY = 0;
-
-        popupTitlebar.addEventListener("mousedown", function (e) {
-          if (e.target && e.target.closest && e.target.closest("#popupClose")) return;
-          e.preventDefault();
-
-          var r = popupWindow.getBoundingClientRect();
-          popupWindow.style.left = r.left + "px";
-          popupWindow.style.top = r.top + "px";
-          popupWindow.style.transform = "none";
-
-          dragging = true;
-          offX = e.clientX - r.left;
-          offY = e.clientY - r.top;
-        });
-
-        document.addEventListener("mousemove", function (e) {
-          if (!dragging) return;
-
-          var r = popupWindow.getBoundingClientRect();
-          var x = e.clientX - offX;
-          var y = e.clientY - offY;
-
-          var margin = 10;
-          var maxX = window.innerWidth - r.width - margin;
-          var maxY = window.innerHeight - r.height - margin;
-
-          x = Math.max(margin, Math.min(maxX, x));
-          y = Math.max(margin, Math.min(maxY, y));
-
-          popupWindow.style.left = x + "px";
-          popupWindow.style.top = y + "px";
-        });
-
-        document.addEventListener("mouseup", function () { dragging = false; });
-
-        window.addEventListener("resize", function () {
-          if (!popupWindow) return;
-          if (popupWindow.style.transform && popupWindow.style.transform !== "none") return;
-
-          var r = popupWindow.getBoundingClientRect();
-          var margin = 10;
-          var x = Math.max(margin, Math.min(window.innerWidth - r.width - margin, r.left));
-          var y = Math.max(margin, Math.min(window.innerHeight - r.height - margin, r.top));
-          popupWindow.style.left = x + "px";
-          popupWindow.style.top = y + "px";
-        });
-      })();
 
       // =====================
       // Find / Search Index (Spotlight-ish)
@@ -1383,16 +1477,17 @@
       });
 
       // Enter behavior:
-      // 1) If any popup is open, Enter closes it.
+      // 1) If a popup exists, Enter closes the active popup.
       // 2) If Find is open, Enter activates the first (top) suggestion.
       // 3) Otherwise, Enter does nothing special.
       document.addEventListener("keydown", function (e) {
         if (e.key !== "Enter") return;
 
-        // If popup is open, always close it.
-        if (popupOverlay && popupOverlay.classList.contains("show")) {
+        // If popup is open, close only the active one.
+        var activePopup = getActivePopup();
+        if (activePopup) {
           e.preventDefault();
-          closePopup();
+          closePopup(activePopup);
           return;
         }
 
@@ -1564,6 +1659,7 @@
             openPopup({
               title: icon.querySelector("span") ? icon.querySelector("span").textContent : "Image",
               okText: "Close",
+              key: "file:" + (imgEl.getAttribute("src") || imgEl.src || ""),
               content: [
                 { type: "image", src: imgEl.src, alt: "Preview", size: "xl" }
               ]
@@ -1642,7 +1738,7 @@
           sessionStorage.setItem("welcomeShown", "1");
         } catch (e) {}
 
-        openPopup({
+        var popup = openPopup({
           title: "Loading...",
           okText: "Enter",
           content: [
@@ -1652,9 +1748,10 @@
             { type: "text", role: "body", size: "md", align: "justify-last-left", text: "Here you can find a collection of my work, personal projects, and ideas-in-progress. Feel free to take a look around and see what I’ve been building. I hope you enjoy your time spent while you're here." }
           ]
         });
+        if (!popup) return;
 
         try {
-          var welcomeLine = popupBodyEl ? popupBodyEl.querySelector(".popup-text.role-welcome") : null;
+          var welcomeLine = popup.bodyEl ? popup.bodyEl.querySelector(".popup-text.role-welcome") : null;
           if (welcomeLine && !welcomeLine.classList.contains("wave")) {
             var raw = welcomeLine.textContent || "";
             var html = "";
@@ -1674,9 +1771,7 @@
           }
         } catch (e) {}
 
-        try { if (window.__welcomeClockTimer) clearInterval(window.__welcomeClockTimer); } catch (e) {}
-
-        var welcomeTitleEl = popupBodyEl ? popupBodyEl.querySelector(".popup-text.role-title") : null;
+        var welcomeTitleEl = popup.bodyEl ? popup.bodyEl.querySelector(".popup-text.role-title") : null;
         function tickWelcomeTitle() {
           if (!welcomeTitleEl) return;
           var d = new Date();
@@ -1693,7 +1788,8 @@
           welcomeTitleEl.textContent = dateStr + " " + h + colon + mm + " " + ampm;
         }
         tickWelcomeTitle();
-        window.__welcomeClockTimer = setInterval(tickWelcomeTitle, 1000);
+        var clockTimer = setInterval(tickWelcomeTitle, 1000);
+        addPopupTimer(popup, "interval", clockTimer);
       }
 
       // If we navigated here from a folder click, show a real-duration loader until this page finishes loading.
