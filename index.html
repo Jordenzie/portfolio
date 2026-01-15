@@ -544,6 +544,8 @@
       .icon { width: 80px; height: 104px; padding: 4px; }
       .icon img { width: 54px; height: 54px; margin-top: 2px; }
       .icon span { width: 72px; font-size: 8px; margin-top: 6px; height: 26px; }
+
+      body::before { display: none; }
     }
 
   </style>
@@ -1562,13 +1564,50 @@
 
       var icons = Array.prototype.slice.call(document.querySelectorAll(".icon"));
 
+      function openIcon(icon) {
+        if (!icon) return;
+        var href = icon.getAttribute("href");
+        var kind = icon.getAttribute("data-kind") || "folder";
+        var imgEl = icon.querySelector("img");
+
+        // Image preview (desktop files)
+        if (kind === "file" && imgEl && imgEl.src && /\.(png|jpg|jpeg|gif|webp)$/i.test(imgEl.src)) {
+          openPopup({
+            title: icon.querySelector("span") ? icon.querySelector("span").textContent : "Image",
+            okText: "Close",
+            key: "file:" + (imgEl.getAttribute("src") || imgEl.src || ""),
+            content: [
+              { type: "image", src: imgEl.src, alt: "Preview", size: "xl" }
+            ]
+          });
+          return;
+        }
+
+        if (href && href !== "#") {
+          // Cross-page loader (Option A): set a flag, navigate immediately.
+          try {
+            sessionStorage.setItem(
+              "prtf_pending_loader_v1",
+              JSON.stringify({
+                title: "Loading...",
+                headline: (icon.querySelector("span") ? icon.querySelector("span").textContent : "Folder"),
+                label: "Loading items…",
+                hint: "Reading folder contents…",
+                icon: "images/folder-160.png"
+              })
+            );
+          } catch (e) {}
+          window.location.href = href;
+        }
+      }
+
       function layoutIcons() {
         if (!icons.length) return;
 
         // Responsive spacing + sizing (mobile aims for 4 columns on iPhone)
         var mobile = isMobile();
-        var gapX = mobile ? 8 : 12;
-        var gapY = mobile ? 16 : 30;
+        var gapX = mobile ? 8 : 8;
+        var gapY = mobile ? 16 : 20;
 
         // Read actual icon dimensions (so CSS mobile overrides are honored)
         var iconW = icons[0].offsetWidth || 99;
@@ -1645,44 +1684,14 @@
           e.preventDefault();
           clearSelections();
           icon.classList.add("selected");
+          if (isMobile()) {
+            openIcon(icon);
+          }
         });
 
         icon.addEventListener("dblclick", function (e) {
           e.preventDefault();
-
-          var href = icon.getAttribute("href");
-          var kind = icon.getAttribute("data-kind") || "folder";
-          var imgEl = icon.querySelector("img");
-
-          // Image preview (desktop files)
-          if (kind === "file" && imgEl && imgEl.src && /\.(png|jpg|jpeg|gif|webp)$/i.test(imgEl.src)) {
-            openPopup({
-              title: icon.querySelector("span") ? icon.querySelector("span").textContent : "Image",
-              okText: "Close",
-              key: "file:" + (imgEl.getAttribute("src") || imgEl.src || ""),
-              content: [
-                { type: "image", src: imgEl.src, alt: "Preview", size: "xl" }
-              ]
-            });
-            return;
-          }
-
-          if (href && href !== "#") {
-            // Cross-page loader (Option A): set a flag, navigate immediately.
-            try {
-              sessionStorage.setItem(
-                "prtf_pending_loader_v1",
-                JSON.stringify({
-                  title: "Loading...",
-                  headline: (icon.querySelector("span") ? icon.querySelector("span").textContent : "Folder"),
-                  label: "Loading items…",
-                  hint: "Reading folder contents…",
-                  icon: "images/folder-160.png"
-                })
-              );
-            } catch (e) {}
-            window.location.href = href;
-          }
+          openIcon(icon);
         });
       });
 
