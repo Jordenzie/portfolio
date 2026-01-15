@@ -1150,6 +1150,8 @@
         var name = labelEl ? labelEl.textContent : "";
         var dataFile = icon.getAttribute("data-file") || "";
         var dataText = icon.getAttribute("data-text") || "";
+        var dataSpotify = icon.getAttribute("data-spotify") || "";
+        var dataApple = icon.getAttribute("data-apple") || "";
 
         // Image preview (desktop files)
         if (kind === "file" && imgEl && imgEl.src && /\.(png|jpg|jpeg|gif|webp)$/i.test(imgEl.src)) {
@@ -1179,6 +1181,22 @@
             content: [
               { type: "text", role: "body", size: "md", align: "left", text: dataText || "Placeholder text." }
             ]
+          });
+          return;
+        }
+
+        if (kind === "music") {
+          var blocks = [];
+          if (dataSpotify) blocks.push({ type: "embed", html: dataSpotify });
+          if (dataApple) blocks.push({ type: "embed", html: dataApple });
+          if (!blocks.length) {
+            blocks.push({ type: "text", role: "body", size: "md", align: "left", text: "No embeds provided." });
+          }
+
+          openPopup({
+            title: name || "Music",
+            key: "music:" + (name || "track"),
+            content: blocks
           });
           return;
         }
@@ -1346,15 +1364,8 @@
         var page = document.body ? document.body.getAttribute("data-page") : "";
         if (page !== "home") return;
 
-        try {
-          if (sessionStorage.getItem("welcomeShown") === "1") return;
-          sessionStorage.setItem("welcomeShown", "1");
-        } catch (e) {}
-
-        var now = new Date();
-        var dateStr = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
         var popup = openPopup({
-          title: dateStr,
+          title: "Welcome Board",
           okText: "Enter",
           closeOnBackdrop: true,
           dimOverlay: true,
@@ -1383,18 +1394,11 @@
           }
         } catch (e) {}
 
-        var titleTimer = setInterval(function () {
-          if (!popup.titleEl) return;
-          var d = new Date();
-          var dateStrNow = d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
-          popup.titleEl.textContent = dateStrNow;
-        }, 60000);
-        addPopupTimer(popup, "interval", titleTimer);
-
         var welcomeTitleEl = popup.bodyEl ? popup.bodyEl.querySelector(".popup-text.role-title") : null;
         function tickWelcomeTitle() {
           if (!welcomeTitleEl) return;
           var d = new Date();
+          var dateStrNow = d.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
           var h = d.getHours();
           var m = d.getMinutes();
           var ampm = h >= 12 ? "PM" : "AM";
@@ -1402,7 +1406,7 @@
           if (h === 0) h = 12;
           var mm = (m < 10 ? "0" + m : "" + m);
           var colon = (d.getSeconds() % 2 === 0) ? ":" : " ";
-          welcomeTitleEl.textContent = h + colon + mm + " " + ampm;
+          welcomeTitleEl.innerHTML = h + colon + mm + " " + ampm + "<br><span class=\"welcome-date\">" + dateStrNow + "</span>";
         }
         tickWelcomeTitle();
         var clockTimer = setInterval(tickWelcomeTitle, 1000);

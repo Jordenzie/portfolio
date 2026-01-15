@@ -50,6 +50,12 @@
       "icon": "images/folder-160.png"
     },
     {
+      "name": "The Prelude",
+      "kind": "file",
+      "href": "pages/j-mac.html",
+      "icon": "icons/cd.png"
+    },
+    {
       "name": "notes.txt",
       "kind": "file",
       "href": "pages/j-mac.html",

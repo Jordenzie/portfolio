@@ -474,6 +474,11 @@
       text-align-last: center;
     }
 
+    .popup-text.role-title .welcome-date {
+      display: block;
+      font-size: 8px;
+    }
+
     .popup-media {
       display: flex;
       justify-content: center;
