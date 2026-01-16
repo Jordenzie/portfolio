@@ -1346,21 +1346,6 @@
       var offX2 = 0, offY2 = 0;
       var activeIcon = null;
       var threshold = 5;
-      var lastTapTime = 0;
-      var lastTapIcon = null;
-      var tapDelay = 350;
-
-      function handleMobileTap(icon) {
-        var now = Date.now();
-        if (lastTapIcon === icon && (now - lastTapTime) < tapDelay) {
-          lastTapTime = 0;
-          lastTapIcon = null;
-          openIcon(icon);
-          return;
-        }
-        lastTapTime = now;
-        lastTapIcon = icon;
-      }
 
       icons.forEach(function (icon) {
         icon.addEventListener("mousedown", function (e) {
@@ -1473,7 +1458,7 @@
       function endTouchDrag() {
         if (!activeIcon) return;
         if (draggingIcon) saveIconPositions();
-        if (!draggingIcon && isMobile()) handleMobileTap(activeIcon);
+        if (!draggingIcon && isMobile()) openIcon(activeIcon);
         possibleDrag = false;
         draggingIcon = false;
         if (activeIcon) activeIcon.style.zIndex = "";
