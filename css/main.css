@@ -590,6 +590,8 @@
       body { padding-bottom: 0 !important; }
       .taskbar { top: 0 !important; bottom: auto !important; }
       .search-bar { top: 30px !important; bottom: auto !important; }
+      .mobile-return { display: none !important; }
+      .taskbar-return { display: inline-flex; }
     }
 
     /* ---------- Mobile Tweaks ---------- */
@@ -634,24 +636,13 @@
         border-bottom: 1px solid #6f6f6f;
         box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 #6e6e6e;
         padding: 2px 6px;
-        height: 26px;
+        height: 30px;
         display: inline-flex;
         align-items: center;
         line-height: 1;
         box-sizing: border-box;
       }
-      .taskbar-return {
-        position: fixed;
-        left: 50%;
-        bottom: 10px;
-        top: auto;
-        right: auto;
-        transform: translateX(-50%);
-        z-index: 1200;
-        margin: 0;
-      }
-      .taskbar-return .return-short { display: none; }
-      .taskbar-return .return-long { display: inline; }
+      .taskbar-return { display: none !important; }
       .taskbar .menu-item,
       .taskbar .menubar-clock { position: relative; }
       .taskbar .menu-item::after,
@@ -693,17 +684,14 @@
       .icon span { width: 82px; font-size: 8px; margin-top: 6px; height: 26px; }
 
       body::before { display: none; }
+      body.has-mobile-return { padding-top: 36px; }
 
- 
-    }
-
-  
-      .taskbar-return { display: none !important; }
       .mobile-return {
         display: inline-flex;
         position: fixed;
         left: 50%;
-        bottom: 10px;
+        top: 6px;
+        bottom: auto;
         transform: translateX(-50%);
         z-index: 1200;
         background: #dfdfdf;
@@ -718,3 +706,4 @@
         gap: 6px;
         line-height: 1;
       }
+    }

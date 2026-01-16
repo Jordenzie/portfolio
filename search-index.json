@@ -50,12 +50,6 @@
       "icon": "images/LV.png"
     },
     {
-      "name": "Return to Desktop",
-      "kind": "folder",
-      "href": "index.html",
-      "icon": "images/folder-160.png"
-    },
-    {
       "name": "The Prelude",
       "kind": "file",
       "href": "pages/j-mac.html",
