@@ -600,6 +600,23 @@
       if (findBtn) findBtn.addEventListener("click", function (e) { e.preventDefault(); toggleSearch(); });
       if (searchInput) searchInput.addEventListener("blur", function () { hideSearch(); });
 
+      document.addEventListener("click", function (e) {
+        var link = e.target && e.target.closest ? e.target.closest("a[href]") : null;
+        if (!link) return;
+        var href = link.getAttribute("href") || "";
+        if (!href || href === "#") return;
+        if (normalizeHrefForKey({ href: href }) === "index.html") {
+          markSkipWelcomeOnce();
+        }
+      });
+
+      var returnLinks = document.querySelectorAll(".return-to-desktop");
+      if (returnLinks && returnLinks.length) {
+        Array.prototype.forEach.call(returnLinks, function (el) {
+          el.addEventListener("click", function () { markSkipWelcomeOnce(); });
+        });
+      }
+
 
 
       // =====================
@@ -637,6 +654,7 @@
       var findIsRecentsView = false;
       var RECENTS_KEY = "prtf_find_recents_v1";
       var RECENTS_SESSION_KEY = "prtf_find_recents_session_v1";
+      var SKIP_WELCOME_KEY = "prtf_skip_welcome_once";
 
       function resetRecentsOnNewSession() {
         try {
@@ -647,6 +665,20 @@
         } catch (e) {}
       }
       resetRecentsOnNewSession();
+
+      function markSkipWelcomeOnce() {
+        try { sessionStorage.setItem(SKIP_WELCOME_KEY, "1"); } catch (e) {}
+      }
+
+      function consumeSkipWelcomeOnce() {
+        try {
+          if (sessionStorage.getItem(SKIP_WELCOME_KEY) === "1") {
+            sessionStorage.removeItem(SKIP_WELCOME_KEY);
+            return true;
+          }
+        } catch (e) {}
+        return false;
+      }
 
       function normalizeItem(it) {
         if (!it) return null;
@@ -883,6 +915,7 @@
 
         // Fall back to navigation only when href is meaningful
         if (it.href && it.href !== "#") {
+          if (normalizeHrefForKey(it) === "index.html") markSkipWelcomeOnce();
           var targetHref = it.href;
           if (isSubpage()) {
             var isAbsolute = targetHref.indexOf("http:") === 0 || targetHref.indexOf("https:") === 0;
@@ -1514,6 +1547,7 @@
       function maybeWelcome() {
         var page = document.body ? document.body.getAttribute("data-page") : "";
         if (page !== "home") return;
+        if (consumeSkipWelcomeOnce()) return;
 
         var popup = openPopup({
           title: "Welcome Board",
