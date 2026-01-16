@@ -636,6 +636,17 @@
       var currentMatches = [];
       var findIsRecentsView = false;
       var RECENTS_KEY = "prtf_find_recents_v1";
+      var RECENTS_SESSION_KEY = "prtf_find_recents_session_v1";
+
+      function resetRecentsOnNewSession() {
+        try {
+          if (!sessionStorage.getItem(RECENTS_SESSION_KEY)) {
+            sessionStorage.setItem(RECENTS_SESSION_KEY, "1");
+            localStorage.removeItem(RECENTS_KEY);
+          }
+        } catch (e) {}
+      }
+      resetRecentsOnNewSession();
 
       function normalizeItem(it) {
         if (!it) return null;
