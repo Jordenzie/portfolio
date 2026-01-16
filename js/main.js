@@ -20,6 +20,16 @@
         var href = safeText(it && it.href).trim();
         if (!href || href === "#") href = currentPageHref();
         if (href.indexOf("../") === 0) href = href.slice(3);
+        if (href.indexOf("./") === 0) href = href.slice(2);
+        if (href.indexOf("http://") === 0 || href.indexOf("https://") === 0) {
+          try {
+            var origin = window.location.origin || "";
+            if (origin && href.indexOf(origin) === 0) href = href.slice(origin.length);
+          } catch (e) {}
+        }
+        href = href.split("#")[0].split("?")[0];
+        if (href.indexOf("/") === 0) href = href.slice(1);
+        if (!href) href = currentPageHref();
         return href;
       }
       function normalizeIconPath(src) {
