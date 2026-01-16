@@ -940,12 +940,17 @@
         q = safeText(q).trim();
         if (!q) return [];
 
-        var scored = [];
+        var scoredMap = Object.create(null);
         combined.forEach(function (it) {
           var m = fuzzyMatch(it.name, q);
           if (!m) return;
-          scored.push({ item: it, score: m.score, idxs: m.idxs });
+          var key = (keyKind(it.kind) + "|" + normalizeHrefForKey(it) + "|" + it.name).toLowerCase();
+          var existing = scoredMap[key];
+          if (!existing || m.score < existing.score) {
+            scoredMap[key] = { item: it, score: m.score, idxs: m.idxs };
+          }
         });
+        var scored = Object.keys(scoredMap).map(function (k) { return scoredMap[k]; });
 
         // Better ranking: folders can come first when score ties
         scored.sort(function (a, b) {
