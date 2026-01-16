@@ -860,9 +860,13 @@
           return;
         }
 
-        // If this came from a real desktop icon, trigger its normal dblclick behavior
+        // If this came from a real desktop icon, open it directly on mobile or dblclick on desktop.
         if (it.el) {
-          it.el.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+          if (isMobile()) {
+            openIcon(it.el);
+          } else {
+            it.el.dispatchEvent(new MouseEvent("dblclick", { bubbles: true }));
+          }
           return;
         }
 
