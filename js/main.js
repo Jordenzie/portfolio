@@ -140,17 +140,18 @@
           return [
             { type: "text", role: "title", text: "", size: "xl", align: "center" },
             { type: "embed", html: "<div class=\"popup-embed-frame\"><div class=\"popup-embed-bar\">The Prelude</div><div class=\"popup-embed-body\"><iframe src=\"https://www.youtube.com/embed/nmaaJQwAhSU?start=922\" title=\"The Prelude\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe></div></div>" },
-            { type: "quote", html: "“Welcome to my portfolio! This is a collection of my work, creative projects, and ideas-in-progress. Take a look around to see what I’ve been building. I hope you enjoy your experience…<br><br>The intention of this website is to serve both as a convenient place to document my growth over time and as a way to provide personal context around how I approach art, music, design, etc.”<br><br><div class=\"popup-quote-signature\">&mdash; Jordan A. McKenzie</div>" }
+            { type: "quote", html: "“Welcome to my portfolio! This is a collection of my work, creative projects, and ideas-in-progress. Take a look around to see what I’ve been building. I hope you enjoy your experience…<br><br>The intention of this website is both to serve as a convenient place to document growth over time and act as a way to provide personal context surrounding how I approach art, music, design, etc.”<br><br><div class=\"popup-quote-signature\">&mdash; Jordan A. McKenzie</div>" }
           ];
         },
         about: function () {
           return [
+            { type: "image", src: assetPath("images/apple folder.png"), alt: "Apple Folder", size: "sm", noFrame: true },
             {
               type: "quote",
               text:
                 "Jordan A. McKenzie was born and raised in Redding, California, on August 9, 1999. " +
                 "He graduated from Enterprise High School in 2017 and went to community college for civil engineering " +
-                "before switching to audio engineering and then business. After getting married in 2023, he and his wife " +
+                "before switching to recording arts and then business. After getting married in 2023, he and his wife " +
                 "returned to school and transferred to Chico State together. He is currently living, working, and attending " +
                 "university In Chico where he is expected to earn his bachelor’s degree in civil–structural engineering after the spring semester of 2027."
             }
@@ -1069,6 +1070,7 @@
           searchBarEl.style.right = "";
           searchBarEl.style.transform = "";
           searchBarEl.style.width = "";
+          if (searchInput) searchInput.style.width = "";
           return;
         }
         var items = document.querySelectorAll(".taskbar .menu-item, .taskbar .menubar-clock");
@@ -1085,6 +1087,7 @@
         searchBarEl.style.right = "auto";
         searchBarEl.style.transform = "none";
         searchBarEl.style.width = Math.round(right - left) + "px";
+        if (searchInput) searchInput.style.width = "100%";
       }
 
       window.addEventListener("resize", function () {
@@ -1308,7 +1311,7 @@
         try {
           var rows = Math.ceil(icons.length / cols);
           var totalH = paddingTop + (rows * iconH) + ((rows - 1) * gapY);
-          var extra = isMobile() ? 80 : 20;
+          var extra = mobile ? 80 : 20;
           if (desktopEl) desktopEl.style.height = (totalH + extra) + "px";
         } catch (e) {}
       }

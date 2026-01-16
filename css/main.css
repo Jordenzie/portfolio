@@ -190,6 +190,7 @@
       align-items: center;
       padding: 0 6px;
       z-index: 1001;
+      box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000;
     }
 
     .search-bar input {
@@ -599,6 +600,8 @@
       .left-group,
       .right-group { margin: 0; }
       .search-bar { display: none; }
+      .search-bar { box-sizing: border-box; }
+      .search-bar input { width: 100%; }
       .taskbar .menu-item,
       .taskbar .menubar-clock {
         background: #dfdfdf;
