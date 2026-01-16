@@ -1161,6 +1161,15 @@
         });
       }
 
+      function resetIconPositions() {
+        try { localStorage.removeItem(ICON_POS_KEY); } catch (e) {}
+        savedIconPositions = null;
+        icons.forEach(function (icon) {
+          icon.style.left = "";
+          icon.style.top = "";
+        });
+      }
+
       function fitIconLabel(icon) {
         var label = icon ? icon.querySelector("span") : null;
         if (!label) return;
@@ -1239,6 +1248,12 @@
             key: "music:" + (name || "track"),
             content: blocks
           });
+          return;
+        }
+
+        if (kind === "reset") {
+          resetIconPositions();
+          layoutIcons();
           return;
         }
 

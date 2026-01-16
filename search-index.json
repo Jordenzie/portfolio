@@ -38,6 +38,12 @@
       "icon": "images/earth.gif"
     },
     {
+      "name": "Reset Grid",
+      "kind": "file",
+      "href": "index.html",
+      "icon": "icons/redbutton.png"
+    },
+    {
       "name": "LV.png",
       "kind": "file",
       "href": "index.html",

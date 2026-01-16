@@ -607,10 +607,22 @@
         padding: 0 10px;
         gap: 0;
         justify-content: center;
+        top: auto;
+        bottom: 0;
       }
       .left-group,
       .right-group { margin: 0; }
       .search-bar { display: none; }
+      .search-bar {
+        top: auto;
+        bottom: 36px;
+      }
+      .search-results {
+        top: auto;
+        bottom: 30px;
+        border-top: 1px solid #7d7d7d;
+        border-bottom: 0;
+      }
       .search-bar { box-sizing: border-box; height: 28px; }
       .search-bar input { width: 100%; font-size: 16px; }
       .taskbar .menu-item,
@@ -665,8 +677,8 @@
         overflow-x: hidden !important;
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: none;
-        padding-bottom: 0;
-        padding-top: 30px; /* taskbar visible */
+        padding-bottom: 36px; /* taskbar visible */
+        padding-top: 0;
       }
 
       .desktop {
