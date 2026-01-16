@@ -179,7 +179,8 @@
     }
 
     .taskbar-return .return-long { display: none; }
-    .taskbar-return .return-icon {
+    .taskbar-return .return-icon,
+    .mobile-return .return-icon {
       width: 0;
       height: 0;
       border-top: 5px solid transparent;
@@ -197,7 +198,7 @@
       right: 0;
       background: #efefef;
       border: 1px solid #7d7d7d;
-      height: 22px;
+      height: 26px;
       align-items: center;
       padding: 0 6px;
       z-index: 1001;
@@ -206,6 +207,7 @@
 
     .search-bar input {
       width: 240px; /* 1.5x (was 160px) */
+      height: 100%;
       border: none;
       background: transparent;
       outline: none;
@@ -214,7 +216,7 @@
     /* ---------- Search Results ---------- */
     .search-results {
       position: absolute;
-      top: 22px;
+      top: 26px;
       right: -1px;
       left: -1px;
       display: none;
@@ -611,6 +613,7 @@
         justify-content: center;
         top: auto;
         bottom: 0;
+        height: 30px;
       }
       .left-group,
       .right-group { margin: 0; }
@@ -625,8 +628,8 @@
         border-top: 1px solid #7d7d7d;
         border-bottom: 0;
       }
-      .search-bar { box-sizing: border-box; height: 28px; }
-      .search-bar input { width: 100%; font-size: 16px; }
+      .search-bar { box-sizing: border-box; height: 30px; }
+      .search-bar input { width: 100%; font-size: 12px; }
       .taskbar .menu-item,
       .taskbar .menubar-clock {
         background: #dfdfdf;
@@ -635,12 +638,28 @@
         border-right: 1px solid #6f6f6f;
         border-bottom: 1px solid #6f6f6f;
         box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 #6e6e6e;
-        padding: 2px 6px;
+        padding: 2px 10px;
         height: 30px;
         display: inline-flex;
         align-items: center;
         line-height: 1;
         box-sizing: border-box;
+      }
+      .taskbar .menu-item:hover {
+        border-top: 1px solid #fff;
+        border-left: 1px solid #fff;
+        border-right: 1px solid #6f6f6f;
+        border-bottom: 1px solid #6f6f6f;
+        background: linear-gradient(#efefef, #dcdcdc);
+        padding: 1px 9px;
+      }
+      .taskbar .menu-item:active {
+        border-top: 1px solid #6f6f6f;
+        border-left: 1px solid #6f6f6f;
+        border-right: 1px solid #fff;
+        border-bottom: 1px solid #fff;
+        background: linear-gradient(#dcdcdc, #efefef);
+        padding: 1px 9px;
       }
       .taskbar-return { display: none !important; }
       .taskbar .menu-item,
@@ -701,9 +720,25 @@
         border-bottom: 1px solid #6f6f6f;
         box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 #6e6e6e;
         padding: 2px 10px;
-        height: 26px;
+        height: 30px;
         align-items: center;
         gap: 6px;
         line-height: 1;
+      }
+      .mobile-return:hover {
+        border-top: 1px solid #fff;
+        border-left: 1px solid #fff;
+        border-right: 1px solid #6f6f6f;
+        border-bottom: 1px solid #6f6f6f;
+        background: linear-gradient(#efefef, #dcdcdc);
+        padding: 1px 9px;
+      }
+      .mobile-return:active {
+        border-top: 1px solid #6f6f6f;
+        border-left: 1px solid #6f6f6f;
+        border-right: 1px solid #fff;
+        border-bottom: 1px solid #fff;
+        background: linear-gradient(#dcdcdc, #efefef);
+        padding: 1px 9px;
       }
     }

@@ -5,19 +5,19 @@
       "name": "J-Mac",
       "kind": "folder",
       "href": "pages/j-mac.html",
-      "icon": "images/folder-160.png"
+      "icon": "icons/folder-160.png"
     },
     {
       "name": "1999 Worldwide",
       "kind": "folder",
       "href": "pages/1999-worldwide.html",
-      "icon": "images/folder-160.png"
+      "icon": "icons/folder-160.png"
     },
     {
       "name": "Virgil.txt",
       "kind": "file",
       "href": "index.html",
-      "icon": "images/txt.png"
+      "icon": "icons/txt.png"
     },
     {
       "name": "Nike.jpg",
@@ -38,7 +38,7 @@
       "icon": "images/earth.gif"
     },
     {
-      "name": "Reset Grid",
+      "name": "Reset",
       "kind": "file",
       "href": "index.html",
       "icon": "icons/redbutton.png"
@@ -59,7 +59,7 @@
       "name": "notes.txt",
       "kind": "file",
       "href": "pages/j-mac.html",
-      "icon": "images/txt.png"
+      "icon": "icons/txt.png"
     }
   ]
 }

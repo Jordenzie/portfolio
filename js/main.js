@@ -145,7 +145,7 @@
         },
         about: function () {
           return [
-            { type: "image", src: assetPath("images/apple folder.png"), alt: "Apple Folder", size: "sm", noFrame: true },
+            { type: "image", src: assetPath("icons/apple folder.png"), alt: "Apple Folder", size: "sm", noFrame: true },
             {
               type: "quote",
               text:
@@ -649,7 +649,7 @@
 
       function loadGlobalIndex() {
         // Optional: create a search-index.json at site root.
-        // Format: {"_note":"...","items":[{"name":"J-Mac","kind":"folder","href":"pages/j-mac.html","icon":"images/folder-160.png"}, ...]}
+        // Format: {"_note":"...","items":[{"name":"J-Mac","kind":"folder","href":"pages/j-mac.html","icon":"icons/folder-160.png"}, ...]}
         try {
           if (!window.fetch) return;
           var indexPath = isSubpage() ? "../search-index.json" : "search-index.json";
@@ -1162,7 +1162,14 @@
       }
 
       function resetIconPositions() {
-        try { localStorage.removeItem(ICON_POS_KEY); } catch (e) {}
+        try {
+          for (var i = localStorage.length - 1; i >= 0; i--) {
+            var key = localStorage.key(i);
+            if (key && key.indexOf("prtf_icon_positions_v1_") === 0) {
+              localStorage.removeItem(key);
+            }
+          }
+        } catch (e) {}
         savedIconPositions = null;
         icons.forEach(function (icon) {
           icon.style.left = "";
@@ -1267,7 +1274,7 @@
                 headline: (icon.querySelector("span") ? icon.querySelector("span").textContent : "Folder"),
                 label: "Loading items…",
                 hint: "Reading folder contents…",
-                icon: assetPath("images/folder-160.png")
+                icon: assetPath("icons/folder-160.png")
               })
             );
           } catch (e) {}
