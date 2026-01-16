@@ -1346,6 +1346,21 @@
       var offX2 = 0, offY2 = 0;
       var activeIcon = null;
       var threshold = 5;
+      var lastTapTime = 0;
+      var lastTapIcon = null;
+      var tapDelay = 350;
+
+      function handleMobileTap(icon) {
+        var now = Date.now();
+        if (lastTapIcon === icon && (now - lastTapTime) < tapDelay) {
+          lastTapTime = 0;
+          lastTapIcon = null;
+          openIcon(icon);
+          return;
+        }
+        lastTapTime = now;
+        lastTapIcon = icon;
+      }
 
       icons.forEach(function (icon) {
         icon.addEventListener("mousedown", function (e) {
@@ -1364,6 +1379,24 @@
           icon.classList.add("selected");
         });
 
+        icon.addEventListener("touchstart", function (e) {
+          if (!isMobile()) return;
+          var t = e.touches && e.touches[0];
+          if (!t) return;
+
+          startX = t.clientX;
+          startY = t.clientY;
+          activeIcon = icon;
+          offX2 = t.clientX - icon.offsetLeft;
+          offY2 = t.clientY - icon.offsetTop;
+
+          possibleDrag = true;
+          draggingIcon = false;
+
+          clearSelections();
+          icon.classList.add("selected");
+        }, { passive: true });
+
         icon.addEventListener("click", function (e) {
           e.preventDefault();
           clearSelections();
@@ -1372,7 +1405,13 @@
 
         icon.addEventListener("dblclick", function (e) {
           e.preventDefault();
+          if (isMobile()) return;
           openIcon(icon);
+        });
+
+        icon.addEventListener("contextmenu", function (e) {
+          if (!isMobile()) return;
+          e.preventDefault();
         });
       });
 
@@ -1405,6 +1444,44 @@
         if (activeIcon) activeIcon.style.zIndex = "";
         activeIcon = null;
       });
+
+      document.addEventListener("touchmove", function (e) {
+        if (!possibleDrag || !activeIcon) return;
+        var t = e.touches && e.touches[0];
+        if (!t) return;
+
+        if (!draggingIcon) {
+          var dx = t.clientX - startX;
+          var dy = t.clientY - startY;
+          if (Math.abs(dx) > threshold || Math.abs(dy) > threshold) {
+            draggingIcon = true;
+            activeIcon.style.zIndex = 1000;
+          }
+        }
+
+        if (draggingIcon) {
+          e.preventDefault();
+          var x = t.clientX - offX2;
+          var y = t.clientY - offY2;
+          x = Math.max(0, Math.min(window.innerWidth - activeIcon.offsetWidth, x));
+          y = Math.max(0, Math.min(window.innerHeight - activeIcon.offsetHeight, y));
+          activeIcon.style.left = x + "px";
+          activeIcon.style.top = y + "px";
+        }
+      }, { passive: false });
+
+      function endTouchDrag() {
+        if (!activeIcon) return;
+        if (draggingIcon) saveIconPositions();
+        if (!draggingIcon && isMobile()) handleMobileTap(activeIcon);
+        possibleDrag = false;
+        draggingIcon = false;
+        if (activeIcon) activeIcon.style.zIndex = "";
+        activeIcon = null;
+      }
+
+      document.addEventListener("touchend", endTouchDrag);
+      document.addEventListener("touchcancel", endTouchDrag);
 
       document.addEventListener("click", function (e) {
         if (!e.target.closest(".icon")) clearSelections();

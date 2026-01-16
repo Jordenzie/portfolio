@@ -66,6 +66,8 @@
       cursor: pointer;
       position: absolute;
       user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
       padding: 6px;
       box-sizing: border-box;
     }
@@ -77,6 +79,7 @@
       image-rendering: pixelated;
       flex: 0 0 auto;
       margin-top: 2px;
+      -webkit-user-drag: none;
     }
 
     .icon span {
