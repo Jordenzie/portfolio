@@ -1073,7 +1073,7 @@
           if (searchInput) searchInput.style.width = "";
           return;
         }
-        var items = document.querySelectorAll(".taskbar .menu-item, .taskbar .menubar-clock");
+        var items = document.querySelectorAll(".taskbar .menu-item:not(.taskbar-return), .taskbar .menubar-clock");
         if (!items || !items.length) return;
         var left = Infinity;
         var right = -Infinity;
