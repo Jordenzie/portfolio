@@ -10,11 +10,11 @@
     {
       "name": "1999 Worldwide",
       "kind": "folder",
-      "href": "index.html",
+      "href": "pages/1999-worldwide.html",
       "icon": "images/folder-160.png"
     },
     {
-      "name": "quote.txt",
+      "name": "Virgil.txt",
       "kind": "file",
       "href": "index.html",
       "icon": "images/txt.png"
@@ -26,10 +26,10 @@
       "icon": "images/nike.jpg"
     },
     {
-      "name": "1999.gif",
+      "name": "logo.gif",
       "kind": "file",
-      "href": "index.html",
-      "icon": "images/1999.gif"
+      "href": "pages/1999-worldwide.html",
+      "icon": "images/logo.gif"
     },
     {
       "name": "earth.gif",

@@ -7,6 +7,7 @@
       function isSubpage() { return window.location.pathname.indexOf("/pages/") !== -1; }
       var assetBase = isSubpage() ? "../" : "";
       function assetPath(path) { return assetBase + path; }
+      function keyKind(kind) { return (safeText(kind).trim().toLowerCase() === "folder") ? "folder" : "file"; }
       function currentPageHref() {
         var path = window.location.pathname || "";
         if (isSubpage()) {
@@ -567,6 +568,7 @@
         }
 
         searchBarEl.style.display = "flex";
+        positionSearchBar();
         if (searchInput) searchInput.focus();
 
         // Always show top suggestions (recents) when opening Find
@@ -674,7 +676,7 @@
         var out = [];
 
         function add(it) {
-          var key = (it.kind + "|" + normalizeHrefForKey(it) + "|" + it.name).toLowerCase();
+          var key = (keyKind(it.kind) + "|" + normalizeHrefForKey(it) + "|" + it.name).toLowerCase();
           if (seen[key]) return;
           seen[key] = 1;
           out.push(it);
@@ -757,7 +759,7 @@
           var seen = Object.create(null);
           var out = [];
           arr.map(normalizeRecentItem).filter(Boolean).forEach(function (it) {
-            var key = (it.kind + "|" + it.href + "|" + it.name).toLowerCase();
+            var key = (keyKind(it.kind) + "|" + it.href + "|" + it.name).toLowerCase();
             if (seen[key]) return;
             seen[key] = 1;
             out.push(it);
@@ -773,9 +775,9 @@
           var rec = getRecents();
           var norm = normalizeRecentItem(it);
           if (!norm) return;
-          var key = (norm.kind + "|" + norm.href + "|" + norm.name).toLowerCase();
+          var key = (keyKind(norm.kind) + "|" + norm.href + "|" + norm.name).toLowerCase();
           rec = rec.filter(function (r) {
-            return ((r.kind + "|" + r.href + "|" + r.name).toLowerCase() !== key);
+            return ((keyKind(r.kind) + "|" + r.href + "|" + r.name).toLowerCase() !== key);
           });
           rec.unshift(norm);
           rec = rec.filter(Boolean).slice(0, 10);
@@ -809,11 +811,11 @@
       function resolveLiveItem(it) {
         try {
           if (!it) return null;
-          var key = ((it.kind || "") + "|" + (it.href || "") + "|" + (it.name || "")).toLowerCase();
+          var key = (keyKind(it.kind) + "|" + normalizeHrefForKey(it) + "|" + (it.name || "")).toLowerCase();
           var combined = getCombinedIndex();
           for (var i = 0; i < combined.length; i++) {
             var c = combined[i];
-            var ckey = ((c.kind || "") + "|" + (c.href || "") + "|" + (c.name || "")).toLowerCase();
+            var ckey = (keyKind(c.kind) + "|" + normalizeHrefForKey(c) + "|" + (c.name || "")).toLowerCase();
             if (ckey === key) return c;
           }
           // Fallback: match by name/kind against the current page icons.
@@ -962,12 +964,12 @@
           var combined = getCombinedIndex();
           var exists = Object.create(null);
           combined.forEach(function (it) {
-            var k = ((it.kind || "") + "|" + normalizeHrefForKey(it) + "|" + (it.name || "")).toLowerCase();
+            var k = (keyKind(it.kind) + "|" + normalizeHrefForKey(it) + "|" + (it.name || "")).toLowerCase();
             exists[k] = 1;
           });
 
           rec = rec.filter(function (it) {
-            var k = ((it.kind || "") + "|" + normalizeHrefForKey(it) + "|" + (it.name || "")).toLowerCase();
+            var k = (keyKind(it.kind) + "|" + normalizeHrefForKey(it) + "|" + (it.name || "")).toLowerCase();
             return !!exists[k];
           });
         }
@@ -1054,6 +1056,35 @@
           if (!(searchInput.value || "").trim()) showRecentsIfEmpty();
         }
       };
+
+      function positionSearchBar() {
+        if (!searchBarEl) return;
+        if (!isMobile()) {
+          searchBarEl.style.left = "";
+          searchBarEl.style.right = "";
+          searchBarEl.style.transform = "";
+          searchBarEl.style.width = "";
+          return;
+        }
+        var items = document.querySelectorAll(".taskbar .menu-item, .taskbar .menubar-clock");
+        if (!items || !items.length) return;
+        var left = Infinity;
+        var right = -Infinity;
+        Array.prototype.slice.call(items).forEach(function (el) {
+          var r = el.getBoundingClientRect();
+          left = Math.min(left, r.left);
+          right = Math.max(right, r.right);
+        });
+        if (!isFinite(left) || !isFinite(right) || right <= left) return;
+        searchBarEl.style.left = Math.round(left) + "px";
+        searchBarEl.style.right = "auto";
+        searchBarEl.style.transform = "none";
+        searchBarEl.style.width = Math.round(right - left) + "px";
+      }
+
+      window.addEventListener("resize", function () {
+        if (searchBarEl && searchBarEl.style.display === "flex") positionSearchBar();
+      });
 
       (function initClock() {
         if (!clockEl) return;
