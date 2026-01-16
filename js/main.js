@@ -930,10 +930,14 @@
           row.appendChild(leftWrap);
           row.appendChild(right);
 
-          row.addEventListener("mousedown", function (e) {
+          function activateFromEvent(e) {
             e.preventDefault();
             activateItem(it);
-          });
+          }
+
+          row.addEventListener("mousedown", activateFromEvent);
+          row.addEventListener("touchstart", activateFromEvent, { passive: false });
+          row.addEventListener("click", activateFromEvent);
 
           searchResultsEl.appendChild(row);
         });
