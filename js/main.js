@@ -1368,9 +1368,6 @@
           e.preventDefault();
           clearSelections();
           icon.classList.add("selected");
-          if (isMobile()) {
-            openIcon(icon);
-          }
         });
 
         icon.addEventListener("dblclick", function (e) {
