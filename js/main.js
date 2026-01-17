@@ -16,11 +16,32 @@
         }
         return "index.html";
       }
+      function getRootPath() {
+        var path = window.location.pathname || "";
+        if (isSubpage()) {
+          var idx = path.indexOf("/pages/");
+          if (idx !== -1) return path.slice(0, idx + 1);
+        }
+        return path.replace(/\/[^\/]*$/, "/");
+      }
       function normalizeHrefForKey(it) {
         var href = safeText(it && it.href).trim();
         if (!href || href === "#") href = currentPageHref();
-        if (href.indexOf("../") === 0) href = href.slice(3);
-        if (href.indexOf("./") === 0) href = href.slice(2);
+        if (href.indexOf("file://") === 0) {
+          try {
+            var fileHref = href.replace(/^file:\/\//, "");
+            try { fileHref = decodeURIComponent(fileHref); } catch (e2) {}
+            var rootPath = getRootPath();
+            if (rootPath && fileHref.indexOf(rootPath) === 0) {
+              href = fileHref.slice(rootPath.length);
+            } else {
+              href = fileHref;
+            }
+          } catch (e) {}
+        }
+        if (href === "/") href = "index.html";
+        while (href.indexOf("../") === 0) href = href.slice(3);
+        while (href.indexOf("./") === 0) href = href.slice(2);
         if (href.indexOf("http://") === 0 || href.indexOf("https://") === 0) {
           try {
             var origin = window.location.origin || "";
@@ -28,6 +49,7 @@
           } catch (e) {}
         }
         href = href.split("#")[0].split("?")[0];
+        if (href.length > 1 && href[href.length - 1] === "/") href = href.slice(0, -1);
         if (href.indexOf("/") === 0) href = href.slice(1);
         if (!href) href = currentPageHref();
         return href;
@@ -631,6 +653,32 @@
           .replace(/\\"/g, "&quot;")
           .replace(/'/g, "&#39;");
       }
+      var FIND_DEBUG_KEY = "prtf_find_debug_v1";
+      var FIND_DEBUG = false;
+      try { FIND_DEBUG = localStorage.getItem(FIND_DEBUG_KEY) === "1"; } catch (e) {}
+
+      function debugFind(msg, data) {
+        if (!FIND_DEBUG) return;
+        try { console.log("[Find]", msg, data || ""); } catch (e) {}
+      }
+
+      function normalizeNameKey(name) {
+        if (name == null) return "";
+        return safeText(name).trim().replace(/\s+/g, " ").toLowerCase();
+      }
+
+      function buildFindKey(it) {
+        return keyKind(it.kind) + "|" + normalizeHrefForKey(it).toLowerCase() + "|" + normalizeNameKey(it.name);
+      }
+
+      function buildFindLooseKey(it) {
+        return keyKind(it.kind) + "|" + normalizeNameKey(it.name);
+      }
+
+      function debugItem(it) {
+        if (!it) return null;
+        return { name: it.name, kind: it.kind, href: it.href, hasEl: !!it.el };
+      }
 
       function buildLocalIndex() {
         var items = [];
@@ -726,18 +774,55 @@
 
       function getCombinedIndex() {
         // Local (current desktop/page) first, then global.
-        var seen = Object.create(null);
+        var seenStrict = Object.create(null);
+        var localNameKind = Object.create(null);
+        var localByNameKind = Object.create(null);
+        var globalByNameKind = Object.create(null);
         var out = [];
 
-        function add(it) {
-          var key = (keyKind(it.kind) + "|" + normalizeHrefForKey(it) + "|" + it.name).toLowerCase();
-          if (seen[key]) return;
-          seen[key] = 1;
+        function add(it, source) {
+          var strictKey = buildFindKey(it);
+          var nameKey = buildFindLooseKey(it);
+
+          if (source === "local") {
+            localNameKind[nameKey] = 1;
+            localByNameKind[nameKey] = it;
+          } else if (source === "global") {
+            if (globalByNameKind[nameKey] && !localNameKind[nameKey]) {
+              if (FIND_DEBUG) {
+                debugFind("global name/kind duplicate", {
+                  first: debugItem(globalByNameKind[nameKey]),
+                  next: debugItem(it)
+                });
+              }
+            } else if (!globalByNameKind[nameKey]) {
+              globalByNameKind[nameKey] = it;
+            }
+          }
+
+          if (seenStrict[strictKey]) {
+            if (FIND_DEBUG) {
+              debugFind("skip duplicate strict key", { key: strictKey, item: debugItem(it), source: source });
+            }
+            return;
+          }
+
+          if (source === "global" && localNameKind[nameKey]) {
+            if (FIND_DEBUG) {
+              debugFind("skip global duplicate name/kind", {
+                local: debugItem(localByNameKind[nameKey]),
+                global: debugItem(it)
+              });
+            }
+            return;
+          }
+
+          seenStrict[strictKey] = 1;
           out.push(it);
         }
 
-        SEARCH_INDEX.forEach(function (it) { add(it); });
-        GLOBAL_INDEX.forEach(function (it) { add(it); });
+        SEARCH_INDEX.forEach(function (it) { add(it, "local"); });
+        GLOBAL_INDEX.forEach(function (it) { add(it, "global"); });
         return out;
       }
 
@@ -813,7 +898,7 @@
           var seen = Object.create(null);
           var out = [];
           arr.map(normalizeRecentItem).filter(Boolean).forEach(function (it) {
-            var key = (keyKind(it.kind) + "|" + it.href + "|" + it.name).toLowerCase();
+            var key = buildFindKey(it);
             if (seen[key]) return;
             seen[key] = 1;
             out.push(it);
@@ -829,9 +914,9 @@
           var rec = getRecents();
           var norm = normalizeRecentItem(it);
           if (!norm) return;
-          var key = (keyKind(norm.kind) + "|" + norm.href + "|" + norm.name).toLowerCase();
+          var key = buildFindKey(norm);
           rec = rec.filter(function (r) {
-            return ((keyKind(r.kind) + "|" + r.href + "|" + r.name).toLowerCase() !== key);
+            return (buildFindKey(r) !== key);
           });
           rec.unshift(norm);
           rec = rec.filter(Boolean).slice(0, 10);
@@ -865,21 +950,21 @@
       function resolveLiveItem(it) {
         try {
           if (!it) return null;
-          var key = (keyKind(it.kind) + "|" + normalizeHrefForKey(it) + "|" + (it.name || "")).toLowerCase();
+          var key = buildFindKey(it);
           var combined = getCombinedIndex();
           for (var i = 0; i < combined.length; i++) {
             var c = combined[i];
-            var ckey = (keyKind(c.kind) + "|" + normalizeHrefForKey(c) + "|" + (c.name || "")).toLowerCase();
+            var ckey = buildFindKey(c);
             if (ckey === key) return c;
           }
           // Fallback: match by name/kind against the current page icons.
-          var name = safeText(it.name).trim().toLowerCase();
-          var kind = safeText(it.kind || "").trim().toLowerCase();
+          var name = normalizeNameKey(it.name);
+          var kind = keyKind(it.kind);
           for (var j = 0; j < SEARCH_INDEX.length; j++) {
             var local = SEARCH_INDEX[j];
             if (!local) continue;
-            var lname = safeText(local.name).trim().toLowerCase();
-            var lkind = safeText(local.kind || "").trim().toLowerCase();
+            var lname = normalizeNameKey(local.name);
+            var lkind = keyKind(local.kind);
             if (lname === name && lkind === kind) return local;
           }
         } catch (e) {}
@@ -1007,7 +1092,7 @@
         combined.forEach(function (it) {
           var m = fuzzyMatch(it.name, q);
           if (!m) return;
-          var key = (keyKind(it.kind) + "|" + normalizeHrefForKey(it) + "|" + it.name).toLowerCase();
+          var key = buildFindKey(it);
           var existing = scoredMap[key];
           if (!existing || m.score < existing.score) {
             scoredMap[key] = { item: it, score: m.score, idxs: m.idxs };
@@ -1032,12 +1117,12 @@
           var combined = getCombinedIndex();
           var exists = Object.create(null);
           combined.forEach(function (it) {
-            var k = (keyKind(it.kind) + "|" + normalizeHrefForKey(it) + "|" + (it.name || "")).toLowerCase();
+            var k = buildFindKey(it);
             exists[k] = 1;
           });
 
           rec = rec.filter(function (it) {
-            var k = (keyKind(it.kind) + "|" + normalizeHrefForKey(it) + "|" + (it.name || "")).toLowerCase();
+            var k = buildFindKey(it);
             return !!exists[k];
           });
         }
