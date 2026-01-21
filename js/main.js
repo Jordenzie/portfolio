@@ -595,9 +595,9 @@
           ctx.fillStyle = "#dfdfdf";
           ctx.fillRect(0, 0, width, height);
           ctx.fillStyle = "#000";
-          var pulseT = (Date.now() - foodPulseStart) / 500;
-          var ease = (1 - Math.cos(pulseT * Math.PI * 2)) / 2;
-          var alpha = 0.2 + (0.8 * ease);
+          var pulseT = (Date.now() - foodPulseStart) / 250;
+          var phase = pulseT % 1;
+          var alpha = (phase < 0.5) ? 1 : 0.2;
           ctx.globalAlpha = alpha;
           drawCell(food.x, food.y);
           ctx.globalAlpha = 1;
@@ -609,8 +609,6 @@
             ctx.textBaseline = "middle";
             ctx.font = "12px Chicago, sans-serif";
             ctx.fillText("GAME OVER", width / 2, height / 2 - 8);
-            ctx.font = "10px Chicago, sans-serif";
-            ctx.fillText("High Score: " + highScore, width / 2, height / 2 + 10);
           }
         }
 
@@ -624,7 +622,7 @@
             highScore = score;
             try { sessionStorage.setItem(highScoreKey, String(highScore)); } catch (e) {}
           }
-          if (statusEl) statusEl.textContent = "";
+          if (statusEl) statusEl.textContent = "Score: " + score + "  Best: " + highScore + "  Play again?";
           if (actionsEl) actionsEl.classList.add("show");
           draw();
         }
@@ -1535,6 +1533,8 @@
       var trashBinEl = null;
       var trashIconEl = document.querySelector(".icon[data-kind=\"trash\"]");
       var lastGrid = null;
+      var lastViewportW = window.innerWidth || 0;
+      var lastViewportH = window.innerHeight || 0;
 
       function iconKey(icon) {
         var label = icon.querySelector("span");
@@ -1846,6 +1846,8 @@
         var dataText = icon.getAttribute("data-text") || "";
         var dataTextSize = icon.getAttribute("data-text-size") || "";
         var dataTextImage = icon.getAttribute("data-text-image") || "";
+        var dataQuote = icon.getAttribute("data-quote") || "";
+        var dataQuoteSignature = icon.getAttribute("data-quote-signature") || "";
         var dataSpotify = icon.getAttribute("data-spotify") || "";
         var dataApple = icon.getAttribute("data-apple") || "";
 
@@ -1877,11 +1879,18 @@
             content: (function () {
               var blocks = [];
               if (dataTextImage) {
-                blocks.push({ type: "image", src: normalizeIconPath(dataTextImage), alt: "", size: "sm" });
+              blocks.push({ type: "image", src: normalizeIconPath(dataTextImage), alt: "", size: "sm" });
+            }
+            blocks.push({ type: "text", role: "body", size: dataTextSize || "md", align: "left", text: dataText || "Placeholder text." });
+            if (dataQuote) {
+              var qHtml = escHtml(dataQuote);
+              if (dataQuoteSignature) {
+                qHtml += "<br><div class=\"popup-quote-signature\">" + escHtml(dataQuoteSignature) + "</div>";
               }
-              blocks.push({ type: "text", role: "body", size: dataTextSize || "md", align: "left", text: dataText || "Placeholder text." });
-              return blocks;
-            })()
+              blocks.push({ type: "quote", html: qHtml });
+            }
+            return blocks;
+          })()
           });
           return;
         }
@@ -2021,6 +2030,9 @@
           var extra = mobile ? 80 : 20;
           if (desktopEl) desktopEl.style.height = (totalH + extra) + "px";
         } catch (e) {}
+
+        lastViewportW = window.innerWidth || lastViewportW;
+        lastViewportH = window.innerHeight || lastViewportH;
       }
 
       function clearSelections() { icons.forEach(function (i) { i.classList.remove("selected"); }); }
@@ -2169,7 +2181,13 @@
       });
 
       window.addEventListener("resize", function () {
-        if (!draggingIcon) layoutIcons();
+        if (!draggingIcon) {
+          if (isMobile()) {
+            var w = window.innerWidth || 0;
+            if (w === lastViewportW) return;
+          }
+          layoutIcons();
+        }
       });
 
       applyTrashState();
@@ -2226,7 +2244,7 @@
           if (h === 0) h = 12;
           var mm = (m < 10 ? "0" + m : "" + m);
           var colon = (d.getSeconds() % 2 === 0) ? ":" : " ";
-          welcomeTitleEl.innerHTML = "<img class=\"welcome-time-image\" src=\"" + assetPath("images/internet-planet-earth.gif") + "\" alt=\"Earth\" />" + h + colon + mm + " " + ampm + "<br><span class=\"welcome-date\">" + dateStrNow + "</span>";
+          welcomeTitleEl.innerHTML = h + colon + mm + " " + ampm + "<br><span class=\"welcome-date\">" + dateStrNow + "</span>";
         }
         tickWelcomeTitle();
         var clockTimer = setInterval(tickWelcomeTitle, 1000);

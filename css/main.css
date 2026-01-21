@@ -113,7 +113,9 @@
     .icon.selected { opacity: 0.75; }
     .icon.in-trash { display: none; }
     .trash-bin .icon.in-trash { display: flex; }
-    .icon.trash-hover { outline: 1px dashed #000; }
+    .icon.trash-hover img {
+      filter: brightness(1.5);
+    }
 
     .trash-bin {
       width: min(420px, calc(100vw - 80px));
@@ -680,6 +682,7 @@
     .snake-status {
       font-size: 10px;
       text-align: center;
+      white-space: pre-line;
     }
 
     .snake-actions {
