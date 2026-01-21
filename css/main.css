@@ -111,6 +111,19 @@
     }
 
     .icon.selected { opacity: 0.75; }
+    .icon.in-trash { display: none; }
+    .trash-bin .icon.in-trash { display: flex; }
+    .icon.trash-hover { outline: 1px dashed #000; }
+
+    .trash-bin {
+      width: min(420px, calc(100vw - 80px));
+      height: 280px;
+      position: relative;
+      background: #fff;
+      border: 0;
+      box-shadow: none;
+      overflow: visible;
+    }
 
     /* ---------- Taskbar ---------- */
     .taskbar {
@@ -428,6 +441,10 @@
       box-shadow: inset 0 1px 0 #fff;
     }
 
+    .popup-window.trash-popup .popup-body {
+      overflow: visible;
+    }
+
     .popup-actions {
       padding: 6px 8px;
       background: #efefef;
@@ -464,6 +481,11 @@
       white-space: pre-wrap;
       font-size: 12px;
       line-height: 1.8;
+    }
+
+    .popup-text.size-sm {
+      font-size: 10px;
+      line-height: 1.6;
     }
 
     .popup-content > * + * {
@@ -506,6 +528,14 @@
       text-align-last: center;
     }
 
+    .popup-text.role-title .welcome-time-image {
+      display: block;
+      width: 24px;
+      height: 24px;
+      margin: 0 auto 4px;
+      image-rendering: pixelated;
+    }
+
     .popup-text.role-title .welcome-date {
       display: block;
       font-size: 10px;
@@ -544,7 +574,6 @@
     .popup-embed-frame {
       width: 100%;
       max-width: none;
-      aspect-ratio: 16 / 9;
       background: #fff;
       border: 1px solid #000;
       box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000;
@@ -554,27 +583,55 @@
     }
 
     .popup-embed-bar {
-      height: 18px;
+      height: 20px;
       display: flex;
       align-items: center;
-      padding: 0 6px;
+      padding: 1px 6px;
+      box-sizing: border-box;
       background: #dfdfdf;
       border-bottom: 1px solid #000;
       box-shadow: inset 0 1px 0 #fff;
       font-size: 10px;
     }
 
+    .popup-embed-bar,
+    .popup-embed-bar * {
+      font-size: 9px;
+      line-height: 1.2;
+      font-weight: normal;
+    }
+
+    .embed-title-italic { font-style: italic; font-size: inherit; }
+
     .popup-embed-body {
-      flex: 1;
       position: relative;
       background: #fff;
     }
 
     .popup-embed-body iframe {
       width: 100%;
-      height: 100%;
+      height: auto;
       border: 0;
       display: block;
+      aspect-ratio: 16 / 9;
+    }
+
+    .popup-embed-placeholder {
+      width: 100%;
+      min-height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+    }
+
+    .popup-embed-image {
+      width: 100%;
+      height: auto;
+      object-fit: contain;
+      display: block;
+      image-rendering: auto;
     }
 
     .popup-quote {
@@ -598,6 +655,40 @@
       text-align-last: right;
       font-size: inherit;
     }
+
+    .snake-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .snake-frame {
+      background: #dfdfdf;
+      padding: 10px;
+      border: 1px solid #000;
+      box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000;
+    }
+
+    .snake-canvas {
+      display: block;
+      background: #fff;
+      border: 0;
+      image-rendering: pixelated;
+    }
+
+    .snake-status {
+      font-size: 10px;
+      text-align: center;
+    }
+
+    .snake-actions {
+      display: none;
+      gap: 8px;
+      justify-content: center;
+    }
+
+    .snake-actions.show { display: flex; }
 
     /* Desktop taskbar: pinned to top */
     .taskbar {

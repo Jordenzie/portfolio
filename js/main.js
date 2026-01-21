@@ -4,6 +4,9 @@
 
       function $(id) { return document.getElementById(id); }
       function isMobile() { return window.matchMedia && window.matchMedia("(max-width: 768px)").matches; }
+      function isTouchDevice() {
+        return ("ontouchstart" in window) || (navigator && navigator.maxTouchPoints > 0);
+      }
       function isSubpage() { return window.location.pathname.indexOf("/pages/") !== -1; }
       var assetBase = isSubpage() ? "../" : "";
       function assetPath(path) { return assetBase + path; }
@@ -171,8 +174,9 @@
         welcome: function () {
           return [
             { type: "text", role: "title", text: "", size: "xl", align: "center" },
-            { type: "embed", html: "<div class=\"popup-embed-frame\"><div class=\"popup-embed-bar\">The Prelude</div><div class=\"popup-embed-body\"><iframe src=\"https://www.youtube.com/embed/nmaaJQwAhSU?start=922\" title=\"The Prelude\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe></div></div>" },
-            { type: "quote", html: "“Welcome to my portfolio! This is a collection of my work, creative projects, and ideas-in-progress. Take a look around to see what I’ve been building. I hope you enjoy your experience…<br><br>The intention of this website is both to serve as a convenient place to document growth over time and act as a way to provide personal context surrounding how I approach art, music, design, etc.”<br><br><div class=\"popup-quote-signature\">&mdash; Jordan A. McKenzie</div>" }
+            { type: "quote", html: "“Welcome to my portfolio! This is a collection of my work, creative projects, and ideas-in-progress. Take a look around to see what I’ve been building. I hope you enjoy your experience…<br><br>The intention of this website is both to serve as a convenient place to document growth over time and act as a way to provide personal context surrounding how I approach art, music, design, etc.”<br><br><div class=\"popup-quote-signature\">&mdash; Jordan A. McKenzie</div>" },
+            { type: "embed", html: "<div class=\"popup-embed-frame\"><div class=\"popup-embed-bar\"><span class=\"embed-title-italic\">The Prelude</span>&nbsp;— J-Mac (Coming Soon)</div><div class=\"popup-embed-body\"><img class=\"popup-embed-image\" src=\"" + assetPath("images/The Prelude (teaser).png") + "\" alt=\"The Prelude (teaser)\" /></div></div>" },
+            { type: "embed", html: "<div class=\"popup-embed-frame\"><div class=\"popup-embed-bar\"><span class=\"embed-title-italic\">Cartoons</span>&nbsp;— Mad Classic (2023)</div><div class=\"popup-embed-body\"><iframe src=\"https://www.youtube.com/embed/nmaaJQwAhSU?start=922\" title=\"Cartoons — Mad Classic (2023)\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe></div></div>" }
           ];
         },
         about: function () {
@@ -509,6 +513,208 @@
           hintEl.textContent = order[idx] || "";
         }, 3000);
         addPopupTimer(popup, "interval", t);
+      }
+
+      function startSnakeGame() {
+        var existing = popupKeyRegistry["snake-game"];
+        if (existing) closePopup(existing);
+
+        var cell = 20;
+        var cols = 20;
+        var rows = 20;
+        var width = cols * cell;
+        var height = rows * cell;
+        var canvasId = "snakeCanvas_" + Math.random().toString(16).slice(2);
+        var statusId = "snakeStatus_" + Math.random().toString(16).slice(2);
+
+        var highScoreKey = "prtf_snake_highscore_v1";
+        var highScore = 0;
+        try { highScore = Number(sessionStorage.getItem(highScoreKey)) || 0; } catch (e) {}
+
+        var popup = openPopup({
+          title: "Snake",
+          key: "snake-game",
+          okText: null,
+          content: [
+            {
+              type: "embed",
+              html:
+                "<div class=\"snake-wrap\">" +
+                  "<div class=\"snake-frame\">" +
+                    "<canvas id=\"" + canvasId + "\" class=\"snake-canvas\" width=\"" + width + "\" height=\"" + height + "\"></canvas>" +
+                  "</div>" +
+                  "<div id=\"" + statusId + "\" class=\"snake-status\">Score: 0</div>" +
+                  "<div class=\"snake-actions\">" +
+                    "<button type=\"button\" class=\"popup-ok snake-btn\" data-action=\"yes\">Yes</button>" +
+                    "<button type=\"button\" class=\"popup-ok snake-btn\" data-action=\"no\">No</button>" +
+                  "</div>" +
+                "</div>"
+            }
+          ]
+        });
+        if (!popup || !popup.el) return;
+
+        var canvas = popup.el.querySelector("#" + canvasId);
+        var statusEl = popup.el.querySelector("#" + statusId);
+        var actionsEl = popup.el.querySelector(".snake-actions");
+        var yesBtn = popup.el.querySelector(".snake-actions [data-action=\"yes\"]");
+        var noBtn = popup.el.querySelector(".snake-actions [data-action=\"no\"]");
+        if (!canvas) return;
+        var ctx = canvas.getContext("2d");
+        if (!ctx) return;
+        ctx.imageSmoothingEnabled = false;
+
+        var snake = [{ x: Math.floor(cols / 2), y: Math.floor(rows / 2) }];
+        var dir = { x: 1, y: 0 };
+        var nextDir = { x: 1, y: 0 };
+        var food = { x: 0, y: 0 };
+        var foodPulseStart = Date.now();
+        var alive = true;
+        var score = 0;
+        var loop = null;
+        var speedMs = 120;
+
+        function drawCell(x, y) {
+          ctx.fillRect(x * cell, y * cell, cell, cell);
+        }
+
+        function spawnFood() {
+          if (snake.length >= cols * rows) {
+            endGame();
+            return;
+          }
+          var ok = false;
+          while (!ok) {
+            food.x = Math.floor(Math.random() * cols);
+            food.y = Math.floor(Math.random() * rows);
+            ok = !snake.some(function (s) { return s.x === food.x && s.y === food.y; });
+          }
+        }
+
+        function draw() {
+          ctx.fillStyle = "#dfdfdf";
+          ctx.fillRect(0, 0, width, height);
+          ctx.fillStyle = "#000";
+          var pulseT = (Date.now() - foodPulseStart) / 500;
+          var ease = (1 - Math.cos(pulseT * Math.PI * 2)) / 2;
+          var alpha = 0.2 + (0.8 * ease);
+          ctx.globalAlpha = alpha;
+          drawCell(food.x, food.y);
+          ctx.globalAlpha = 1;
+          snake.forEach(function (seg) { drawCell(seg.x, seg.y); });
+
+          if (!alive) {
+            ctx.fillStyle = "#000";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "middle";
+            ctx.font = "12px Chicago, sans-serif";
+            ctx.fillText("GAME OVER", width / 2, height / 2 - 8);
+            ctx.font = "10px Chicago, sans-serif";
+            ctx.fillText("High Score: " + highScore, width / 2, height / 2 + 10);
+          }
+        }
+
+        function endGame() {
+          alive = false;
+          if (loop) {
+            clearInterval(loop);
+            loop = null;
+          }
+          if (score > highScore) {
+            highScore = score;
+            try { sessionStorage.setItem(highScoreKey, String(highScore)); } catch (e) {}
+          }
+          if (statusEl) statusEl.textContent = "";
+          if (actionsEl) actionsEl.classList.add("show");
+          draw();
+        }
+
+        function step() {
+          if (!alive) return;
+          dir = nextDir;
+
+          var head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+          if (head.x < 0 || head.x >= cols || head.y < 0 || head.y >= rows) {
+            endGame();
+            return;
+          }
+
+          for (var i = 0; i < snake.length; i++) {
+            if (snake[i].x === head.x && snake[i].y === head.y) {
+              endGame();
+              return;
+            }
+          }
+
+          snake.unshift(head);
+          if (head.x === food.x && head.y === food.y) {
+            score += 1;
+            if (statusEl) statusEl.textContent = "Score: " + score;
+            spawnFood();
+          } else {
+            snake.pop();
+          }
+
+          draw();
+        }
+
+        function setDir(x, y) {
+          if (dir.x === -x && dir.y === -y) return;
+          nextDir = { x: x, y: y };
+        }
+
+        function handleKey(e) {
+          if (!alive) return;
+          if (searchBarEl && searchBarEl.style.display === "flex") return;
+          if (e.key === "ArrowUp") {
+            e.preventDefault();
+            setDir(0, -1);
+          } else if (e.key === "ArrowDown") {
+            e.preventDefault();
+            setDir(0, 1);
+          } else if (e.key === "ArrowLeft") {
+            e.preventDefault();
+            setDir(-1, 0);
+          } else if (e.key === "ArrowRight") {
+            e.preventDefault();
+            setDir(1, 0);
+          }
+        }
+
+        function startGame() {
+          snake = [{ x: Math.floor(cols / 2), y: Math.floor(rows / 2) }];
+          dir = { x: 1, y: 0 };
+          nextDir = { x: 1, y: 0 };
+          alive = true;
+          score = 0;
+          foodPulseStart = Date.now();
+          if (statusEl) statusEl.textContent = "Score: 0";
+          if (actionsEl) actionsEl.classList.remove("show");
+          spawnFood();
+          draw();
+          if (loop) clearInterval(loop);
+          loop = setInterval(step, speedMs);
+          addPopupTimer(popup, "interval", loop);
+        }
+
+        if (yesBtn) {
+          yesBtn.addEventListener("click", function () {
+            if (!alive) startGame();
+          });
+        }
+        if (noBtn) {
+          noBtn.addEventListener("click", function () {
+            closePopup(popup);
+          });
+        }
+
+        startGame();
+        document.addEventListener("keydown", handleKey);
+
+        if (!popup.cleanup) popup.cleanup = [];
+        popup.cleanup.push(function () {
+          document.removeEventListener("keydown", handleKey);
+        });
       }
 
       function showLoadingScreen(opts) {
@@ -1219,6 +1425,16 @@
             hideSearch();
             return;
           }
+          if (cmd === "snake") {
+            startSnakeGame();
+            if (searchInput) searchInput.value = "";
+            if (searchResultsEl) {
+              searchResultsEl.innerHTML = "";
+              searchResultsEl.style.display = "none";
+            }
+            hideSearch();
+            return;
+          }
 
           if (!trimmed) {
             showRecentsIfEmpty();
@@ -1310,6 +1526,15 @@
       var pageKey = (document.body && document.body.getAttribute("data-page")) || "home";
       var ICON_POS_KEY = "prtf_icon_positions_v1_" + pageKey;
       var savedIconPositions = loadIconPositions();
+      var TRASH_KEY = "prtf_trash_v1_" + pageKey;
+      var TRASH_POS_KEY = "prtf_trash_pos_v1_" + pageKey;
+      var trashedIcons = loadTrashState();
+      var trashPos = loadTrashPos();
+      var trashOpen = false;
+      var trashPopup = null;
+      var trashBinEl = null;
+      var trashIconEl = document.querySelector(".icon[data-kind=\"trash\"]");
+      var lastGrid = null;
 
       function iconKey(icon) {
         var label = icon.querySelector("span");
@@ -1317,6 +1542,216 @@
         var href = icon.getAttribute("href") || "";
         var kind = icon.getAttribute("data-kind") || "";
         return (kind + "|" + href + "|" + name).toLowerCase();
+      }
+
+      function isTrashIcon(icon) {
+        return !!(icon && icon.getAttribute("data-kind") === "trash");
+      }
+
+      function isIconTrashed(icon) {
+        if (!icon || isTrashIcon(icon)) return false;
+        var key = iconKey(icon);
+        return !!(trashedIcons && trashedIcons[key]);
+      }
+
+      function loadTrashState() {
+        try {
+          var raw = localStorage.getItem(TRASH_KEY);
+          var data = raw ? JSON.parse(raw) : null;
+          return (data && typeof data === "object") ? data : {};
+        } catch (e) {
+          return {};
+        }
+      }
+
+      function saveTrashState() {
+        try { localStorage.setItem(TRASH_KEY, JSON.stringify(trashedIcons)); } catch (e) {}
+      }
+
+      function loadTrashPos() {
+        try {
+          var raw = localStorage.getItem(TRASH_POS_KEY);
+          var data = raw ? JSON.parse(raw) : null;
+          if (data && typeof data.x === "number" && typeof data.y === "number") return data;
+          return null;
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function saveTrashPos() {
+        if (!trashIconEl) return;
+        trashPos = { x: trashIconEl.offsetLeft, y: trashIconEl.offsetTop };
+        try { localStorage.setItem(TRASH_POS_KEY, JSON.stringify(trashPos)); } catch (e) {}
+      }
+
+      function clearTrashPos() {
+        trashPos = null;
+        try { localStorage.removeItem(TRASH_POS_KEY); } catch (e) {}
+      }
+
+      function applyTrashState() {
+        icons.forEach(function (icon) {
+          if (isTrashIcon(icon)) return;
+          var key = iconKey(icon);
+          if (trashedIcons[key]) {
+            icon.classList.add("in-trash");
+            if (trashOpen && trashBinEl) {
+              moveIconToBin(icon);
+            } else {
+              moveIconToDesktop(icon);
+              var pos = trashedIcons[key];
+              if (pos && typeof pos.x === "number") icon.style.left = pos.x + "px";
+              if (pos && typeof pos.y === "number") icon.style.top = pos.y + "px";
+            }
+          } else {
+            icon.classList.remove("in-trash");
+            moveIconToDesktop(icon);
+          }
+        });
+
+        if (trashOpen && trashBinEl) positionTrashIcons();
+      }
+
+      function positionTrashIcons() {
+        if (!trashBinEl) return;
+        var iconW = trashBinEl.querySelector(".icon") ? trashBinEl.querySelector(".icon").offsetWidth : 99;
+        var iconH = trashBinEl.querySelector(".icon") ? trashBinEl.querySelector(".icon").offsetHeight : 120;
+        var gap = 8;
+        var binW = trashBinEl.clientWidth;
+        var cols = Math.max(1, Math.floor((binW + gap) / (iconW + gap)));
+        var baseX = Math.max(10, Math.round((binW - (cols * iconW + (cols - 1) * gap)) / 2));
+        var baseY = 10;
+        var idx = 0;
+        icons.forEach(function (icon) {
+          if (!icon.classList.contains("in-trash")) return;
+          var col = idx % cols;
+          var row = Math.floor(idx / cols);
+          icon.style.left = (baseX + (col * (iconW + gap))) + "px";
+          icon.style.top = (baseY + (row * (iconH + gap))) + "px";
+          idx += 1;
+        });
+      }
+
+      function moveIconToBin(icon) {
+        if (!trashBinEl || !icon || icon.parentNode === trashBinEl) return;
+        trashBinEl.appendChild(icon);
+      }
+
+      function moveIconToDesktop(icon, rect) {
+        if (!desktopEl || !icon || icon.parentNode === desktopEl) return;
+        desktopEl.appendChild(icon);
+        if (rect) {
+          var deskRect = desktopEl.getBoundingClientRect();
+          icon.style.left = Math.max(0, rect.left - deskRect.left) + "px";
+          icon.style.top = Math.max(0, rect.top - deskRect.top) + "px";
+        }
+      }
+
+      function toggleTrash(open) {
+        var shouldOpen = (typeof open === "boolean") ? open : !trashOpen;
+        if (shouldOpen && trashPopup) return;
+        if (!shouldOpen && trashPopup) {
+          closePopup(trashPopup);
+          return;
+        }
+
+        if (shouldOpen) {
+          var binId = "trashBin_" + Math.random().toString(16).slice(2);
+          trashPopup = openPopup({
+            title: "Trash",
+            key: "trash-popup",
+            okText: "Done",
+            content: [
+              { type: "embed", html: "<div class=\"trash-bin\" id=\"" + binId + "\"></div>" }
+            ]
+          });
+          if (!trashPopup || !trashPopup.el) return;
+          trashPopup.el.classList.add("trash-popup");
+          trashOpen = true;
+          trashBinEl = trashPopup.el.querySelector("#" + binId);
+          applyTrashState();
+
+          if (!trashPopup.cleanup) trashPopup.cleanup = [];
+          trashPopup.cleanup.push(function () {
+            trashOpen = false;
+            trashBinEl = null;
+            trashPopup = null;
+            if (trashIconEl) trashIconEl.classList.remove("trash-hover");
+            applyTrashState();
+          });
+        }
+      }
+
+      function trashIcon(icon) {
+        if (!icon || isTrashIcon(icon)) return;
+        var key = iconKey(icon);
+        if (!trashedIcons[key]) {
+          trashedIcons[key] = { x: icon.offsetLeft, y: icon.offsetTop };
+        }
+        icon.classList.add("in-trash");
+        icon.classList.remove("selected");
+        saveTrashState();
+        if (trashOpen) positionTrashIcons();
+      }
+
+      function restoreIcon(icon) {
+        if (!icon || isTrashIcon(icon)) return;
+        var key = iconKey(icon);
+        if (!trashedIcons[key]) return;
+        delete trashedIcons[key];
+        icon.classList.remove("in-trash");
+        saveTrashState();
+      }
+
+      function isOverTrash(icon) {
+        if (!trashIconEl || !icon) return false;
+        var r1 = icon.getBoundingClientRect();
+        var r2 = trashIconEl.getBoundingClientRect();
+        return !(r1.right < r2.left || r1.left > r2.right || r1.bottom < r2.top || r1.top > r2.bottom);
+      }
+
+      function snapIconToGrid(icon) {
+        if (!icon || !lastGrid) return;
+        if (icon.classList.contains("in-trash")) return;
+        if (trashBinEl && icon.parentNode === trashBinEl) return;
+        var gx = lastGrid.x;
+        var gy = lastGrid.y;
+        if (!(gx > 0 && gy > 0)) return;
+        var col = Math.round((icon.offsetLeft - lastGrid.offsetX) / gx);
+        var row = Math.round((icon.offsetTop - lastGrid.offsetY) / gy);
+        col = Math.max(0, col);
+        row = Math.max(0, row);
+        icon.style.left = Math.round(lastGrid.offsetX + (col * gx)) + "px";
+        icon.style.top = Math.round(lastGrid.offsetY + (row * gy)) + "px";
+      }
+
+      function updateTrashHover(icon) {
+        if (!trashIconEl) return;
+        var shouldHover = !!(icon && !isTrashIcon(icon) && isOverTrash(icon));
+        trashIconEl.classList.toggle("trash-hover", shouldHover);
+      }
+
+      function handleTrashDrop(icon) {
+        if (!icon || isTrashIcon(icon)) return;
+        if (trashIconEl) trashIconEl.classList.remove("trash-hover");
+        if (trashOpen && trashPopup && trashBinEl && icon.classList.contains("in-trash")) {
+          var binRect = trashBinEl.getBoundingClientRect();
+          var iconRect = icon.getBoundingClientRect();
+          var cx = iconRect.left + (iconRect.width / 2);
+          var cy = iconRect.top + (iconRect.height / 2);
+          var insideBin = (cx >= binRect.left && cx <= binRect.right && cy >= binRect.top && cy <= binRect.bottom);
+          if (!insideBin) {
+            moveIconToDesktop(icon, iconRect);
+            restoreIcon(icon);
+          }
+          return;
+        }
+
+        if (isOverTrash(icon)) {
+          trashIcon(icon);
+          return;
+        }
       }
 
       function loadIconPositions() {
@@ -1333,6 +1768,8 @@
         try {
           var out = {};
           icons.forEach(function (icon) {
+            if (isIconTrashed(icon)) return;
+            if (isTrashIcon(icon)) return;
             out[iconKey(icon)] = { x: icon.offsetLeft, y: icon.offsetTop };
           });
           savedIconPositions = out;
@@ -1347,6 +1784,8 @@
       function applySavedPositions() {
         if (!hasSavedPositions() || isMobile()) return;
         icons.forEach(function (icon) {
+          if (isIconTrashed(icon)) return;
+          if (isTrashIcon(icon)) return;
           var pos = savedIconPositions[iconKey(icon)];
           if (!pos) return;
           if (typeof pos.x === "number") icon.style.left = pos.x + "px";
@@ -1364,9 +1803,13 @@
           }
         } catch (e) {}
         savedIconPositions = null;
+        trashedIcons = {};
+        saveTrashState();
+        clearTrashPos();
         icons.forEach(function (icon) {
           icon.style.left = "";
           icon.style.top = "";
+          icon.classList.remove("in-trash");
         });
       }
 
@@ -1398,8 +1841,11 @@
         var imgEl = icon.querySelector("img");
         var labelEl = icon.querySelector("span");
         var name = labelEl ? labelEl.textContent : "";
+        var dataTitle = icon.getAttribute("data-title") || "";
         var dataFile = icon.getAttribute("data-file") || "";
         var dataText = icon.getAttribute("data-text") || "";
+        var dataTextSize = icon.getAttribute("data-text-size") || "";
+        var dataTextImage = icon.getAttribute("data-text-image") || "";
         var dataSpotify = icon.getAttribute("data-spotify") || "";
         var dataApple = icon.getAttribute("data-apple") || "";
 
@@ -1426,11 +1872,16 @@
           }
 
           openPopup({
-            title: name || "note.txt",
-            key: "text:" + (name || "note.txt"),
-            content: [
-              { type: "text", role: "body", size: "md", align: "left", text: dataText || "Placeholder text." }
-            ]
+            title: dataTitle || name || "note.txt",
+            key: "text:" + (dataTitle || name || "note.txt"),
+            content: (function () {
+              var blocks = [];
+              if (dataTextImage) {
+                blocks.push({ type: "image", src: normalizeIconPath(dataTextImage), alt: "", size: "sm" });
+              }
+              blocks.push({ type: "text", role: "body", size: dataTextSize || "md", align: "left", text: dataText || "Placeholder text." });
+              return blocks;
+            })()
           });
           return;
         }
@@ -1448,6 +1899,11 @@
             key: "music:" + (name || "track"),
             content: blocks
           });
+          return;
+        }
+
+        if (kind === "trash") {
+          toggleTrash();
           return;
         }
 
@@ -1509,14 +1965,24 @@
           desktopEl.style.setProperty("--grid-offset-x", paddingLeft + "px");
           desktopEl.style.setProperty("--grid-offset-y", paddingTop + "px");
         }
+        lastGrid = {
+          x: gridX,
+          y: gridY,
+          offsetX: paddingLeft,
+          offsetY: paddingTop
+        };
 
         var x = paddingLeft;
         var y = paddingTop;
         var col = 0;
+        var visibleCount = 0;
 
         icons.forEach(function (icon) {
+          if (isIconTrashed(icon)) return;
+          if (isTrashIcon(icon)) return;
           icon.style.left = x + "px";
           icon.style.top = y + "px";
+          visibleCount += 1;
 
           col++;
           if (col >= cols) {
@@ -1528,13 +1994,29 @@
           }
         });
 
+        if (trashIconEl) {
+          if (trashPos && typeof trashPos.x === "number" && typeof trashPos.y === "number") {
+            trashIconEl.style.left = trashPos.x + "px";
+            trashIconEl.style.top = trashPos.y + "px";
+          } else {
+            var deskRect = desktopEl ? desktopEl.getBoundingClientRect() : { top: 0 };
+            var availableH = Math.max(0, window.innerHeight - deskRect.top - 10);
+            var rowsFit = Math.max(1, Math.floor((availableH - paddingTop - iconH) / gridY) + 1);
+            var trashCol = Math.max(0, cols - 1);
+            var trashRow = Math.max(0, rowsFit - 1);
+            trashIconEl.style.left = Math.round(paddingLeft + (trashCol * gridX)) + "px";
+            trashIconEl.style.top = Math.round(paddingTop + (trashRow * gridY)) + "px";
+          }
+        }
+
         adjustIconLabels();
         applySavedPositions();
+        applyTrashState();
 
         // Make the page scrollable on mobile by giving the desktop a real height.
         // (Icons are absolutely positioned, so without this the document height stays tiny.)
         try {
-          var rows = Math.ceil(icons.length / cols);
+          var rows = Math.ceil(visibleCount / cols);
           var totalH = paddingTop + ((rows - 1) * gridY) + iconH;
           var extra = mobile ? 80 : 20;
           if (desktopEl) desktopEl.style.height = (totalH + extra) + "px";
@@ -1589,6 +2071,9 @@
           e.preventDefault();
           clearSelections();
           icon.classList.add("selected");
+          if (isMobile() && !isTouchDevice()) {
+            openIcon(icon);
+          }
         });
 
         icon.addEventListener("dblclick", function (e) {
@@ -1622,10 +2107,14 @@
           y = Math.max(0, Math.min(window.innerHeight - activeIcon.offsetHeight, y));
           activeIcon.style.left = x + "px";
           activeIcon.style.top = y + "px";
+          updateTrashHover(activeIcon);
         }
       });
 
       document.addEventListener("mouseup", function () {
+        if (draggingIcon && activeIcon) handleTrashDrop(activeIcon);
+        if (draggingIcon && activeIcon) snapIconToGrid(activeIcon);
+        if (draggingIcon && activeIcon && isTrashIcon(activeIcon)) saveTrashPos();
         if (draggingIcon) saveIconPositions();
         possibleDrag = false;
         draggingIcon = false;
@@ -1655,11 +2144,15 @@
           y = Math.max(0, Math.min(window.innerHeight - activeIcon.offsetHeight, y));
           activeIcon.style.left = x + "px";
           activeIcon.style.top = y + "px";
+          updateTrashHover(activeIcon);
         }
       }, { passive: false });
 
       function endTouchDrag() {
         if (!activeIcon) return;
+        if (draggingIcon) handleTrashDrop(activeIcon);
+        if (draggingIcon) snapIconToGrid(activeIcon);
+        if (draggingIcon && isTrashIcon(activeIcon)) saveTrashPos();
         if (draggingIcon) saveIconPositions();
         if (!draggingIcon && isMobile()) openIcon(activeIcon);
         possibleDrag = false;
@@ -1679,6 +2172,7 @@
         if (!draggingIcon) layoutIcons();
       });
 
+      applyTrashState();
       layoutIcons();
       window.addEventListener("load", function () {
         layoutIcons();
@@ -1732,7 +2226,7 @@
           if (h === 0) h = 12;
           var mm = (m < 10 ? "0" + m : "" + m);
           var colon = (d.getSeconds() % 2 === 0) ? ":" : " ";
-          welcomeTitleEl.innerHTML = h + colon + mm + " " + ampm + "<br><span class=\"welcome-date\">" + dateStrNow + "</span>";
+          welcomeTitleEl.innerHTML = "<img class=\"welcome-time-image\" src=\"" + assetPath("images/internet-planet-earth.gif") + "\" alt=\"Earth\" />" + h + colon + mm + " " + ampm + "<br><span class=\"welcome-date\">" + dateStrNow + "</span>";
         }
         tickWelcomeTitle();
         var clockTimer = setInterval(tickWelcomeTitle, 1000);
