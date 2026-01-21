@@ -482,6 +482,35 @@
         labelEl.textContent = "Loading";
       }
 
+      function startLoaderHintCycle(popup, hintEl, hints) {
+        if (!popup || !hintEl || !Array.isArray(hints) || !hints.length) return;
+        var order = [];
+        var idx = 0;
+
+        function shuffleHints() {
+          order = hints.slice();
+          for (var i = order.length - 1; i > 0; i--) {
+            var j = Math.floor(Math.random() * (i + 1));
+            var tmp = order[i];
+            order[i] = order[j];
+            order[j] = tmp;
+          }
+        }
+
+        shuffleHints();
+        hintEl.textContent = order[idx] || "";
+
+        var t = setInterval(function () {
+          idx += 1;
+          if (idx >= order.length) {
+            shuffleHints();
+            idx = 0;
+          }
+          hintEl.textContent = order[idx] || "";
+        }, 3000);
+        addPopupTimer(popup, "interval", t);
+      }
+
       function showLoadingScreen(opts) {
         // Timed (faux) loader
         opts = opts || {};
@@ -499,6 +528,8 @@
 
         var labelEl = popup.el ? popup.el.querySelector(".loader-label") : null;
         startLoaderDots(popup, labelEl);
+        var hintEl = popup.el ? popup.el.querySelector(".loader-hint") : null;
+        startLoaderHintCycle(popup, hintEl, opts.hints);
         var fill = popup.el ? popup.el.querySelector("#" + fillId) : null;
 
         runLoader(popup, fill, opts.durationMs || 750, function () {
@@ -527,6 +558,8 @@
 
         var labelEl = popup.el ? popup.el.querySelector(".loader-label") : null;
         startLoaderDots(popup, labelEl);
+        var hintEl = popup.el ? popup.el.querySelector(".loader-hint") : null;
+        startLoaderHintCycle(popup, hintEl, opts.hints);
 
         // Indeterminate barber-pole until load completes
         var indeterminateTimer = setTimeout(function () {
@@ -1174,7 +1207,20 @@
       if (searchInput) {
         searchInput.addEventListener("input", function () {
           var q = searchInput.value || "";
-          if (!q.trim()) {
+          var trimmed = q.trim();
+          var cmd = trimmed.toLowerCase();
+          if (cmd === "grid") {
+            if (desktopEl) desktopEl.classList.toggle("grid-on");
+            if (searchInput) searchInput.value = "";
+            if (searchResultsEl) {
+              searchResultsEl.innerHTML = "";
+              searchResultsEl.style.display = "none";
+            }
+            hideSearch();
+            return;
+          }
+
+          if (!trimmed) {
             showRecentsIfEmpty();
             return;
           }
@@ -1441,11 +1487,14 @@
         var iconW = icons[0].offsetWidth || 99;
         var iconH = icons[0].offsetHeight || 120;
 
+        var gridX = (iconW + gapX) * 0.95;
+        var gridY = (iconH + gapY) * 0.88;
+
         var margin = mobile ? 4 : 10;
         var available = Math.max(1, window.innerWidth - margin * 2);
-        var cols = Math.max(1, Math.floor((available + gapX) / (iconW + gapX)));
+        var cols = Math.max(1, Math.floor((available + (gridX - iconW)) / gridX));
 
-        var gridW = cols * iconW + (cols - 1) * gapX;
+        var gridW = (cols * gridX) - (gridX - iconW);
 
         // Center only on mobile (<=768px)
         var paddingLeft = isMobile()
@@ -1453,6 +1502,13 @@
           : margin;
 
         var paddingTop = 10;
+
+        if (desktopEl) {
+          desktopEl.style.setProperty("--grid-x", gridX + "px");
+          desktopEl.style.setProperty("--grid-y", gridY + "px");
+          desktopEl.style.setProperty("--grid-offset-x", paddingLeft + "px");
+          desktopEl.style.setProperty("--grid-offset-y", paddingTop + "px");
+        }
 
         var x = paddingLeft;
         var y = paddingTop;
@@ -1466,9 +1522,9 @@
           if (col >= cols) {
             col = 0;
             x = paddingLeft;
-            y += iconH + gapY;
+            y += gridY;
           } else {
-            x += iconW + gapX;
+            x += gridX;
           }
         });
 
@@ -1479,7 +1535,7 @@
         // (Icons are absolutely positioned, so without this the document height stays tiny.)
         try {
           var rows = Math.ceil(icons.length / cols);
-          var totalH = paddingTop + (rows * iconH) + ((rows - 1) * gapY);
+          var totalH = paddingTop + ((rows - 1) * gridY) + iconH;
           var extra = mobile ? 80 : 20;
           if (desktopEl) desktopEl.style.height = (totalH + extra) + "px";
         } catch (e) {}
@@ -1705,6 +1761,7 @@
             icon: null,
             label: "Loading...",
             hint: loadLabel,
+            hints: loadHints,
             onDone: function () {
               if (page === "home") maybeWelcome();
             }
