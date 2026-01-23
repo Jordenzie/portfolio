@@ -175,8 +175,8 @@
           return [
             { type: "text", role: "title", text: "", size: "xl", align: "center" },
             { type: "quote", html: "“Welcome to my portfolio! This is a collection of my work, creative projects, and ideas-in-progress. Take a look around to see what I’ve been building. I hope you enjoy your experience…<br><br>The intention of this website is both to serve as a convenient place to document growth over time and act as a way to provide personal context surrounding how I approach art, music, design, etc.”<br><br><div class=\"popup-quote-signature\">&mdash; Jordan A. McKenzie</div>" },
-            { type: "embed", html: "<div class=\"popup-embed-frame\"><div class=\"popup-embed-bar\"><span class=\"embed-title-italic\">The Prelude</span>&nbsp;— J-Mac (Coming Soon)</div><div class=\"popup-embed-body\"><img class=\"popup-embed-image\" src=\"" + assetPath("images/The Prelude (teaser).png") + "\" alt=\"The Prelude (teaser)\" /></div></div>" },
-            { type: "embed", html: "<div class=\"popup-embed-frame\"><div class=\"popup-embed-bar\"><span class=\"embed-title-italic\">Cartoons</span>&nbsp;— Mad Classic (2023)</div><div class=\"popup-embed-body\"><iframe src=\"https://www.youtube.com/embed/nmaaJQwAhSU?start=922\" title=\"Cartoons — Mad Classic (2023)\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe></div></div>" }
+            { type: "embed", html: "<div class=\"popup-embed-frame\"><div class=\"popup-embed-bar\"><span class=\"embed-title-italic\">The Prelude</span>&nbsp;— J-Mac (2026)</div><div class=\"popup-embed-body\"><iframe src=\"https://www.youtube.com/embed/qPGe5F9VPfo\" title=\"The Prelude — J-Mac\" allow=\"accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture\" allowfullscreen></iframe></div></div>" },
+ 
           ];
         },
         about: function () {
