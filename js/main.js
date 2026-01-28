@@ -748,7 +748,7 @@
         var fillId = "loaderFill_" + Math.random().toString(16).slice(2);
         var blocks = [];
         if (opts.icon !== null) {
-          blocks.push({ type: "image", src: opts.icon || assetPath("images/earth.gif"), alt: "", size: "sm" });
+          blocks.push({ type: "image", src: opts.icon || assetPath("images/earth.webp"), alt: "", size: "sm" });
         }
         blocks.push({ type: "loader", id: fillId, label: opts.label || "Loading…", hint: opts.hint || "" });
 
@@ -775,12 +775,22 @@
         }, 0);
         addPopupTimer(popup, "timeout", indeterminateTimer);
 
-        // Close when the page is fully loaded
-        window.addEventListener("load", function onL() {
+        var closed = false;
+        function done() {
+          if (closed) return;
+          closed = true;
           window.removeEventListener("load", onL);
           try { closePopup(popup); } catch (e) {}
           if (typeof opts.onDone === "function") opts.onDone();
-        });
+        }
+
+        function onL() { done(); }
+        window.addEventListener("load", onL);
+
+        var maxWaitMs = Number(opts.maxWaitMs);
+        if (!(maxWaitMs > 0)) maxWaitMs = 4500;
+        var maxWaitTimer = setTimeout(done, maxWaitMs);
+        addPopupTimer(popup, "timeout", maxWaitTimer);
       }
 
       // Cross-page loader (Option A): previous page sets a flag; next page shows until load.
@@ -1528,9 +1538,6 @@
       var TRASH_POS_KEY = "prtf_trash_pos_v1_" + pageKey;
       var trashedIcons = loadTrashState();
       var trashPos = loadTrashPos();
-      var trashOpen = false;
-      var trashPopup = null;
-      var trashBinEl = null;
       var trashIconEl = document.querySelector(".icon[data-kind=\"trash\"]");
       var lastGrid = null;
       var lastViewportW = window.innerWidth || 0;
@@ -1596,46 +1603,15 @@
           var key = iconKey(icon);
           if (trashedIcons[key]) {
             icon.classList.add("in-trash");
-            if (trashOpen && trashBinEl) {
-              moveIconToBin(icon);
-            } else {
-              moveIconToDesktop(icon);
-              var pos = trashedIcons[key];
-              if (pos && typeof pos.x === "number") icon.style.left = pos.x + "px";
-              if (pos && typeof pos.y === "number") icon.style.top = pos.y + "px";
-            }
+            moveIconToDesktop(icon);
+            var pos = trashedIcons[key];
+            if (pos && typeof pos.x === "number") icon.style.left = pos.x + "px";
+            if (pos && typeof pos.y === "number") icon.style.top = pos.y + "px";
           } else {
             icon.classList.remove("in-trash");
             moveIconToDesktop(icon);
           }
         });
-
-        if (trashOpen && trashBinEl) positionTrashIcons();
-      }
-
-      function positionTrashIcons() {
-        if (!trashBinEl) return;
-        var iconW = trashBinEl.querySelector(".icon") ? trashBinEl.querySelector(".icon").offsetWidth : 99;
-        var iconH = trashBinEl.querySelector(".icon") ? trashBinEl.querySelector(".icon").offsetHeight : 120;
-        var gap = 8;
-        var binW = trashBinEl.clientWidth;
-        var cols = Math.max(1, Math.floor((binW + gap) / (iconW + gap)));
-        var baseX = Math.max(10, Math.round((binW - (cols * iconW + (cols - 1) * gap)) / 2));
-        var baseY = 10;
-        var idx = 0;
-        icons.forEach(function (icon) {
-          if (!icon.classList.contains("in-trash")) return;
-          var col = idx % cols;
-          var row = Math.floor(idx / cols);
-          icon.style.left = (baseX + (col * (iconW + gap))) + "px";
-          icon.style.top = (baseY + (row * (iconH + gap))) + "px";
-          idx += 1;
-        });
-      }
-
-      function moveIconToBin(icon) {
-        if (!trashBinEl || !icon || icon.parentNode === trashBinEl) return;
-        trashBinEl.appendChild(icon);
       }
 
       function moveIconToDesktop(icon, rect) {
@@ -1648,39 +1624,96 @@
         }
       }
 
-      function toggleTrash(open) {
-        var shouldOpen = (typeof open === "boolean") ? open : !trashOpen;
-        if (shouldOpen && trashPopup) return;
-        if (!shouldOpen && trashPopup) {
-          closePopup(trashPopup);
-          return;
+      function getDesktopBounds() {
+        var r = desktopEl ? desktopEl.getBoundingClientRect() : null;
+        var w = (r && r.width) ? r.width : (window.innerWidth || 0);
+        var h = (r && r.height) ? r.height : (window.innerHeight || 0);
+        return { width: w, height: h };
+      }
+
+      function rectsOverlap(a, b) {
+        return !(a.right <= b.left || a.left >= b.right || a.bottom <= b.top || a.top >= b.bottom);
+      }
+
+      function collectOccupiedRects(excludeSet) {
+        var rects = [];
+        icons.forEach(function (icon) {
+          if (!icon || (excludeSet && excludeSet[iconKey(icon)])) return;
+          if (icon.classList.contains("in-trash")) return;
+          var left = icon.offsetLeft || 0;
+          var top = icon.offsetTop || 0;
+          var w = icon.offsetWidth || 99;
+          var h = icon.offsetHeight || 120;
+          rects.push({ left: left, top: top, right: left + w, bottom: top + h });
+        });
+        return rects;
+      }
+
+      function placeIconWithoutOverlap(icon, occupied, bounds, anchor) {
+        if (!icon) return;
+        var iconW = icon.offsetWidth || 99;
+        var iconH = icon.offsetHeight || 120;
+        var stepX = (lastGrid && lastGrid.x) ? lastGrid.x : (iconW + 12);
+        var stepY = (lastGrid && lastGrid.y) ? lastGrid.y : (iconH + 16);
+        var maxR = 12;
+
+        function clamp(val, min, max) { return Math.max(min, Math.min(max, val)); }
+        function canPlace(l, t) {
+          var rect = { left: l, top: t, right: l + iconW, bottom: t + iconH };
+          for (var i = 0; i < occupied.length; i++) {
+            if (rectsOverlap(rect, occupied[i])) return false;
+          }
+          occupied.push(rect);
+          icon.style.left = l + "px";
+          icon.style.top = t + "px";
+          return true;
         }
 
-        if (shouldOpen) {
-          var binId = "trashBin_" + Math.random().toString(16).slice(2);
-          trashPopup = openPopup({
-            title: "Trash",
-            key: "trash-popup",
-            okText: "Done",
-            content: [
-              { type: "embed", html: "<div class=\"trash-bin\" id=\"" + binId + "\"></div>" }
-            ]
-          });
-          if (!trashPopup || !trashPopup.el) return;
-          trashPopup.el.classList.add("trash-popup");
-          trashOpen = true;
-          trashBinEl = trashPopup.el.querySelector("#" + binId);
-          applyTrashState();
-
-          if (!trashPopup.cleanup) trashPopup.cleanup = [];
-          trashPopup.cleanup.push(function () {
-            trashOpen = false;
-            trashBinEl = null;
-            trashPopup = null;
-            if (trashIconEl) trashIconEl.classList.remove("trash-hover");
-            applyTrashState();
-          });
+        var centerX = anchor.x;
+        var centerY = anchor.y;
+        for (var r = 1; r <= maxR; r++) {
+          for (var dx = -r; dx <= r; dx++) {
+            for (var dy = -r; dy <= r; dy++) {
+              if (Math.abs(dx) !== r && Math.abs(dy) !== r) continue;
+              var left = centerX + (dx * stepX) - (iconW / 2);
+              var top = centerY + (dy * stepY) - (iconH / 2);
+              left = clamp(left, 0, Math.max(0, bounds.width - iconW));
+              top = clamp(top, 0, Math.max(0, bounds.height - iconH));
+              if (canPlace(left, top)) return;
+            }
+          }
         }
+        // Fallback: place at current position if no gap found.
+      }
+
+      function spitOutTrashContents() {
+        if (!trashIconEl) return;
+        var inTrash = icons.filter(function (icon) { return icon.classList.contains("in-trash"); });
+        if (!inTrash.length) return;
+
+        var excludeSet = Object.create(null);
+        inTrash.forEach(function (icon) { excludeSet[iconKey(icon)] = 1; });
+
+        var bounds = getDesktopBounds();
+        var anchor = {
+          x: (trashIconEl.offsetLeft || 0) + (trashIconEl.offsetWidth || 99) / 2,
+          y: (trashIconEl.offsetTop || 0) + (trashIconEl.offsetHeight || 120) / 2
+        };
+        var occupied = collectOccupiedRects(excludeSet);
+        if (trashIconEl) {
+          var tleft = trashIconEl.offsetLeft || 0;
+          var ttop = trashIconEl.offsetTop || 0;
+          var tw = trashIconEl.offsetWidth || 99;
+          var th = trashIconEl.offsetHeight || 120;
+          occupied.push({ left: tleft, top: ttop, right: tleft + tw, bottom: ttop + th });
+        }
+
+        inTrash.forEach(function (icon) {
+          restoreIcon(icon);
+          moveIconToDesktop(icon);
+          placeIconWithoutOverlap(icon, occupied, bounds, anchor);
+        });
+        saveTrashState();
       }
 
       function trashIcon(icon) {
@@ -1692,7 +1725,6 @@
         icon.classList.add("in-trash");
         icon.classList.remove("selected");
         saveTrashState();
-        if (trashOpen) positionTrashIcons();
       }
 
       function restoreIcon(icon) {
@@ -1714,7 +1746,6 @@
       function snapIconToGrid(icon) {
         if (!icon || !lastGrid) return;
         if (icon.classList.contains("in-trash")) return;
-        if (trashBinEl && icon.parentNode === trashBinEl) return;
         var gx = lastGrid.x;
         var gy = lastGrid.y;
         if (!(gx > 0 && gy > 0)) return;
@@ -1722,8 +1753,39 @@
         var row = Math.round((icon.offsetTop - lastGrid.offsetY) / gy);
         col = Math.max(0, col);
         row = Math.max(0, row);
-        icon.style.left = Math.round(lastGrid.offsetX + (col * gx)) + "px";
-        icon.style.top = Math.round(lastGrid.offsetY + (row * gy)) + "px";
+        var targetX = Math.round(lastGrid.offsetX + (col * gx));
+        var targetY = Math.round(lastGrid.offsetY + (row * gy));
+        animateIconTo(icon, targetX, targetY, 140);
+      }
+
+      function animateIconTo(icon, x, y, durationMs) {
+        if (!icon) return;
+        var startX = icon.offsetLeft || 0;
+        var startY = icon.offsetTop || 0;
+        var dx = x - startX;
+        var dy = y - startY;
+        var duration = Math.max(40, Number(durationMs) || 0);
+        var start = performance.now();
+
+        if (icon.__snapAnimId) cancelAnimationFrame(icon.__snapAnimId);
+
+        function easeOut(t) {
+          return 1 - Math.pow(1 - t, 3);
+        }
+
+        function step(now) {
+          var p = Math.min(1, (now - start) / duration);
+          var e = easeOut(p);
+          icon.style.left = Math.round(startX + (dx * e)) + "px";
+          icon.style.top = Math.round(startY + (dy * e)) + "px";
+          if (p < 1) {
+            icon.__snapAnimId = requestAnimationFrame(step);
+          } else {
+            icon.__snapAnimId = 0;
+          }
+        }
+
+        icon.__snapAnimId = requestAnimationFrame(step);
       }
 
       function updateTrashHover(icon) {
@@ -1735,19 +1797,6 @@
       function handleTrashDrop(icon) {
         if (!icon || isTrashIcon(icon)) return;
         if (trashIconEl) trashIconEl.classList.remove("trash-hover");
-        if (trashOpen && trashPopup && trashBinEl && icon.classList.contains("in-trash")) {
-          var binRect = trashBinEl.getBoundingClientRect();
-          var iconRect = icon.getBoundingClientRect();
-          var cx = iconRect.left + (iconRect.width / 2);
-          var cy = iconRect.top + (iconRect.height / 2);
-          var insideBin = (cx >= binRect.left && cx <= binRect.right && cy >= binRect.top && cy <= binRect.bottom);
-          if (!insideBin) {
-            moveIconToDesktop(icon, iconRect);
-            restoreIcon(icon);
-          }
-          return;
-        }
-
         if (isOverTrash(icon)) {
           trashIcon(icon);
           return;
@@ -1851,15 +1900,20 @@
         var dataSpotify = icon.getAttribute("data-spotify") || "";
         var dataApple = icon.getAttribute("data-apple") || "";
 
+        var dataFull = icon.getAttribute("data-full") || "";
+        var previewSrc = (imgEl && (imgEl.getAttribute("src") || "")) || "";
+        var popupSrc = dataFull ? normalizeIconPath(dataFull) : "";
+        if (!popupSrc) popupSrc = normalizeIconPath(previewSrc) || previewSrc;
+
         // Image preview (desktop files)
-        if (kind === "file" && imgEl && imgEl.src && /\.(png|jpg|jpeg|gif|webp)$/i.test(imgEl.src)) {
-            openPopup({
-              title: icon.querySelector("span") ? icon.querySelector("span").textContent : "Image",
-              key: "file:" + (imgEl.getAttribute("src") || imgEl.src || ""),
-              content: [
-                { type: "image", src: imgEl.src, alt: "Preview", size: "xl" }
-              ]
-            });
+        if (kind === "file" && popupSrc && /\.(png|jpg|jpeg|gif|webp)$/i.test(popupSrc)) {
+          openPopup({
+            title: icon.querySelector("span") ? icon.querySelector("span").textContent : "Image",
+            key: "file:" + popupSrc,
+            content: [
+              { type: "image", src: popupSrc, alt: "Preview", size: "xl" }
+            ]
+          });
           return;
         }
 
@@ -1912,7 +1966,7 @@
         }
 
         if (kind === "trash") {
-          toggleTrash();
+          spitOutTrashContents();
           return;
         }
 
