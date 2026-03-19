@@ -181,7 +181,7 @@
         },
         about: function () {
           return [
-            { type: "image", src: assetPath("icons/apple folder.png"), alt: "Apple Folder", size: "sm", noFrame: true },
+            { type: "image", src: assetPath("icons/apple logo.png"), alt: "Apple Logo", size: "sm", noFrame: true },
             {
               type: "quote",
               text:
@@ -1866,17 +1866,8 @@
         var label = icon ? icon.querySelector("span") : null;
         if (!label) return;
 
+        // Keep icon label font size consistent; allow wrapping instead of shrinking.
         label.style.fontSize = "";
-        var maxH = label.clientHeight;
-        var maxW = label.clientWidth;
-        var size = parseFloat(window.getComputedStyle(label).fontSize) || 8;
-        var minSize = 6;
-
-        for (var i = 0; i < 10; i++) {
-          if ((label.scrollWidth <= maxW && label.scrollHeight <= maxH) || size <= minSize) break;
-          size = Math.max(minSize, size - 1);
-          label.style.fontSize = size + "px";
-        }
       }
 
       function adjustIconLabels() {
@@ -1999,15 +1990,15 @@
 
         // Responsive spacing + sizing (mobile aims for 4 columns on iPhone)
         var mobile = isMobile();
-        var gapX = mobile ? 6 : 8;
-        var gapY = mobile ? 12 : 20;
+        var gapX = mobile ? 4 : 2;
+        var gapY = mobile ? 8 : 12;
 
         // Read actual icon dimensions (so CSS mobile overrides are honored)
         var iconW = icons[0].offsetWidth || 99;
         var iconH = icons[0].offsetHeight || 120;
 
-        var gridX = (iconW + gapX) * 0.95;
-        var gridY = (iconH + gapY) * 0.88;
+        var gridX = iconW + gapX - 8;
+        var gridY = (iconH + gapY) * 0.8;
 
         var margin = mobile ? 4 : 10;
         var available = Math.max(1, window.innerWidth - margin * 2);
