@@ -181,7 +181,6 @@
         },
         about: function () {
           return [
-            { type: "image", src: assetPath("icons/apple logo.png"), alt: "Apple Logo", size: "sm", noFrame: true },
             {
               type: "quote",
               text:
@@ -519,7 +518,7 @@
         var existing = popupKeyRegistry["snake-game"];
         if (existing) closePopup(existing);
 
-        var cell = 20;
+        var cell = 12;
         var cols = 20;
         var rows = 20;
         var width = cols * cell;
@@ -540,25 +539,55 @@
               type: "embed",
               html:
                 "<div class=\"snake-wrap\">" +
-                  "<div class=\"snake-frame\">" +
-                    "<canvas id=\"" + canvasId + "\" class=\"snake-canvas\" width=\"" + width + "\" height=\"" + height + "\"></canvas>" +
-                  "</div>" +
-                  "<div id=\"" + statusId + "\" class=\"snake-status\">Score: 0</div>" +
-                  "<div class=\"snake-actions\">" +
-                    "<button type=\"button\" class=\"popup-ok snake-btn\" data-action=\"yes\">Yes</button>" +
-                    "<button type=\"button\" class=\"popup-ok snake-btn\" data-action=\"no\">No</button>" +
-                  "</div>" +
+                  "<canvas id=\"" + canvasId + "\" class=\"snake-canvas\" width=\"" + width + "\" height=\"" + height + "\"></canvas>" +
                 "</div>"
             }
           ]
         });
         if (!popup || !popup.el) return;
+        popup.el.classList.add("snake-popup");
 
         var canvas = popup.el.querySelector("#" + canvasId);
-        var statusEl = popup.el.querySelector("#" + statusId);
-        var actionsEl = popup.el.querySelector(".snake-actions");
-        var yesBtn = popup.el.querySelector(".snake-actions [data-action=\"yes\"]");
-        var noBtn = popup.el.querySelector(".snake-actions [data-action=\"no\"]");
+        var statusEl = null;
+        var playAgainEl = null;
+        var actionsEl = null;
+        var yesBtn = null;
+        var noBtn = null;
+        if (popup.actionsEl) {
+          popup.actionsEl.innerHTML = "";
+          popup.actionsEl.classList.add("snake-footer");
+
+          statusEl = document.createElement("div");
+          statusEl.className = "snake-status";
+          statusEl.id = statusId;
+          statusEl.textContent = "Score: 0  Best: " + highScore;
+
+          playAgainEl = document.createElement("div");
+          playAgainEl.className = "snake-play";
+          playAgainEl.textContent = "";
+
+          actionsEl = document.createElement("div");
+          actionsEl.className = "snake-actions";
+
+          yesBtn = document.createElement("button");
+          yesBtn.type = "button";
+          yesBtn.className = "popup-ok snake-btn";
+          yesBtn.setAttribute("data-action", "yes");
+          yesBtn.textContent = "Yes";
+
+          noBtn = document.createElement("button");
+          noBtn.type = "button";
+          noBtn.className = "popup-ok snake-btn";
+          noBtn.setAttribute("data-action", "no");
+          noBtn.textContent = "No";
+
+          actionsEl.appendChild(yesBtn);
+          actionsEl.appendChild(noBtn);
+
+          popup.actionsEl.appendChild(statusEl);
+          popup.actionsEl.appendChild(playAgainEl);
+          popup.actionsEl.appendChild(actionsEl);
+        }
         if (!canvas) return;
         var ctx = canvas.getContext("2d");
         if (!ctx) return;
@@ -622,7 +651,11 @@
             highScore = score;
             try { sessionStorage.setItem(highScoreKey, String(highScore)); } catch (e) {}
           }
-          if (statusEl) statusEl.textContent = "Score: " + score + "  Best: " + highScore + "  Play again?";
+          if (statusEl) statusEl.textContent = "Score: " + score + "  Best: " + highScore;
+          if (playAgainEl) {
+            playAgainEl.textContent = "Play again?";
+            playAgainEl.classList.add("show");
+          }
           if (actionsEl) actionsEl.classList.add("show");
           draw();
         }
@@ -647,7 +680,7 @@
           snake.unshift(head);
           if (head.x === food.x && head.y === food.y) {
             score += 1;
-            if (statusEl) statusEl.textContent = "Score: " + score;
+            if (statusEl) statusEl.textContent = "Score: " + score + "  Best: " + highScore;
             spawnFood();
           } else {
             snake.pop();
@@ -686,7 +719,11 @@
           alive = true;
           score = 0;
           foodPulseStart = Date.now();
-          if (statusEl) statusEl.textContent = "Score: 0";
+          if (statusEl) statusEl.textContent = "Score: 0  Best: " + highScore;
+          if (playAgainEl) {
+            playAgainEl.textContent = "";
+            playAgainEl.classList.remove("show");
+          }
           if (actionsEl) actionsEl.classList.remove("show");
           spawnFood();
           draw();
@@ -2322,6 +2359,7 @@
           content: POPUP_CONTENT.welcome()
         });
         if (!popup) return;
+        if (popup.el) popup.el.classList.add("welcome-popup");
 
         try {
           var welcomeLine = popup.bodyEl ? popup.bodyEl.querySelector(".popup-text.role-welcome") : null;
