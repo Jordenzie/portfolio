@@ -1755,7 +1755,70 @@
         row = Math.max(0, row);
         var targetX = Math.round(lastGrid.offsetX + (col * gx));
         var targetY = Math.round(lastGrid.offsetY + (row * gy));
-        animateIconTo(icon, targetX, targetY, 140);
+        var excludeSet = Object.create(null);
+        excludeSet[iconKey(icon)] = 1;
+        var occupied = collectOccupiedRects(excludeSet);
+        var iconW = icon.offsetWidth || 99;
+        var iconH = icon.offsetHeight || 120;
+        var pad = 4;
+        var targetRect = {
+          left: targetX + pad,
+          top: targetY + pad,
+          right: targetX + iconW - pad,
+          bottom: targetY + iconH - pad
+        };
+        var blocked = occupied.some(function (r) {
+          var rPad = {
+            left: r.left + pad,
+            top: r.top + pad,
+            right: r.right - pad,
+            bottom: r.bottom - pad
+          };
+          return rectsOverlap(targetRect, rPad);
+        });
+
+        if (blocked) {
+          var neighborOffsets = [
+            { dx: 0, dy: -1 }, { dx: 1, dy: 0 }, { dx: 0, dy: 1 }, { dx: -1, dy: 0 },
+            { dx: 1, dy: -1 }, { dx: 1, dy: 1 }, { dx: -1, dy: 1 }, { dx: -1, dy: -1 }
+          ];
+          var placed = false;
+          for (var i = 0; i < neighborOffsets.length; i++) {
+            var nx = targetX + (neighborOffsets[i].dx * gx);
+            var ny = targetY + (neighborOffsets[i].dy * gy);
+            nx = Math.max(0, Math.min(getDesktopBounds().width - iconW, nx));
+            ny = Math.max(0, Math.min(getDesktopBounds().height - iconH, ny));
+
+            var nRect = {
+              left: nx + pad,
+              top: ny + pad,
+              right: nx + iconW - pad,
+              bottom: ny + iconH - pad
+            };
+            var nBlocked = occupied.some(function (r) {
+              var rPad = {
+                left: r.left + pad,
+                top: r.top + pad,
+                right: r.right - pad,
+                bottom: r.bottom - pad
+              };
+              return rectsOverlap(nRect, rPad);
+            });
+            if (!nBlocked) {
+              animateIconTo(icon, nx, ny, 140);
+              placed = true;
+              break;
+            }
+          }
+
+          if (!placed) {
+            var backX = (typeof icon.__startX === "number") ? icon.__startX : icon.offsetLeft;
+            var backY = (typeof icon.__startY === "number") ? icon.__startY : icon.offsetTop;
+            animateIconTo(icon, backX, backY, 140);
+          }
+        } else {
+          animateIconTo(icon, targetX, targetY, 140);
+        }
       }
 
       function animateIconTo(icon, x, y, durationMs) {
@@ -2096,6 +2159,8 @@
           startX = e.clientX;
           startY = e.clientY;
           activeIcon = icon;
+          activeIcon.__startX = icon.offsetLeft || 0;
+          activeIcon.__startY = icon.offsetTop || 0;
           offX2 = e.clientX - icon.offsetLeft;
           offY2 = e.clientY - icon.offsetTop;
 
@@ -2114,6 +2179,8 @@
           startX = t.clientX;
           startY = t.clientY;
           activeIcon = icon;
+          activeIcon.__startX = icon.offsetLeft || 0;
+          activeIcon.__startY = icon.offsetTop || 0;
           offX2 = t.clientX - icon.offsetLeft;
           offY2 = t.clientY - icon.offsetTop;
 
