@@ -2268,63 +2268,10 @@
         }
 
         if (kind === "audio") {
-          var audioTitle = dataTitle || name || "Audio";
-          var audioSrc = dataAudio ? normalizeIconPath(dataAudio) : "";
-          var artworkSrc = dataArtwork ? normalizeIconPath(dataArtwork) : "";
-          if (!audioSrc) {
-            openPopup({
-              title: audioTitle,
-              key: "audio:" + (audioTitle || "track"),
-              content: [
-                { type: "text", role: "body", size: "md", align: "left", text: "No audio file provided." }
-              ]
-            });
-            return;
-          }
-
-          var audioHtml =
-            "<div class=\"popup-embed-frame\">" +
-              "<div class=\"popup-embed-bar\"><span class=\"embed-title-italic np-title\">" + escHtml(audioTitle) + "</span></div>" +
-              (artworkSrc ? "<div class=\"popup-artwork\"><img src=\"" + escHtml(artworkSrc) + "\" alt=\"\" loading=\"eager\" decoding=\"async\" fetchpriority=\"high\" /></div>" : "") +
-              "<div class=\"popup-embed-body\">" +
-                "<audio preload=\"metadata\" src=\"" + escHtml(audioSrc) + "\"></audio>" +
-                "<div class=\"nostalgia-player\">" +
-                  "<div class=\"np-time\">0:00 / 0:00</div>" +
-                  "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
-                  "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
-                "</div>" +
-              "</div>" +
-            "</div>";
-
-          openPopup({
-            title: audioTitle,
-            key: "audio:" + audioSrc,
-            className: "audio-popup",
-            content: [
-              { type: "embed", html: audioHtml }
-            ],
-            onOpen: function (popup) {
-              if (!popup || !popup.el) return;
-              var root = popup.el.querySelector(".popup-embed-body");
-              if (!root) return;
-              var audio = root.querySelector("audio");
-              var titleEl = popup.el.querySelector(".np-title");
-              var bodyWrap = null;
-              if (popup.bodyEl) {
-                bodyWrap = popup.bodyEl.querySelector(".popup-audio-actions");
-                if (!bodyWrap) {
-                  bodyWrap = document.createElement("div");
-                  bodyWrap.className = "popup-audio-actions";
-                  popup.bodyEl.appendChild(bodyWrap);
-                }
-                var player = root.querySelector(".nostalgia-player");
-                if (player) bodyWrap.appendChild(player);
-              }
-              if (!audio) return;
-              return initNostalgiaPlayer(popup.bodyEl || root, audio, { autoPlay: false, titleEl: titleEl, titleText: audioTitle });
-            }
-          });
-          return;
+          if (!dataTracks && dataAudio) dataTracks = dataAudio;
+          if (!dataTrackNames) dataTrackNames = dataTitle || name || "Track 01";
+          if (!dataTitle) dataTitle = name || "Album";
+          kind = "album";
         }
 
         if (kind === "album") {
@@ -2362,7 +2309,9 @@
           var albumHtml =
             "<div class=\"popup-embed-frame\">" +
               "<div class=\"popup-embed-bar\"><span class=\"embed-title-italic np-title\">" + escHtml(albumTitle) + "</span></div>" +
-              (albumArtwork ? "<div class=\"popup-artwork\"><img src=\"" + escHtml(albumArtwork) + "\" alt=\"\" loading=\"eager\" decoding=\"async\" fetchpriority=\"high\" /></div>" : "") +
+              (albumArtwork
+                ? "<div class=\"popup-artwork\"><img src=\"" + escHtml(albumArtwork) + "\" alt=\"\" loading=\"eager\" decoding=\"async\" fetchpriority=\"high\" /></div>"
+                : "<div class=\"popup-artwork placeholder\"><div class=\"popup-artwork-text\">No Artwork Available</div></div>") +
               "<div class=\"popup-embed-body popup-audio\" id=\"" + albumId + "\">" +
                 "<audio preload=\"metadata\"></audio>" +
                 "<div class=\"nostalgia-player\">" +
@@ -2374,7 +2323,7 @@
                     "<button type=\"button\" class=\"np-btn np-next\" aria-label=\"Next\"></button>" +
                   "</div>" +
                 "</div>" +
-                "<div class=\"album-tracklist\">" + listHtml + "</div>" +
+                (trackList.length > 1 ? "<div class=\"album-tracklist\">" + listHtml + "</div>" : "") +
               "</div>" +
             "</div>";
 

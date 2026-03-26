@@ -950,6 +950,18 @@
       border: 1px solid #000;
     }
 
+    .popup-artwork.placeholder {
+      background: #efefef;
+    }
+
+    .popup-artwork-text {
+      font-size: 10px;
+      color: #444;
+      letter-spacing: 0.3px;
+      text-align: center;
+      padding: 6px;
+    }
+
     .popup-artwork img {
       width: 100%;
       height: auto;
