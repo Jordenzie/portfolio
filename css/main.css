@@ -443,6 +443,7 @@
       padding: 0;
       background: #fff;
       overflow: auto;
+      overflow-x: hidden;
       flex: 1;
       border-top: 0;
       box-shadow: none;
@@ -450,10 +451,13 @@
 
     .popup-window.audio-popup .popup-body {
       background: #dfdfdf;
+      display: flex;
+      flex-direction: column;
     }
 
     .popup-window.audio-popup .popup-actions {
       background: #efefef;
+      justify-content: center;
     }
 
 
@@ -469,6 +473,27 @@
       justify-content: center;
       align-items: center;
       gap: 8px;
+    }
+
+    .popup-window.audio-popup .popup-actions > .popup-audio-actions {
+      display: flex;
+      align-items: center;
+      flex: 0 0 auto;
+      gap: 6px;
+      padding-right: 0;
+    }
+
+    .popup-window.audio-popup .popup-body > .popup-audio-actions {
+      margin-top: auto;
+      padding: 0px 8px 0px;
+      border-top: 1px solid #6e6e6e;
+      background: #efefef;
+    }
+
+    .popup-window.audio-popup .popup-audio-actions .np-skip {
+      display: inline-flex;
+      gap: 0;
+      align-items: center;
     }
 
     .popup-ok {
@@ -631,6 +656,11 @@
       flex-direction: column;
     }
 
+    .audio-popup .popup-embed-frame {
+      border: none;
+      box-shadow: none;
+    }
+
     .popup-embed-bar {
       height: 20px;
       display: flex;
@@ -668,17 +698,13 @@
 
     .nostalgia-player {
       margin-top: 8px;
-      display: grid;
-      grid-template-columns: 28px 72px 1fr auto;
-      gap: 6px;
+      display: flex;
       align-items: center;
+      gap: 6px;
       padding: 6px;
-      background: #efefef;
-      border-top: 1px solid #fff;
-      border-left: 1px solid #fff;
-      border-right: 1px solid #6f6f6f;
-      border-bottom: 1px solid #6f6f6f;
-      box-shadow: inset 0 1px 0 #fff;
+      background: transparent;
+      border: 0;
+      box-shadow: none;
     }
 
     .np-btn {
@@ -782,7 +808,7 @@
       font-size: 9px;
       color: #222;
       letter-spacing: 0.2px;
-      text-align: center;
+      text-align: left;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
     }
@@ -790,6 +816,8 @@
     .np-seek {
       -webkit-appearance: none;
       appearance: none;
+      flex: 1 1 auto;
+      min-width: 0;
       height: 10px;
       background: #bdbdbd;
       border-top: 1px solid #6f6f6f;
@@ -833,21 +861,25 @@
 
     @media (max-width: 520px) {
       .nostalgia-player {
-        grid-template-columns: 28px 1fr;
-        grid-auto-rows: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
       }
 
       .np-time {
+        margin-left: 0;
         text-align: left;
       }
 
       .np-seek {
-        grid-column: 1 / -1;
+        min-width: 0;
+      }
+
+      .np-play {
       }
 
       .np-skip {
-        grid-column: 1 / -1;
-        justify-content: flex-end;
+        justify-content: center;
       }
 
     }
@@ -913,7 +945,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #fff;
+      aspect-ratio: 1 / 1;
+      overflow: hidden;
+      background: linear-gradient(135deg, #f5f5f5, #e9e9e9);
       border: 1px solid #000;
     }
 

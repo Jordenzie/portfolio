@@ -68,6 +68,18 @@
         if (s.indexOf("../") === 0) return s.slice(3);
         return s;
       }
+      var preloadedImages = Object.create(null);
+      function prefetchImage(src) {
+        var s = safeText(src);
+        if (!s) return;
+        if (preloadedImages[s]) return;
+        preloadedImages[s] = true;
+        try {
+          var img = new Image();
+          img.decoding = "async";
+          img.src = s;
+        } catch (e) {}
+      }
 
       var aboutBtn = $("aboutBtn");
       var desktopEl = $("desktop");
@@ -969,9 +981,10 @@
         if (!root || !audio) return function () {};
         opts = opts || {};
 
-        var playBtn = root.querySelector(".np-play");
-        var prevBtn = root.querySelector(".np-prev");
-        var nextBtn = root.querySelector(".np-next");
+        var controlsRoot = opts.controlsRoot || root;
+        var playBtn = root.querySelector(".np-play") || (controlsRoot && controlsRoot.querySelector(".np-play"));
+        var prevBtn = root.querySelector(".np-prev") || (controlsRoot && controlsRoot.querySelector(".np-prev"));
+        var nextBtn = root.querySelector(".np-next") || (controlsRoot && controlsRoot.querySelector(".np-next"));
         var timeEl = root.querySelector(".np-time");
         var seekEl = root.querySelector(".np-seek");
         var titleEl = opts.titleEl || null;
@@ -1569,6 +1582,68 @@
         // Otherwise: no special Enter behavior
       }, true);
 
+      // Spacebar toggles play/pause for active audio popup (unless typing or focused on controls).
+      document.addEventListener("keydown", function (e) {
+        if (!(e.code === "Space" || e.key === " ")) return;
+
+        var t = e.target;
+        if (t) {
+          var tag = (t.tagName || "").toUpperCase();
+          if (t.isContentEditable || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") return;
+        }
+
+        var activePopup = getActivePopup();
+        if (!activePopup || !activePopup.el || !activePopup.el.classList.contains("audio-popup")) return;
+        var audio = activePopup.el.querySelector(".popup-embed-body audio");
+        if (!audio) return;
+
+        e.preventDefault();
+        if (audio.paused) audio.play().catch(function () {});
+        else audio.pause();
+      }, true);
+
+      // Arrow keys scrub 5% backward/forward for active audio popup.
+      document.addEventListener("keydown", function (e) {
+        if (!(e.key === "ArrowLeft" || e.key === "ArrowRight")) return;
+
+        var t = e.target;
+        if (t) {
+          var tag = (t.tagName || "").toUpperCase();
+          if (t.isContentEditable || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") return;
+        }
+
+        var activePopup = getActivePopup();
+        if (!activePopup || !activePopup.el || !activePopup.el.classList.contains("audio-popup")) return;
+        var audio = activePopup.el.querySelector(".popup-embed-body audio");
+        if (!audio || !isFinite(audio.duration) || audio.duration <= 0) return;
+
+        e.preventDefault();
+        var delta = audio.duration * 0.05 * (e.key === "ArrowRight" ? 1 : -1);
+        var nextTime = audio.currentTime + delta;
+        if (nextTime < 0) nextTime = 0;
+        if (nextTime > audio.duration) nextTime = audio.duration;
+        audio.currentTime = nextTime;
+      }, true);
+
+      // Arrow up/down moves to previous/next track for album popups.
+      document.addEventListener("keydown", function (e) {
+        if (!(e.key === "ArrowUp" || e.key === "ArrowDown")) return;
+
+        var t = e.target;
+        if (t) {
+          var tag = (t.tagName || "").toUpperCase();
+          if (t.isContentEditable || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") return;
+        }
+
+        var activePopup = getActivePopup();
+        if (!activePopup || !activePopup.el || !activePopup.el.classList.contains("audio-popup")) return;
+        if (!activePopup.audioNav) return;
+
+        e.preventDefault();
+        if (e.key === "ArrowUp" && typeof activePopup.audioNav.prev === "function") activePopup.audioNav.prev();
+        if (e.key === "ArrowDown" && typeof activePopup.audioNav.next === "function") activePopup.audioNav.next();
+      }, true);
+
       if (searchInput) {
         searchInput.addEventListener("input", function () {
           var q = searchInput.value || "";
@@ -2088,6 +2163,20 @@
         icons.forEach(function (icon) { fitIconLabel(icon); });
       }
 
+      function getArtworkFromIcon(icon) {
+        if (!icon) return "";
+        var artwork = icon.getAttribute("data-artwork") || "";
+        return artwork ? normalizeIconPath(artwork) : "";
+      }
+
+      function prewarmAudioIcon(icon) {
+        if (!icon) return;
+        var kind = icon.getAttribute("data-kind") || "";
+        if (kind !== "audio" && kind !== "album") return;
+        var artworkSrc = getArtworkFromIcon(icon);
+        if (artworkSrc) prefetchImage(artworkSrc);
+      }
+
       function openIcon(icon) {
         if (!icon) return;
         var href = icon.getAttribute("href");
@@ -2108,6 +2197,10 @@
         var dataTracks = icon.getAttribute("data-tracks") || "";
         var dataTrackNames = icon.getAttribute("data-track-names") || "";
         var dataArtwork = icon.getAttribute("data-artwork") || "";
+        if (kind === "audio" || kind === "album") {
+          var warmArtwork = dataArtwork ? normalizeIconPath(dataArtwork) : "";
+          if (warmArtwork) prefetchImage(warmArtwork);
+        }
 
         var dataFull = icon.getAttribute("data-full") || "";
         var previewSrc = (imgEl && (imgEl.getAttribute("src") || "")) || "";
@@ -2192,11 +2285,10 @@
           var audioHtml =
             "<div class=\"popup-embed-frame\">" +
               "<div class=\"popup-embed-bar\"><span class=\"embed-title-italic np-title\">" + escHtml(audioTitle) + "</span></div>" +
-              (artworkSrc ? "<div class=\"popup-artwork\"><img src=\"" + escHtml(artworkSrc) + "\" alt=\"\" /></div>" : "") +
-              "<div class=\"popup-embed-body popup-audio\">" +
+              (artworkSrc ? "<div class=\"popup-artwork\"><img src=\"" + escHtml(artworkSrc) + "\" alt=\"\" loading=\"eager\" decoding=\"async\" fetchpriority=\"high\" /></div>" : "") +
+              "<div class=\"popup-embed-body\">" +
                 "<audio preload=\"metadata\" src=\"" + escHtml(audioSrc) + "\"></audio>" +
                 "<div class=\"nostalgia-player\">" +
-                  "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
                   "<div class=\"np-time\">0:00 / 0:00</div>" +
                   "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
                 "</div>" +
@@ -2211,12 +2303,36 @@
               { type: "embed", html: audioHtml }
             ],
             onOpen: function (popup) {
-              var root = popup && popup.el ? popup.el.querySelector(".popup-audio") : null;
+              if (!popup || !popup.el) return;
+              var root = popup.el.querySelector(".popup-embed-body");
               if (!root) return;
               var audio = root.querySelector("audio");
-              var titleEl = popup.el ? popup.el.querySelector(".np-title") : null;
+              var titleEl = popup.el.querySelector(".np-title");
+              var bodyWrap = null;
+              var controlsRoot = null;
+              if (popup.bodyEl) {
+                bodyWrap = popup.bodyEl.querySelector(".popup-audio-actions");
+                if (!bodyWrap) {
+                  bodyWrap = document.createElement("div");
+                  bodyWrap.className = "popup-audio-actions";
+                  popup.bodyEl.appendChild(bodyWrap);
+                }
+                var player = root.querySelector(".nostalgia-player");
+                if (player) bodyWrap.appendChild(player);
+              }
+              if (popup.actionsEl) {
+                var actionsWrap = popup.actionsEl.querySelector(".popup-audio-actions");
+                if (!actionsWrap) {
+                  actionsWrap = document.createElement("div");
+                  actionsWrap.className = "popup-audio-actions";
+                  popup.actionsEl.insertBefore(actionsWrap, popup.okBtn || null);
+                }
+                actionsWrap.innerHTML =
+                  "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>";
+                controlsRoot = actionsWrap;
+              }
               if (!audio) return;
-              return initNostalgiaPlayer(root, audio, { autoPlay: false, titleEl: titleEl, titleText: audioTitle });
+              return initNostalgiaPlayer(popup.bodyEl || root, audio, { autoPlay: false, titleEl: titleEl, titleText: audioTitle, controlsRoot: controlsRoot || popup.actionsEl });
             }
           });
           return;
@@ -2257,17 +2373,12 @@
           var albumHtml =
             "<div class=\"popup-embed-frame\">" +
               "<div class=\"popup-embed-bar\"><span class=\"embed-title-italic np-title\">" + escHtml(albumTitle) + "</span></div>" +
-              (albumArtwork ? "<div class=\"popup-artwork\"><img src=\"" + escHtml(albumArtwork) + "\" alt=\"\" /></div>" : "") +
+              (albumArtwork ? "<div class=\"popup-artwork\"><img src=\"" + escHtml(albumArtwork) + "\" alt=\"\" loading=\"eager\" decoding=\"async\" fetchpriority=\"high\" /></div>" : "") +
               "<div class=\"popup-embed-body popup-audio\" id=\"" + albumId + "\">" +
                 "<audio preload=\"metadata\"></audio>" +
                 "<div class=\"nostalgia-player\">" +
-                  "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
                   "<div class=\"np-time\">0:00 / 0:00</div>" +
                   "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
-                  "<div class=\"np-skip\">" +
-                    "<button type=\"button\" class=\"np-btn np-prev\" aria-label=\"Previous\"></button>" +
-                    "<button type=\"button\" class=\"np-btn np-next\" aria-label=\"Next\"></button>" +
-                  "</div>" +
                 "</div>" +
                 "<div class=\"album-tracklist\">" + listHtml + "</div>" +
               "</div>" +
@@ -2281,14 +2392,43 @@
               { type: "embed", html: albumHtml }
             ],
             onOpen: function (popup) {
-              var root = popup && popup.el ? popup.el.querySelector("#" + albumId) : null;
+              if (!popup || !popup.el) return;
+              var root = popup.el.querySelector("#" + albumId);
               if (!root) return;
               var audio = root.querySelector("audio");
               var buttons = Array.prototype.slice.call(root.querySelectorAll(".album-track"));
               var current = 0;
               var cleanupPlayer = null;
-              var titleEl = popup.el ? popup.el.querySelector(".np-title") : null;
-              var skipEl = root.querySelector(".np-skip");
+              var titleEl = popup.el.querySelector(".np-title");
+              var skipEl = null;
+              var controlsRoot = null;
+              var bodyWrap = null;
+              if (popup.bodyEl) {
+                bodyWrap = popup.bodyEl.querySelector(".popup-audio-actions");
+                if (!bodyWrap) {
+                  bodyWrap = document.createElement("div");
+                  bodyWrap.className = "popup-audio-actions";
+                  popup.bodyEl.appendChild(bodyWrap);
+                }
+                var player = root.querySelector(".nostalgia-player");
+                if (player) bodyWrap.appendChild(player);
+              }
+              if (popup.actionsEl) {
+                var actionsWrap = popup.actionsEl.querySelector(".popup-audio-actions");
+                if (!actionsWrap) {
+                  actionsWrap = document.createElement("div");
+                  actionsWrap.className = "popup-audio-actions";
+                  popup.actionsEl.insertBefore(actionsWrap, popup.okBtn || null);
+                }
+                actionsWrap.innerHTML =
+                  "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
+                  "<div class=\"np-skip\">" +
+                    "<button type=\"button\" class=\"np-btn np-prev\" aria-label=\"Previous\"></button>" +
+                    "<button type=\"button\" class=\"np-btn np-next\" aria-label=\"Next\"></button>" +
+                  "</div>";
+                skipEl = actionsWrap.querySelector(".np-skip");
+                controlsRoot = actionsWrap;
+              }
 
               function setActive(idx) {
                 current = idx;
@@ -2329,9 +2469,11 @@
                 setActive(next);
               }
 
-              if (audio) cleanupPlayer = initNostalgiaPlayer(root, audio, { autoPlay: true, onPrev: prevTrack, onNext: nextTrack });
+              if (popup) popup.audioNav = { prev: prevTrack, next: nextTrack };
+              if (audio) cleanupPlayer = initNostalgiaPlayer(popup.bodyEl || root, audio, { autoPlay: true, onPrev: prevTrack, onNext: nextTrack, controlsRoot: controlsRoot || popup.actionsEl });
               return function () {
                 if (cleanupPlayer) cleanupPlayer();
+                if (popup && popup.audioNav) delete popup.audioNav;
               };
             }
           });
@@ -2472,6 +2614,9 @@
       var threshold = 5;
 
       icons.forEach(function (icon) {
+        icon.addEventListener("mouseenter", function () { prewarmAudioIcon(icon); });
+        icon.addEventListener("focus", function () { prewarmAudioIcon(icon); });
+
         icon.addEventListener("mousedown", function (e) {
           e.preventDefault();
 
@@ -2491,6 +2636,7 @@
         });
 
         icon.addEventListener("touchstart", function (e) {
+          prewarmAudioIcon(icon);
           if (!isMobile()) return;
           var t = e.touches && e.touches[0];
           if (!t) return;
