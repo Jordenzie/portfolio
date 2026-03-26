@@ -1563,11 +1563,21 @@
       document.addEventListener("keydown", function (e) {
         if (e.key !== "Enter") return;
 
+        var t = e.target;
+        var isSearchField = (t === searchInput);
+        if (t && !isSearchField) {
+          var tag = (t.tagName || "").toUpperCase();
+          if (t.isContentEditable || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") return;
+        }
+
         // If popup is open, close only the active one.
-        var activePopup = getActivePopup();
-        if (activePopup) {
-          e.preventDefault();
-          closePopup(activePopup);
+        var hasAnyPopups = popupOrder && popupOrder.length > 0;
+        if (hasAnyPopups) {
+          var activePopup = getActivePopup();
+          if (activePopup) {
+            e.preventDefault();
+            closePopup(activePopup);
+          }
           return;
         }
 
@@ -1576,6 +1586,13 @@
         if (searchBarEl && searchBarEl.style.display === "flex") {
           e.preventDefault();
           setTimeout(function () { activateTopSuggestion(); }, 0);
+          return;
+        }
+
+        // If no popups are open and Find is closed, Enter opens Find.
+        if (searchBarEl && searchBarEl.style.display !== "flex") {
+          e.preventDefault();
+          showSearch();
           return;
         }
 
