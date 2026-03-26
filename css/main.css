@@ -240,7 +240,6 @@
       align-items: center;
       padding: 0 6px;
       z-index: 1001;
-      box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000;
     }
 
     .search-bar input {
@@ -260,8 +259,6 @@
       display: none;
       background: #efefef;
       border: 1px solid #7d7d7d;
-      border-top: 0;
-      box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000;
       z-index: 1002;
     }
 
@@ -989,7 +986,7 @@
     }
 
     .popup-quote {
-      background: #dfdfdf;
+      background: #efefef;
       margin: 14px 10px 8px;
       padding: 10px;
       font-style: oblique;
@@ -1111,8 +1108,7 @@
       .search-results {
         top: auto;
         bottom: 30px;
-        border-top: 1px solid #7d7d7d;
-        border-bottom: 0;
+        border: 1px solid #7d7d7d;
       }
       .search-bar { box-sizing: border-box; height: 30px; }
       .search-bar input {
@@ -1137,6 +1133,10 @@
         align-items: center;
         line-height: 1;
         box-sizing: border-box;
+      }
+      .taskbar .menubar-clock {
+        width: 9ch;
+        justify-content: center;
       }
       .taskbar .menu-item:hover {
         border-top: 1px solid #fff;
