@@ -2291,6 +2291,7 @@
                 "<div class=\"nostalgia-player\">" +
                   "<div class=\"np-time\">0:00 / 0:00</div>" +
                   "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
+                  "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
                 "</div>" +
               "</div>" +
             "</div>";
@@ -2309,7 +2310,6 @@
               var audio = root.querySelector("audio");
               var titleEl = popup.el.querySelector(".np-title");
               var bodyWrap = null;
-              var controlsRoot = null;
               if (popup.bodyEl) {
                 bodyWrap = popup.bodyEl.querySelector(".popup-audio-actions");
                 if (!bodyWrap) {
@@ -2320,19 +2320,8 @@
                 var player = root.querySelector(".nostalgia-player");
                 if (player) bodyWrap.appendChild(player);
               }
-              if (popup.actionsEl) {
-                var actionsWrap = popup.actionsEl.querySelector(".popup-audio-actions");
-                if (!actionsWrap) {
-                  actionsWrap = document.createElement("div");
-                  actionsWrap.className = "popup-audio-actions";
-                  popup.actionsEl.insertBefore(actionsWrap, popup.okBtn || null);
-                }
-                actionsWrap.innerHTML =
-                  "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>";
-                controlsRoot = actionsWrap;
-              }
               if (!audio) return;
-              return initNostalgiaPlayer(popup.bodyEl || root, audio, { autoPlay: false, titleEl: titleEl, titleText: audioTitle, controlsRoot: controlsRoot || popup.actionsEl });
+              return initNostalgiaPlayer(popup.bodyEl || root, audio, { autoPlay: false, titleEl: titleEl, titleText: audioTitle });
             }
           });
           return;
@@ -2379,6 +2368,11 @@
                 "<div class=\"nostalgia-player\">" +
                   "<div class=\"np-time\">0:00 / 0:00</div>" +
                   "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
+                  "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
+                  "<div class=\"np-skip\">" +
+                    "<button type=\"button\" class=\"np-btn np-prev\" aria-label=\"Previous\"></button>" +
+                    "<button type=\"button\" class=\"np-btn np-next\" aria-label=\"Next\"></button>" +
+                  "</div>" +
                 "</div>" +
                 "<div class=\"album-tracklist\">" + listHtml + "</div>" +
               "</div>" +
@@ -2401,7 +2395,6 @@
               var cleanupPlayer = null;
               var titleEl = popup.el.querySelector(".np-title");
               var skipEl = null;
-              var controlsRoot = null;
               var bodyWrap = null;
               if (popup.bodyEl) {
                 bodyWrap = popup.bodyEl.querySelector(".popup-audio-actions");
@@ -2413,22 +2406,7 @@
                 var player = root.querySelector(".nostalgia-player");
                 if (player) bodyWrap.appendChild(player);
               }
-              if (popup.actionsEl) {
-                var actionsWrap = popup.actionsEl.querySelector(".popup-audio-actions");
-                if (!actionsWrap) {
-                  actionsWrap = document.createElement("div");
-                  actionsWrap.className = "popup-audio-actions";
-                  popup.actionsEl.insertBefore(actionsWrap, popup.okBtn || null);
-                }
-                actionsWrap.innerHTML =
-                  "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
-                  "<div class=\"np-skip\">" +
-                    "<button type=\"button\" class=\"np-btn np-prev\" aria-label=\"Previous\"></button>" +
-                    "<button type=\"button\" class=\"np-btn np-next\" aria-label=\"Next\"></button>" +
-                  "</div>";
-                skipEl = actionsWrap.querySelector(".np-skip");
-                controlsRoot = actionsWrap;
-              }
+              if (root) skipEl = root.querySelector(".np-skip");
 
               function setActive(idx) {
                 current = idx;
@@ -2470,7 +2448,7 @@
               }
 
               if (popup) popup.audioNav = { prev: prevTrack, next: nextTrack };
-              if (audio) cleanupPlayer = initNostalgiaPlayer(popup.bodyEl || root, audio, { autoPlay: true, onPrev: prevTrack, onNext: nextTrack, controlsRoot: controlsRoot || popup.actionsEl });
+              if (audio) cleanupPlayer = initNostalgiaPlayer(popup.bodyEl || root, audio, { autoPlay: true, onPrev: prevTrack, onNext: nextTrack });
               return function () {
                 if (cleanupPlayer) cleanupPlayer();
                 if (popup && popup.audioNav) delete popup.audioNav;

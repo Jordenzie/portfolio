@@ -475,14 +475,6 @@
       gap: 8px;
     }
 
-    .popup-window.audio-popup .popup-actions > .popup-audio-actions {
-      display: flex;
-      align-items: center;
-      flex: 0 0 auto;
-      gap: 6px;
-      padding-right: 0;
-    }
-
     .popup-window.audio-popup .popup-body > .popup-audio-actions {
       margin-top: auto;
       padding: 0px 8px 0px;
@@ -697,7 +689,7 @@
     }
 
     .nostalgia-player {
-      margin-top: 8px;
+      margin-top: 0;
       display: flex;
       align-items: center;
       gap: 6px;
@@ -754,6 +746,11 @@
       display: inline-flex;
       gap: 0;
       align-items: center;
+      order: 3;
+    }
+
+    .np-play {
+      order: 2;
     }
 
     .np-prev::before,
@@ -811,6 +808,7 @@
       text-align: left;
       font-variant-numeric: tabular-nums;
       white-space: nowrap;
+      order: 0;
     }
 
     .np-seek {
@@ -818,6 +816,7 @@
       appearance: none;
       flex: 1 1 auto;
       min-width: 0;
+      order: 1;
       height: 10px;
       background: #bdbdbd;
       border-top: 1px solid #6f6f6f;
