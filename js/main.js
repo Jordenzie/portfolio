@@ -239,6 +239,12 @@
         popup.timers.push({ kind: kind, id: id });
       }
 
+      function addPopupCleanup(popup, fn) {
+        if (!popup || !fn) return;
+        if (!popup.cleanups) popup.cleanups = [];
+        popup.cleanups.push(fn);
+      }
+
       function clearPopupTimers(popup) {
         if (!popup || !popup.timers) return;
         popup.timers.forEach(function (t) {
@@ -408,6 +414,16 @@
         bindPopupDrag(popup);
         focusPopup(popup);
         setOverlayVisible();
+
+        if (typeof opts.onOpen === "function") {
+          try {
+            var cleanup = opts.onOpen(popup);
+            if (typeof cleanup === "function") {
+              if (!popup.cleanup) popup.cleanup = [];
+              popup.cleanup.push(cleanup);
+            }
+          } catch (e) {}
+        }
 
         return popup;
       }
@@ -936,6 +952,86 @@
           .replace(/>/g, "&gt;")
           .replace(/\\"/g, "&quot;")
           .replace(/'/g, "&#39;");
+      }
+
+      function formatTime(secs) {
+        if (!isFinite(secs) || secs < 0) return "0:00";
+        var m = Math.floor(secs / 60);
+        var s = Math.floor(secs % 60);
+        return m + ":" + (s < 10 ? "0" + s : "" + s);
+      }
+
+      function initNostalgiaPlayer(root, audio, opts) {
+        if (!root || !audio) return function () {};
+        opts = opts || {};
+
+        var playBtn = root.querySelector(".np-play");
+        var timeEl = root.querySelector(".np-time");
+        var seekEl = root.querySelector(".np-seek");
+        var volEl = root.querySelector(".np-vol");
+
+        function setPlayState(isPlaying) {
+          if (playBtn) playBtn.classList.toggle("is-playing", !!isPlaying);
+        }
+
+        function updateTime() {
+          var cur = audio.currentTime || 0;
+          var dur = audio.duration || 0;
+          if (timeEl) timeEl.textContent = formatTime(cur) + " / " + formatTime(dur);
+          if (seekEl && dur > 0) {
+            seekEl.value = String((cur / dur) * 100);
+          } else if (seekEl) {
+            seekEl.value = "0";
+          }
+        }
+
+        function onPlayClick() {
+          if (audio.paused) {
+            audio.play().catch(function () {});
+          } else {
+            audio.pause();
+          }
+        }
+
+        function onSeekInput() {
+          var dur = audio.duration || 0;
+          var pct = parseFloat(seekEl.value || "0") / 100;
+          if (dur > 0) audio.currentTime = dur * pct;
+        }
+
+        function onVolInput() {
+          var v = parseFloat(volEl.value || "1");
+          audio.volume = isNaN(v) ? 1 : Math.max(0, Math.min(1, v));
+        }
+
+        if (playBtn) playBtn.addEventListener("click", onPlayClick);
+        if (seekEl) seekEl.addEventListener("input", onSeekInput);
+        if (volEl) volEl.addEventListener("input", onVolInput);
+
+        function onPlay() { setPlayState(true); }
+        function onPause() { setPlayState(false); }
+        function onTime() { updateTime(); }
+        function onLoaded() { updateTime(); }
+
+        audio.addEventListener("play", onPlay);
+        audio.addEventListener("pause", onPause);
+        audio.addEventListener("timeupdate", onTime);
+        audio.addEventListener("loadedmetadata", onLoaded);
+
+        if (opts.autoPlay) {
+          audio.play().catch(function () {});
+        }
+        updateTime();
+
+        return function cleanup() {
+          if (playBtn) playBtn.removeEventListener("click", onPlayClick);
+          if (seekEl) seekEl.removeEventListener("input", onSeekInput);
+          if (volEl) volEl.removeEventListener("input", onVolInput);
+          audio.removeEventListener("play", onPlay);
+          audio.removeEventListener("pause", onPause);
+          audio.removeEventListener("timeupdate", onTime);
+          audio.removeEventListener("loadedmetadata", onLoaded);
+        };
       }
       var FIND_DEBUG_KEY = "prtf_find_debug_v1";
       var FIND_DEBUG = false;
@@ -1990,6 +2086,9 @@
         var dataQuoteSignature = icon.getAttribute("data-quote-signature") || "";
         var dataSpotify = icon.getAttribute("data-spotify") || "";
         var dataApple = icon.getAttribute("data-apple") || "";
+        var dataAudio = icon.getAttribute("data-audio") || "";
+        var dataTracks = icon.getAttribute("data-tracks") || "";
+        var dataTrackNames = icon.getAttribute("data-track-names") || "";
 
         var dataFull = icon.getAttribute("data-full") || "";
         var previewSrc = (imgEl && (imgEl.getAttribute("src") || "")) || "";
@@ -2052,6 +2151,145 @@
             title: name || "Music",
             key: "music:" + (name || "track"),
             content: blocks
+          });
+          return;
+        }
+
+        if (kind === "audio") {
+          var audioTitle = dataTitle || name || "Audio";
+          var audioSrc = dataAudio ? normalizeIconPath(dataAudio) : "";
+          if (!audioSrc) {
+            openPopup({
+              title: audioTitle,
+              key: "audio:" + (audioTitle || "track"),
+              content: [
+                { type: "text", role: "body", size: "md", align: "left", text: "No audio file provided." }
+              ]
+            });
+            return;
+          }
+
+          var audioHtml =
+            "<div class=\"popup-embed-frame\">" +
+              "<div class=\"popup-embed-bar\"><span class=\"embed-title-italic\">" + escHtml(audioTitle) + "</span></div>" +
+              "<div class=\"popup-embed-body popup-audio\">" +
+                "<audio preload=\"metadata\" src=\"" + escHtml(audioSrc) + "\"></audio>" +
+                "<div class=\"nostalgia-player\">" +
+                  "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
+                  "<div class=\"np-time\">0:00 / 0:00</div>" +
+                  "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
+                  "<input class=\"np-vol\" type=\"range\" min=\"0\" max=\"1\" value=\"1\" step=\"0.01\" />" +
+                "</div>" +
+              "</div>" +
+            "</div>";
+
+          openPopup({
+            title: audioTitle,
+            key: "audio:" + audioSrc,
+            content: [
+              { type: "embed", html: audioHtml }
+            ],
+            onOpen: function (popup) {
+              var root = popup && popup.el ? popup.el.querySelector(".popup-audio") : null;
+              if (!root) return;
+              var audio = root.querySelector("audio");
+              if (!audio) return;
+              return initNostalgiaPlayer(root, audio, { autoPlay: false });
+            }
+          });
+          return;
+        }
+
+        if (kind === "album") {
+          var albumTitle = dataTitle || name || "Album";
+          var tracksRaw = safeText(dataTracks).trim();
+          if (!tracksRaw) {
+            openPopup({
+              title: albumTitle,
+              key: "album:" + (albumTitle || "album"),
+              content: [
+                { type: "text", role: "body", size: "md", align: "left", text: "No tracks provided." }
+              ]
+            });
+            return;
+          }
+
+          var trackPaths = tracksRaw.split("|").map(function (t) { return safeText(t).trim(); }).filter(Boolean);
+          var nameParts = safeText(dataTrackNames).trim().split("|").map(function (t) { return safeText(t).trim(); });
+          var trackList = trackPaths.map(function (p, i) {
+            return {
+              src: normalizeIconPath(p),
+              name: nameParts[i] || ("Track " + String(i + 1).padStart(2, "0"))
+            };
+          });
+
+          var albumId = "album" + String(Math.random()).slice(2);
+          var listHtml = trackList.map(function (t, i) {
+            return "<button type=\"button\" class=\"album-track\" data-idx=\"" + i + "\">" +
+              "<span class=\"track-num\">" + String(i + 1).padStart(2, "0") + ".</span>" +
+              "<span class=\"track-name\">" + escHtml(t.name) + "</span>" +
+            "</button>";
+          }).join("");
+
+          var albumHtml =
+            "<div class=\"popup-embed-frame\">" +
+              "<div class=\"popup-embed-bar\"><span class=\"embed-title-italic\">" + escHtml(albumTitle) + "</span></div>" +
+              "<div class=\"popup-embed-body popup-audio\" id=\"" + albumId + "\">" +
+                "<audio preload=\"metadata\"></audio>" +
+                "<div class=\"nostalgia-player\">" +
+                  "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
+                  "<div class=\"np-time\">0:00 / 0:00</div>" +
+                  "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
+                  "<input class=\"np-vol\" type=\"range\" min=\"0\" max=\"1\" value=\"1\" step=\"0.01\" />" +
+                "</div>" +
+                "<div class=\"album-tracklist\">" + listHtml + "</div>" +
+              "</div>" +
+            "</div>";
+
+          openPopup({
+            title: albumTitle,
+            key: "album:" + albumTitle,
+            content: [
+              { type: "embed", html: albumHtml }
+            ],
+            onOpen: function (popup) {
+              var root = popup && popup.el ? popup.el.querySelector("#" + albumId) : null;
+              if (!root) return;
+              var audio = root.querySelector("audio");
+              var buttons = Array.prototype.slice.call(root.querySelectorAll(".album-track"));
+              var current = 0;
+              var cleanupPlayer = null;
+
+              function setActive(idx) {
+                current = idx;
+                buttons.forEach(function (btn, i) { btn.classList.toggle("is-active", i === idx); });
+                if (audio) {
+                  audio.src = trackList[idx].src;
+                  audio.play().catch(function () {});
+                }
+              }
+
+              buttons.forEach(function (btn) {
+                btn.addEventListener("click", function () {
+                  var idx = Number(btn.getAttribute("data-idx") || 0);
+                  if (isNaN(idx)) return;
+                  setActive(idx);
+                });
+              });
+
+              if (audio) {
+                audio.addEventListener("ended", function () {
+                  var next = current + 1;
+                  if (next < trackList.length) setActive(next);
+                });
+              }
+
+              setActive(0);
+              if (audio) cleanupPlayer = initNostalgiaPlayer(root, audio, { autoPlay: true });
+              return function () {
+                if (cleanupPlayer) cleanupPlayer();
+              };
+            }
           });
           return;
         }
