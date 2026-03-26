@@ -342,6 +342,9 @@
 
         var win = document.createElement("div");
         win.className = "popup-window";
+        if (opts.className) {
+          win.className += " " + String(opts.className);
+        }
         win.setAttribute("data-popup-id", popup.id);
         win.setAttribute("role", "dialog");
         win.setAttribute("aria-modal", "false");
@@ -877,6 +880,7 @@
 
       function openAboutPopup() {
         openPopup({
+          key: "about",
           title: "About Me",
           okText: "Done",
           content: POPUP_CONTENT.about()
@@ -966,9 +970,11 @@
         opts = opts || {};
 
         var playBtn = root.querySelector(".np-play");
+        var prevBtn = root.querySelector(".np-prev");
+        var nextBtn = root.querySelector(".np-next");
         var timeEl = root.querySelector(".np-time");
         var seekEl = root.querySelector(".np-seek");
-        var volEl = root.querySelector(".np-vol");
+        var titleEl = opts.titleEl || null;
 
         function setPlayState(isPlaying) {
           if (playBtn) playBtn.classList.toggle("is-playing", !!isPlaying);
@@ -985,6 +991,11 @@
           }
         }
 
+        function setTitle(text) {
+          if (!titleEl) return;
+          titleEl.textContent = safeText(text || "");
+        }
+
         function onPlayClick() {
           if (audio.paused) {
             audio.play().catch(function () {});
@@ -999,14 +1010,18 @@
           if (dur > 0) audio.currentTime = dur * pct;
         }
 
-        function onVolInput() {
-          var v = parseFloat(volEl.value || "1");
-          audio.volume = isNaN(v) ? 1 : Math.max(0, Math.min(1, v));
+        function onPrevClick() {
+          if (typeof opts.onPrev === "function") opts.onPrev();
+        }
+
+        function onNextClick() {
+          if (typeof opts.onNext === "function") opts.onNext();
         }
 
         if (playBtn) playBtn.addEventListener("click", onPlayClick);
         if (seekEl) seekEl.addEventListener("input", onSeekInput);
-        if (volEl) volEl.addEventListener("input", onVolInput);
+        if (prevBtn) prevBtn.addEventListener("click", onPrevClick);
+        if (nextBtn) nextBtn.addEventListener("click", onNextClick);
 
         function onPlay() { setPlayState(true); }
         function onPause() { setPlayState(false); }
@@ -1018,6 +1033,8 @@
         audio.addEventListener("timeupdate", onTime);
         audio.addEventListener("loadedmetadata", onLoaded);
 
+        audio.volume = 1;
+        if (opts.titleText) setTitle(opts.titleText);
         if (opts.autoPlay) {
           audio.play().catch(function () {});
         }
@@ -1026,7 +1043,8 @@
         return function cleanup() {
           if (playBtn) playBtn.removeEventListener("click", onPlayClick);
           if (seekEl) seekEl.removeEventListener("input", onSeekInput);
-          if (volEl) volEl.removeEventListener("input", onVolInput);
+          if (prevBtn) prevBtn.removeEventListener("click", onPrevClick);
+          if (nextBtn) nextBtn.removeEventListener("click", onNextClick);
           audio.removeEventListener("play", onPlay);
           audio.removeEventListener("pause", onPause);
           audio.removeEventListener("timeupdate", onTime);
@@ -2089,6 +2107,7 @@
         var dataAudio = icon.getAttribute("data-audio") || "";
         var dataTracks = icon.getAttribute("data-tracks") || "";
         var dataTrackNames = icon.getAttribute("data-track-names") || "";
+        var dataArtwork = icon.getAttribute("data-artwork") || "";
 
         var dataFull = icon.getAttribute("data-full") || "";
         var previewSrc = (imgEl && (imgEl.getAttribute("src") || "")) || "";
@@ -2158,6 +2177,7 @@
         if (kind === "audio") {
           var audioTitle = dataTitle || name || "Audio";
           var audioSrc = dataAudio ? normalizeIconPath(dataAudio) : "";
+          var artworkSrc = dataArtwork ? normalizeIconPath(dataArtwork) : "";
           if (!audioSrc) {
             openPopup({
               title: audioTitle,
@@ -2171,14 +2191,14 @@
 
           var audioHtml =
             "<div class=\"popup-embed-frame\">" +
-              "<div class=\"popup-embed-bar\"><span class=\"embed-title-italic\">" + escHtml(audioTitle) + "</span></div>" +
+              "<div class=\"popup-embed-bar\"><span class=\"embed-title-italic np-title\">" + escHtml(audioTitle) + "</span></div>" +
+              (artworkSrc ? "<div class=\"popup-artwork\"><img src=\"" + escHtml(artworkSrc) + "\" alt=\"\" /></div>" : "") +
               "<div class=\"popup-embed-body popup-audio\">" +
                 "<audio preload=\"metadata\" src=\"" + escHtml(audioSrc) + "\"></audio>" +
                 "<div class=\"nostalgia-player\">" +
                   "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
                   "<div class=\"np-time\">0:00 / 0:00</div>" +
                   "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
-                  "<input class=\"np-vol\" type=\"range\" min=\"0\" max=\"1\" value=\"1\" step=\"0.01\" />" +
                 "</div>" +
               "</div>" +
             "</div>";
@@ -2186,6 +2206,7 @@
           openPopup({
             title: audioTitle,
             key: "audio:" + audioSrc,
+            className: "audio-popup",
             content: [
               { type: "embed", html: audioHtml }
             ],
@@ -2193,8 +2214,9 @@
               var root = popup && popup.el ? popup.el.querySelector(".popup-audio") : null;
               if (!root) return;
               var audio = root.querySelector("audio");
+              var titleEl = popup.el ? popup.el.querySelector(".np-title") : null;
               if (!audio) return;
-              return initNostalgiaPlayer(root, audio, { autoPlay: false });
+              return initNostalgiaPlayer(root, audio, { autoPlay: false, titleEl: titleEl, titleText: audioTitle });
             }
           });
           return;
@@ -2203,6 +2225,7 @@
         if (kind === "album") {
           var albumTitle = dataTitle || name || "Album";
           var tracksRaw = safeText(dataTracks).trim();
+          var albumArtwork = dataArtwork ? normalizeIconPath(dataArtwork) : "";
           if (!tracksRaw) {
             openPopup({
               title: albumTitle,
@@ -2233,14 +2256,18 @@
 
           var albumHtml =
             "<div class=\"popup-embed-frame\">" +
-              "<div class=\"popup-embed-bar\"><span class=\"embed-title-italic\">" + escHtml(albumTitle) + "</span></div>" +
+              "<div class=\"popup-embed-bar\"><span class=\"embed-title-italic np-title\">" + escHtml(albumTitle) + "</span></div>" +
+              (albumArtwork ? "<div class=\"popup-artwork\"><img src=\"" + escHtml(albumArtwork) + "\" alt=\"\" /></div>" : "") +
               "<div class=\"popup-embed-body popup-audio\" id=\"" + albumId + "\">" +
                 "<audio preload=\"metadata\"></audio>" +
                 "<div class=\"nostalgia-player\">" +
                   "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
                   "<div class=\"np-time\">0:00 / 0:00</div>" +
                   "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
-                  "<input class=\"np-vol\" type=\"range\" min=\"0\" max=\"1\" value=\"1\" step=\"0.01\" />" +
+                  "<div class=\"np-skip\">" +
+                    "<button type=\"button\" class=\"np-btn np-prev\" aria-label=\"Previous\"></button>" +
+                    "<button type=\"button\" class=\"np-btn np-next\" aria-label=\"Next\"></button>" +
+                  "</div>" +
                 "</div>" +
                 "<div class=\"album-tracklist\">" + listHtml + "</div>" +
               "</div>" +
@@ -2249,6 +2276,7 @@
           openPopup({
             title: albumTitle,
             key: "album:" + albumTitle,
+            className: "audio-popup",
             content: [
               { type: "embed", html: albumHtml }
             ],
@@ -2259,6 +2287,8 @@
               var buttons = Array.prototype.slice.call(root.querySelectorAll(".album-track"));
               var current = 0;
               var cleanupPlayer = null;
+              var titleEl = popup.el ? popup.el.querySelector(".np-title") : null;
+              var skipEl = root.querySelector(".np-skip");
 
               function setActive(idx) {
                 current = idx;
@@ -2267,6 +2297,7 @@
                   audio.src = trackList[idx].src;
                   audio.play().catch(function () {});
                 }
+                if (titleEl) titleEl.textContent = trackList[idx].name;
               }
 
               buttons.forEach(function (btn) {
@@ -2285,7 +2316,20 @@
               }
 
               setActive(0);
-              if (audio) cleanupPlayer = initNostalgiaPlayer(root, audio, { autoPlay: true });
+              if (skipEl) skipEl.style.display = (trackList.length > 1) ? "inline-flex" : "none";
+              function prevTrack() {
+                var prev = current - 1;
+                if (prev < 0) prev = trackList.length - 1;
+                setActive(prev);
+              }
+
+              function nextTrack() {
+                var next = current + 1;
+                if (next >= trackList.length) next = 0;
+                setActive(next);
+              }
+
+              if (audio) cleanupPlayer = initNostalgiaPlayer(root, audio, { autoPlay: true, onPrev: prevTrack, onNext: nextTrack });
               return function () {
                 if (cleanupPlayer) cleanupPlayer();
               };
