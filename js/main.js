@@ -2332,11 +2332,13 @@
               "<div class=\"popup-embed-body popup-audio\" id=\"" + albumId + "\">" +
                 "<audio preload=\"metadata\"></audio>" +
                 "<div class=\"nostalgia-player\">" +
-                  "<div class=\"np-time\">0:00 / 0:00</div>" +
-                  "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
-                  "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
-                  "<div class=\"np-skip\">" +
+                  "<div class=\"np-top\">" +
+                    "<div class=\"np-time\">0:00 / 0:00</div>" +
+                    "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
+                  "</div>" +
+                  "<div class=\"np-controls\">" +
                     "<button type=\"button\" class=\"np-btn np-prev\" aria-label=\"Previous\"></button>" +
+                    "<button type=\"button\" class=\"np-btn np-play\" aria-label=\"Play\"></button>" +
                     "<button type=\"button\" class=\"np-btn np-next\" aria-label=\"Next\"></button>" +
                   "</div>" +
                 "</div>" +
