@@ -114,7 +114,7 @@
     .icon.in-trash { display: none; }
     .trash-bin .icon.in-trash { display: flex; }
     .icon.trash-hover img {
-      filter: brightness(1.5);
+      filter: brightness(1.1);
     }
 
     .trash-bin {
@@ -179,6 +179,16 @@
       white-space: nowrap;
       line-height: normal;
     }
+
+    button:hover:not(:active):not([disabled]),
+    .menu-item:hover:not(:active),
+    .popup-close:hover:not(:active),
+    .popup-ok:hover:not(:active),
+    .album-track:hover:not(:active),
+    .search-result:hover:not(:active),
+    .mobile-return:hover:not(:active) {
+      opacity: 0.7;
+    }
     .taskbar .menu-item,
     .taskbar .menu-item .taskbar-label {
       font-size: 11px;
@@ -192,13 +202,14 @@
       flex: 0 0 auto;
     }
 
-    .menu-item:hover {
+    .taskbar .menu-item:hover {
       border-top: 1px solid #fff;
       border-left: 1px solid #fff;
       border-right: 1px solid #6f6f6f;
       border-bottom: 1px solid #6f6f6f;
       background: linear-gradient(#efefef, #dcdcdc);
       padding: 0 4px;
+      opacity: 1;
     }
 
     .menu-item:active {
@@ -429,9 +440,7 @@
       );
     }
 
-    /* active behavior also on hover */
-    .popup-close:active,
-    .popup-close:hover {
+    .popup-close:active {
       border-top: 1px solid #6f6f6f;
       border-left: 1px solid #6f6f6f;
       border-right: 1px solid #fff;
@@ -498,9 +507,7 @@
       cursor: pointer; /* pointer cursor like X */
     }
 
-    /* active behavior also on hover */
-    .popup-ok:active,
-    .popup-ok:hover {
+    .popup-ok:active {
       border-top: 1px solid #6f6f6f;
       border-left: 1px solid #6f6f6f;
       border-right: 1px solid #fff;
@@ -715,8 +722,7 @@
       cursor: pointer;
     }
 
-    .np-btn:active,
-    .np-btn:hover {
+    .np-btn:active {
       background: #dcdcdc;
       border-top: 1px solid #6f6f6f;
       border-left: 1px solid #6f6f6f;
@@ -913,8 +919,7 @@
       text-align: left;
     }
 
-    .album-track:active,
-    .album-track:hover {
+    .album-track:active {
       background: #e9e9e9;
       border-top: 1px solid #6f6f6f;
       border-left: 1px solid #6f6f6f;
@@ -1156,6 +1161,7 @@
         border-bottom: 1px solid #6f6f6f;
         background: linear-gradient(#efefef, #dcdcdc);
         padding: 0 7px;
+        opacity: 1;
       }
       .taskbar .menu-item:active {
         border-top: 1px solid #6f6f6f;
@@ -1228,14 +1234,6 @@
         align-items: center;
         gap: 6px;
         line-height: 1;
-      }
-      .mobile-return:hover {
-        border-top: 1px solid #fff;
-        border-left: 1px solid #fff;
-        border-right: 1px solid #6f6f6f;
-        border-bottom: 1px solid #6f6f6f;
-        background: linear-gradient(#efefef, #dcdcdc);
-        padding: 0 7px;
       }
       .mobile-return:active {
         border-top: 1px solid #6f6f6f;
