@@ -882,6 +882,46 @@
       window.showLoadingUntilPageLoad = showLoadingUntilPageLoad;
       window.maybeStartPendingLoader = maybeStartPendingLoader;
 
+      var mediaOverlay = null;
+      var mediaOverlayImg = null;
+
+      function ensureMediaOverlay() {
+        if (mediaOverlay) return;
+        mediaOverlay = document.createElement("div");
+        mediaOverlay.className = "media-overlay";
+        mediaOverlay.setAttribute("aria-hidden", "true");
+
+        mediaOverlayImg = document.createElement("img");
+        mediaOverlayImg.className = "media-overlay-img";
+        mediaOverlayImg.alt = "";
+
+        mediaOverlay.appendChild(mediaOverlayImg);
+        document.body.appendChild(mediaOverlay);
+
+        mediaOverlay.addEventListener("click", function () {
+          closeMediaOverlay();
+        });
+      }
+
+      function openMediaOverlay(src, alt) {
+        var s = safeText(src);
+        if (!s) return;
+        ensureMediaOverlay();
+        if (mediaOverlayImg) {
+          mediaOverlayImg.src = s;
+          mediaOverlayImg.alt = alt || "";
+        }
+        mediaOverlay.classList.add("show");
+        mediaOverlay.setAttribute("aria-hidden", "false");
+      }
+
+      function closeMediaOverlay() {
+        if (!mediaOverlay) return;
+        mediaOverlay.classList.remove("show");
+        mediaOverlay.setAttribute("aria-hidden", "true");
+        if (mediaOverlayImg) mediaOverlayImg.removeAttribute("src");
+      }
+
       if (popupOverlay) {
         popupOverlay.addEventListener("mousedown", function (e) {
           if (e.target !== popupOverlay) return;
@@ -889,6 +929,15 @@
           if (activePopup && activePopup.closeOnBackdrop) closePopup(activePopup);
         });
       }
+
+      document.addEventListener("click", function (e) {
+        var target = e.target;
+        if (!target || !target.closest) return;
+        var img = target.closest(".popup-media img, .popup-artwork img");
+        if (!img) return;
+        if (mediaOverlay && mediaOverlay.contains(img)) return;
+        openMediaOverlay(img.currentSrc || img.src, img.alt || "");
+      });
 
       function openAboutPopup() {
         openPopup({
@@ -2376,12 +2425,12 @@
               }
               if (root) skipEl = root.querySelector(".np-skip");
 
-              function setActive(idx) {
+              function setActive(idx, shouldPlay) {
                 current = idx;
                 buttons.forEach(function (btn, i) { btn.classList.toggle("is-active", i === idx); });
                 if (audio) {
                   audio.src = trackList[idx].src;
-                  audio.play().catch(function () {});
+                  if (shouldPlay) audio.play().catch(function () {});
                 }
                 if (titleEl) titleEl.textContent = trackList[idx].name;
               }
@@ -2390,33 +2439,33 @@
                 btn.addEventListener("click", function () {
                   var idx = Number(btn.getAttribute("data-idx") || 0);
                   if (isNaN(idx)) return;
-                  setActive(idx);
+                  setActive(idx, true);
                 });
               });
 
               if (audio) {
                 audio.addEventListener("ended", function () {
                   var next = current + 1;
-                  if (next < trackList.length) setActive(next);
+                  if (next < trackList.length) setActive(next, true);
                 });
               }
 
-              setActive(0);
+              setActive(0, false);
               if (skipEl) skipEl.style.display = (trackList.length > 1) ? "inline-flex" : "none";
               function prevTrack() {
                 var prev = current - 1;
                 if (prev < 0) prev = trackList.length - 1;
-                setActive(prev);
+                setActive(prev, true);
               }
 
               function nextTrack() {
                 var next = current + 1;
                 if (next >= trackList.length) next = 0;
-                setActive(next);
+                setActive(next, true);
               }
 
               if (popup) popup.audioNav = { prev: prevTrack, next: nextTrack };
-              if (audio) cleanupPlayer = initNostalgiaPlayer(popup.bodyEl || root, audio, { autoPlay: true, onPrev: prevTrack, onNext: nextTrack });
+              if (audio) cleanupPlayer = initNostalgiaPlayer(popup.bodyEl || root, audio, { autoPlay: false, onPrev: prevTrack, onNext: nextTrack });
               return function () {
                 if (cleanupPlayer) cleanupPlayer();
                 if (popup && popup.audioNav) delete popup.audioNav;
