@@ -142,7 +142,7 @@
       background: #dfdfdf;
       border-top: 1px solid #fff;
       border-bottom: 1px solid #000;
-      box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 #6e6e6e;
+      box-shadow: inset 0 1px 0 #fff;
       font-size: 12px;
     }
 
@@ -369,6 +369,9 @@
     .popup-window {
       width: min(520px, calc(100vw - 40px));
       max-height: calc(100vh - 80px);
+      --popup-bar-bg: #dfdfdf;
+      --popup-bar-top-shadow: inset 0 1px 0 #fff;
+      --popup-bar-bottom-shadow: inset 0 -1px 0 #6e6e6e;
       background: #dfdfdf;
       border: 1px solid #000;
       box-shadow: 1px 1px 0 #6e6e6e, 2px 2px 0 #000;
@@ -384,10 +387,10 @@
       align-items: center;
       gap: 6px;
       padding: 0 6px;
-      background: #dfdfdf;
+      background: var(--popup-bar-bg);
       border-top: 1px solid #fff;
       border-bottom: 1px solid #000;
-      box-shadow: inset 0 1px 0 #fff, inset 0 -1px 0 #6e6e6e;
+      box-shadow: var(--popup-bar-top-shadow), var(--popup-bar-bottom-shadow);
       cursor: move;
     }
 
@@ -453,7 +456,6 @@
     }
 
     .popup-window.audio-popup .popup-actions {
-      background: #efefef;
       justify-content: center;
     }
 
@@ -464,8 +466,9 @@
 
     .popup-actions {
       padding: 6px 8px;
-      background: #efefef;
+      background: var(--popup-bar-bg);
       border-top: 1px solid #6e6e6e;
+      box-shadow: var(--popup-bar-top-shadow);
       display: flex;
       justify-content: center;
       align-items: center;
@@ -656,9 +659,9 @@
       align-items: center;
       padding: 1px 6px;
       box-sizing: border-box;
-      background: #dfdfdf;
+      background: var(--popup-bar-bg, #dfdfdf);
       border-bottom: 1px solid #000;
-      box-shadow: inset 0 1px 0 #fff;
+      box-shadow: var(--popup-bar-top-shadow, inset 0 1px 0 #fff);
       font-size: 10px;
     }
 
