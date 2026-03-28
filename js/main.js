@@ -816,7 +816,7 @@
         var fillId = "loaderFill_" + Math.random().toString(16).slice(2);
         var blocks = [];
         if (opts.icon !== null) {
-          blocks.push({ type: "image", src: opts.icon || assetPath("images/earth.webp"), alt: "", size: "sm" });
+          blocks.push({ type: "image", src: opts.icon || assetPath("assets/images/earth.webp"), alt: "", size: "sm" });
         }
         blocks.push({ type: "loader", id: fillId, label: opts.label || "Loading…", hint: opts.hint || "" });
 
@@ -1146,6 +1146,8 @@
           var name = ((el.querySelector("span") && el.querySelector("span").textContent) || "").trim();
           var href = el.getAttribute("href") || "";
           var kind = el.getAttribute("data-kind") || "folder";
+          // Hide items that should never appear in Find.
+          if (kind === "trash" || kind === "reset") return;
           var imgEl = el.querySelector("img");
           var iconSrc = (imgEl && (imgEl.getAttribute("src") || imgEl.src)) || "";
           if (!name) return;
@@ -1210,7 +1212,7 @@
 
       function loadGlobalIndex() {
         // Optional: create a search-index.json at site root.
-        // Format: {"_note":"...","items":[{"name":"J-Mac","kind":"folder","href":"pages/j-mac.html","icon":"icons/folder-160.png"}, ...]}
+        // Format: {"_note":"...","items":[{"name":"J-Mac","kind":"folder","href":"pages/j-mac.html","icon":"assets/icons/folder-160.png"}, ...]}
         try {
           if (!window.fetch) return;
           var indexPath = isSubpage() ? "../search-index.json" : "search-index.json";
@@ -2496,7 +2498,7 @@
                 headline: (icon.querySelector("span") ? icon.querySelector("span").textContent : "Folder"),
                 label: "Loading items…",
                 hint: "Reading folder contents…",
-                icon: assetPath("icons/folder-160.png")
+                icon: assetPath("assets/icons/folder-160.png")
               })
             );
           } catch (e) {}

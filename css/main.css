@@ -2,7 +2,7 @@
     /* ---------- Fonts ---------- */
     @font-face {
       font-family: "Chicago";
-      src: url("../fonts/pixChicago.woff2") format("woff2");
+      src: url("../assets/fonts/pixChicago.woff2") format("woff2");
       font-weight: normal;
       font-style: normal;
     }
@@ -187,7 +187,11 @@
     .album-track:hover:not(:active),
     .search-result:hover:not(:active),
     .mobile-return:hover:not(:active) {
-      opacity: 0.7;
+      opacity: 0.6;
+    }
+    .taskbar button:hover:not(:active):not([disabled]),
+    .taskbar .menu-item:hover:not(:active) {
+      opacity: 1;
     }
     .taskbar .menu-item,
     .taskbar .menu-item .taskbar-label {

@@ -5,61 +5,43 @@
       "name": "J-Mac",
       "kind": "folder",
       "href": "pages/j-mac.html",
-      "icon": "icons/folder-160.png"
-    },
-    {
-      "name": "1999 Worldwide",
-      "kind": "folder",
-      "href": "pages/1999-worldwide.html",
-      "icon": "icons/folder-160.png"
+      "icon": "assets/icons/folder icon-2.png"
     },
     {
       "name": "Virgil.txt",
-      "kind": "file",
+      "kind": "text",
       "href": "index.html",
-      "icon": "icons/txt.png"
-    },
-    {
-      "name": "Nike.jpg",
-      "kind": "file",
-      "href": "index.html",
-      "icon": "images/nike.jpg"
+      "icon": "assets/icons/txt.png"
     },
     {
       "name": "logo.gif",
       "kind": "file",
       "href": "pages/1999-worldwide.html",
-      "icon": "images/logo.gif"
-    },
-    {
-      "name": "earth.gif",
-      "kind": "file",
-      "href": "index.html",
-      "icon": "images/internet-planet-earth.gif"
-    },
-    {
-      "name": "Reset",
-      "kind": "file",
-      "href": "index.html",
-      "icon": "icons/redbutton.png"
-    },
-    {
-      "name": "LV.png",
-      "kind": "file",
-      "href": "index.html",
-      "icon": "images/LV.png"
+      "icon": "assets/images/logo.gif"
     },
     {
       "name": "The Prelude",
-      "kind": "file",
+      "kind": "music",
       "href": "pages/j-mac.html",
-      "icon": "icons/cd.png"
+      "icon": "assets/icons/cd.png"
     },
     {
-      "name": "notes.txt",
-      "kind": "file",
+      "name": "I Want U.mp3",
+      "kind": "audio",
       "href": "pages/j-mac.html",
-      "icon": "icons/txt.png"
+      "icon": "assets/icons/cd.png"
+    },
+    {
+      "name": "Some Singles",
+      "kind": "album",
+      "href": "pages/j-mac.html",
+      "icon": "assets/icons/cd.png"
+    },
+    {
+      "name": "1999 Worldwide",
+      "kind": "folder",
+      "href": "pages/1999-worldwide.html",
+      "icon": "assets/icons/folder icon-2.png"
     }
   ]
 }
