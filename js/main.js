@@ -1615,21 +1615,25 @@
         if (e.key !== "Enter") return;
 
         var t = e.target;
-        var isSearchField = (t === searchInput);
-        if (t && !isSearchField) {
-          var tag = (t.tagName || "").toUpperCase();
-          if (t.isContentEditable || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") return;
-        }
-
         // If popup is open, close only the active one.
         var hasAnyPopups = popupOrder && popupOrder.length > 0;
         if (hasAnyPopups) {
+          if (t) {
+            var tag = (t.tagName || "").toUpperCase();
+            if (t.isContentEditable || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+          }
           var activePopup = getActivePopup();
           if (activePopup) {
             e.preventDefault();
             closePopup(activePopup);
           }
           return;
+        }
+
+        var isSearchField = (t === searchInput);
+        if (t && !isSearchField) {
+          var tag = (t.tagName || "").toUpperCase();
+          if (t.isContentEditable || tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || tag === "BUTTON") return;
         }
 
         // If Find is open, Enter activates the selected row.
@@ -2393,7 +2397,9 @@
                     "<button type=\"button\" class=\"np-btn np-next\" aria-label=\"Next\"></button>" +
                   "</div>" +
                 "</div>" +
-                (trackList.length > 1 ? "<div class=\"album-tracklist\">" + listHtml + "</div>" : "") +
+                (trackList.length > 1
+                  ? "<div class=\"album-tracklist\">" + listHtml + "</div>"
+                  : "") +
               "</div>" +
             "</div>";
 
