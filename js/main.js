@@ -1376,10 +1376,31 @@
           if (typeof opts.onNext === "function") opts.onNext();
         }
 
+        function getToggleState() {
+          if (!toggleBtn) return "off";
+          var state = toggleBtn.getAttribute("data-state");
+          if (state === "autoplay" || state === "replay" || state === "off") return state;
+          if (toggleBtn.classList.contains("is-replay")) return "replay";
+          if (toggleBtn.classList.contains("is-on") || toggleBtn.getAttribute("aria-pressed") === "true") return "autoplay";
+          return "off";
+        }
+
+        function applyToggleState(state) {
+          if (!toggleBtn) return;
+          var next = (state === "autoplay" || state === "replay") ? state : "off";
+          toggleBtn.classList.toggle("is-on", next === "autoplay");
+          toggleBtn.classList.toggle("is-replay", next === "replay");
+          toggleBtn.setAttribute("data-state", next);
+          toggleBtn.setAttribute("aria-pressed", next === "off" ? "false" : "true");
+          toggleBtn.setAttribute("aria-label", next === "autoplay" ? "Autoplay on" : (next === "replay" ? "Replay on" : "Autoplay off"));
+        }
+
         function onToggleClick() {
           if (!toggleBtn) return;
-          var isOn = toggleBtn.classList.toggle("is-on");
-          toggleBtn.setAttribute("aria-pressed", isOn ? "true" : "false");
+          var cur = getToggleState();
+          var next = (cur === "off") ? "autoplay" : (cur === "autoplay" ? "replay" : "off");
+          applyToggleState(next);
+          if (typeof opts.onToggle === "function") opts.onToggle(next);
         }
 
         if (playBtn) playBtn.addEventListener("click", onPlayClick);
@@ -1387,6 +1408,11 @@
         if (prevBtn) prevBtn.addEventListener("click", onPrevClick);
         if (nextBtn) nextBtn.addEventListener("click", onNextClick);
         if (toggleBtn) toggleBtn.addEventListener("click", onToggleClick);
+        if (toggleBtn && typeof opts.initialToggleState === "string") {
+          applyToggleState(opts.initialToggleState);
+        } else if (toggleBtn) {
+          applyToggleState(getToggleState());
+        }
 
         function onPlay() { setPlayState(true); setMediaSessionPlaybackState("playing"); }
         function onPause() { setPlayState(false); setMediaSessionPlaybackState("paused"); }
@@ -2744,6 +2770,7 @@
               var cleanupPlayer = null;
               var titleEl = popup.el.querySelector(".np-title");
               var toggleBtn = root.querySelector(".np-toggle-btn");
+              var AUTOPLAY_KEY = "prtf_nostalgia_autoplay_v1";
               var skipEl = null;
               var bodyWrap = null;
               if (popup.bodyEl) {
@@ -2787,19 +2814,51 @@
                 });
               });
 
+              function getToggleState() {
+                if (!toggleBtn) return "off";
+                var state = toggleBtn.getAttribute("data-state");
+                if (state === "autoplay" || state === "replay" || state === "off") return state;
+                if (toggleBtn.classList.contains("is-replay")) return "replay";
+                if (toggleBtn.classList.contains("is-on") || toggleBtn.getAttribute("aria-pressed") === "true") return "autoplay";
+                return "off";
+              }
+
               function isAutoplayOn() {
-                return !!(toggleBtn && (toggleBtn.classList.contains("is-on") || toggleBtn.getAttribute("aria-pressed") === "true"));
+                return getToggleState() === "autoplay";
+              }
+
+              function isReplayOn() {
+                return getToggleState() === "replay";
+              }
+
+              function readAutoplayPref() {
+                try {
+                  var raw = localStorage.getItem(AUTOPLAY_KEY);
+                  if (raw === "autoplay" || raw === "replay" || raw === "off") return raw;
+                } catch (e) {}
+                return "off";
+              }
+
+              function writeAutoplayPref(state) {
+                try { localStorage.setItem(AUTOPLAY_KEY, state); } catch (e) {}
               }
 
               if (audio) {
                 audio.addEventListener("ended", function () {
-                  if (!isAutoplayOn()) return;
-                  var next = current + 1;
-                  if (next < trackList.length) setActive(next, true);
+                  if (isReplayOn()) {
+                    audio.currentTime = 0;
+                    audio.play().catch(function () {});
+                    return;
+                  }
+                  if (isAutoplayOn()) {
+                    var next = current + 1;
+                    if (next < trackList.length) setActive(next, true);
+                  }
                 });
               }
 
-              setActive(0, false);
+              var autoplayPref = readAutoplayPref();
+              setActive(0, autoplayPref === "autoplay" || autoplayPref === "replay");
               if (skipEl) skipEl.style.display = (trackList.length > 1) ? "inline-flex" : "none";
               function prevTrack() {
                 var prev = current - 1;
@@ -2814,7 +2873,16 @@
               }
 
               if (popup) popup.audioNav = { prev: prevTrack, next: nextTrack };
-              if (audio) cleanupPlayer = initNostalgiaPlayer(popup.bodyEl || root, audio, { autoPlay: false, onPrev: prevTrack, onNext: nextTrack });
+              if (audio) cleanupPlayer = initNostalgiaPlayer(popup.bodyEl || root, audio, {
+                autoPlay: false,
+                onPrev: prevTrack,
+                onNext: nextTrack,
+                initialToggleState: autoplayPref,
+                onToggle: function (state) {
+                  writeAutoplayPref(state);
+                  if ((state === "autoplay" || state === "replay") && audio.paused) audio.play().catch(function () {});
+                }
+              });
               return function () {
                 if (cleanupPlayer) cleanupPlayer();
                 if (popup && popup.audioNav) delete popup.audioNav;

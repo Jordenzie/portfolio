@@ -995,6 +995,25 @@
       opacity: 1 !important;
     }
 
+    .np-toggle-btn.is-replay {
+      background: #b99ad8;
+      border-top: 1px solid #5d3a83;
+      border-left: 1px solid #5d3a83;
+      border-right: 1px solid #fff;
+      border-bottom: 1px solid #fff;
+      box-shadow: inset 1px 1px 0 #5d3a83, inset -1px -1px 0 #fff;
+    }
+
+    .np-toggle-btn.is-replay::before {
+      margin-left: 1px;
+      transform: none;
+      border-left-color: #2c153f;
+    }
+
+    .np-toggle-btn.is-replay:hover {
+      opacity: 1 !important;
+    }
+
     .np-toggle-btn:active {
       background: #cfe0b7;
       border-top: 1px solid #5f7b49;
