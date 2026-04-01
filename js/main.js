@@ -68,6 +68,82 @@
         if (s.indexOf("../") === 0) return s.slice(3);
         return s;
       }
+      var _supportsWebp = null;
+      function supportsWebp() {
+        if (_supportsWebp !== null) return _supportsWebp;
+        try {
+          var c = document.createElement("canvas");
+          if (!c.getContext) return (_supportsWebp = false);
+          _supportsWebp = c.toDataURL("image/webp").indexOf("data:image/webp") === 0;
+        } catch (e) {
+          _supportsWebp = false;
+        }
+        return _supportsWebp;
+      }
+      function resolveArtworkSrc(src) {
+        var s = safeText(src);
+        if (!s) return "";
+        if (supportsWebp()) {
+          if (/\.(png|jpe?g)(\?.*)?$/i.test(s)) {
+            return s.replace(/\.(png|jpe?g)(\?.*)?$/i, ".webp$2");
+          }
+        }
+        return s;
+      }
+      function isLocalImageSrc(src) {
+        if (!src) return false;
+        return !/^(https?:|data:|blob:)/i.test(src);
+      }
+      function toWebpSrc(src) {
+        if (!src || !supportsWebp()) return src;
+        if (!/\.(png|jpe?g)(\?.*)?$/i.test(src)) return src;
+        return src.replace(/\.(png|jpe?g)(\?.*)?$/i, ".webp$2");
+      }
+      function swapImgToWebp(img) {
+        if (!img || !img.getAttribute) return;
+        if (img.dataset && img.dataset.webpDone === "1") return;
+        var src = img.getAttribute("src") || "";
+        if (!src || !isLocalImageSrc(src)) return;
+        if (!supportsWebp()) return;
+        if (!/\.(png|jpe?g)(\?.*)?$/i.test(src)) return;
+        var webp = toWebpSrc(src);
+        if (!webp || webp === src) return;
+        if (img.dataset) {
+          img.dataset.webpDone = "1";
+          if (!img.dataset.webpFallback) img.dataset.webpFallback = src;
+        }
+        img.addEventListener("error", function onErr() {
+          if ((img.getAttribute("src") || "") === webp) {
+            img.removeEventListener("error", onErr);
+            img.setAttribute("src", src);
+          }
+        });
+        img.setAttribute("src", webp);
+      }
+      function initWebpImages() {
+        if (!supportsWebp()) return;
+        try {
+          document.querySelectorAll("img[src]").forEach(function (img) {
+            swapImgToWebp(img);
+          });
+        } catch (e) {}
+        if (!window.MutationObserver) return;
+        try {
+          var obs = new MutationObserver(function (muts) {
+            muts.forEach(function (m) {
+              Array.prototype.slice.call(m.addedNodes || []).forEach(function (node) {
+                if (!node) return;
+                if (node.tagName && node.tagName.toUpperCase() === "IMG") {
+                  swapImgToWebp(node);
+                } else if (node.querySelectorAll) {
+                  node.querySelectorAll("img[src]").forEach(function (img) { swapImgToWebp(img); });
+                }
+              });
+            });
+          });
+          obs.observe(document.documentElement || document.body, { childList: true, subtree: true });
+        } catch (e) {}
+      }
       var preloadedImages = Object.create(null);
       function prefetchImage(src) {
         var s = safeText(src);
@@ -85,6 +161,11 @@
       var clickSoundIndex = 0;
       var CLICK_SOUND_KEY = "prtf_click_sound_enabled";
       var clickSoundEnabled = true;
+      var clickSoundSrc = null;
+      var clickSoundCtx = null;
+      var clickSoundBuffer = null;
+      var clickSoundLoading = false;
+      var clickSoundPrimed = false;
       try {
         var clickRaw = localStorage.getItem(CLICK_SOUND_KEY);
         if (clickRaw === "0") clickSoundEnabled = false;
@@ -96,9 +177,53 @@
       function toggleClickSoundEnabled() {
         setClickSoundEnabled(!clickSoundEnabled);
       }
+      function ensureClickSoundContext() {
+        if (clickSoundCtx) return clickSoundCtx;
+        var Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!Ctx) return null;
+        try {
+          clickSoundCtx = new Ctx();
+        } catch (e) {
+          clickSoundCtx = null;
+        }
+        return clickSoundCtx;
+      }
+      function loadClickSoundBuffer() {
+        if (clickSoundLoading || clickSoundBuffer) return;
+        var ctx = ensureClickSoundContext();
+        if (!ctx) return;
+        clickSoundLoading = true;
+        var src = clickSoundSrc || assetPath("assets/audio/mouse click.mp3");
+        clickSoundSrc = src;
+        try {
+          fetch(src)
+            .then(function (r) { return r.ok ? r.arrayBuffer() : null; })
+            .then(function (buf) {
+              if (!buf) return;
+              return ctx.decodeAudioData(buf);
+            })
+            .then(function (decoded) {
+              if (decoded) clickSoundBuffer = decoded;
+            })
+            .catch(function () {})
+            .finally(function () { clickSoundLoading = false; });
+        } catch (e) {
+          clickSoundLoading = false;
+        }
+      }
+      function primeClickSound() {
+        if (clickSoundPrimed) return;
+        clickSoundPrimed = true;
+        var ctx = ensureClickSoundContext();
+        if (ctx && ctx.state === "suspended") {
+          ctx.resume().catch(function () {});
+        }
+        loadClickSoundBuffer();
+      }
       function getClickSound() {
         if (!clickSoundPool.length) {
           var src = assetPath("assets/audio/mouse click.mp3");
+          clickSoundSrc = src;
           for (var i = 0; i < 4; i++) {
             var a = new Audio();
             a.preload = "auto";
@@ -111,8 +236,28 @@
         clickSoundIndex = (clickSoundIndex + 1) % clickSoundPool.length;
         return audio;
       }
+      function playClickSoundFast() {
+        var ctx = ensureClickSoundContext();
+        if (!ctx || !clickSoundBuffer) return false;
+        try {
+          if (ctx.state === "suspended") {
+            ctx.resume().catch(function () {});
+          }
+          var source = ctx.createBufferSource();
+          source.buffer = clickSoundBuffer;
+          var gain = ctx.createGain();
+          gain.gain.value = 0.6;
+          source.connect(gain);
+          gain.connect(ctx.destination);
+          source.start(0);
+          return true;
+        } catch (e) {
+          return false;
+        }
+      }
       function playButtonClickSound() {
         if (!clickSoundEnabled) return;
+        if (playClickSoundFast()) return;
         var audio = getClickSound();
         try {
           audio.currentTime = 0;
@@ -142,6 +287,12 @@
       var searchInput = $("searchInput");
       var searchResultsEl = $("searchResults");
       var clockEl = $("menubarClock");
+
+      initWebpImages();
+
+      document.addEventListener("pointerdown", primeClickSound, { once: true, capture: true });
+      document.addEventListener("touchstart", primeClickSound, { once: true, capture: true, passive: true });
+      document.addEventListener("keydown", primeClickSound, { once: true, capture: true });
 
       document.addEventListener("click", function (e) {
         if (!e || !e.target || !e.target.closest) return;
@@ -2403,7 +2554,7 @@
       function getArtworkFromIcon(icon) {
         if (!icon) return "";
         var artwork = icon.getAttribute("data-artwork") || "";
-        return artwork ? normalizeIconPath(artwork) : "";
+        return artwork ? resolveArtworkSrc(normalizeIconPath(artwork)) : "";
       }
 
       function prewarmAudioIcon(icon) {
@@ -2436,7 +2587,7 @@
         var dataArtwork = icon.getAttribute("data-artwork") || "";
         var dataArtist = icon.getAttribute("data-artist") || "";
         if (kind === "audio" || kind === "album") {
-          var warmArtwork = dataArtwork ? normalizeIconPath(dataArtwork) : "";
+          var warmArtwork = dataArtwork ? resolveArtworkSrc(normalizeIconPath(dataArtwork)) : "";
           if (warmArtwork) prefetchImage(warmArtwork);
         }
 
@@ -2518,7 +2669,7 @@
           var albumTitle = dataTitle || name || "Album";
           var albumArtist = safeText(dataArtist).trim();
           var tracksRaw = safeText(dataTracks).trim();
-          var albumArtwork = dataArtwork ? normalizeIconPath(dataArtwork) : "";
+          var albumArtwork = dataArtwork ? resolveArtworkSrc(normalizeIconPath(dataArtwork)) : "";
           if (!tracksRaw) {
             openPopup({
               title: albumTitle,
@@ -2554,7 +2705,7 @@
                 ? "<div class=\"popup-artwork\"><img src=\"" + escHtml(albumArtwork) + "\" alt=\"\" loading=\"eager\" decoding=\"async\" fetchpriority=\"high\" /></div>"
                 : "<div class=\"popup-artwork placeholder\"><div class=\"popup-artwork-text\">No Artwork Available</div></div>") +
               "<div class=\"popup-embed-body popup-audio\" id=\"" + albumId + "\">" +
-                "<audio preload=\"metadata\"></audio>" +
+                "<audio preload=\"auto\"></audio>" +
                 "<div class=\"nostalgia-player\">" +
                   "<div class=\"np-top\">" +
                     "<div class=\"np-time\">0:00 / 0:00</div>" +
@@ -2618,6 +2769,7 @@
                 buttons.forEach(function (btn, i) { btn.classList.toggle("is-active", i === idx); });
                 if (audio) {
                   audio.src = trackList[idx].src;
+                  try { audio.load(); } catch (e) {}
                   if (shouldPlay) audio.play().catch(function () {});
                 }
                 if (titleEl) titleEl.textContent = trackList[idx].name;

@@ -1,0 +1,8 @@
+{
+  "name": "portfolio",
+  "private": true,
+  "scripts": {
+    "images:build": "python3 scripts/optimize-images.py",
+    "images:watch": "python3 scripts/optimize-images.py --watch"
+  }
+}
