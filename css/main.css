@@ -486,10 +486,12 @@
       flex: 1;
       border-top: 0;
       box-shadow: none;
+      scrollbar-gutter: auto;
+      scrollbar-width: none;
     }
 
     .popup-window.audio-popup .popup-body {
-      background: #dfdfdf;
+      background: #efefef;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -520,6 +522,36 @@
       flex: 1 1 auto;
       overflow: auto;
       min-height: 0;
+      background: #efefef;
+      scrollbar-gutter: auto;
+      scrollbar-width: none;
+    }
+
+    /* Nostalgic scrollbar styling for popup scroll areas */
+    .popup-body,
+    .popup-window.audio-popup .popup-content {
+      scrollbar-color: auto;
+    }
+
+    .popup-body::-webkit-scrollbar,
+    .popup-window.audio-popup .popup-content::-webkit-scrollbar {
+      width: 0;
+      height: 0;
+    }
+
+    .popup-body::-webkit-scrollbar-track,
+    .popup-window.audio-popup .popup-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .popup-body::-webkit-scrollbar-thumb,
+    .popup-window.audio-popup .popup-content::-webkit-scrollbar-thumb {
+      background: transparent;
+    }
+
+    .popup-body::-webkit-scrollbar-thumb:hover,
+    .popup-window.audio-popup .popup-content::-webkit-scrollbar-thumb:hover {
+      background: transparent;
     }
 
     .popup-window.audio-popup .popup-body > .popup-audio-actions {
@@ -722,6 +754,19 @@
       font-size: 10px;
     }
 
+    .popup-window.audio-popup .popup-embed-bar {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 2;
+      box-shadow: var(--popup-bar-top-shadow), var(--popup-bar-bottom-shadow);
+    }
+
+    .popup-window.audio-popup .popup-embed-body {
+      padding-top: 20px;
+    }
+
     .popup-embed-bar,
     .popup-embed-bar * {
       font-size: 9px;
@@ -753,7 +798,7 @@
       gap: 6px;
       padding: 6px 6px 8px;
       background: #efefef;
-      border-top: 1px solid #6e6e6e;
+      border-top: 0;
       box-shadow: inset 0 1px 0 #fff;
     }
 
