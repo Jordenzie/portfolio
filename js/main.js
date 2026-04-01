@@ -2507,6 +2507,7 @@
               var current = 0;
               var cleanupPlayer = null;
               var titleEl = popup.el.querySelector(".np-title");
+              var toggleBtn = root.querySelector(".np-toggle-btn");
               var skipEl = null;
               var bodyWrap = null;
               if (popup.bodyEl) {
@@ -2549,8 +2550,13 @@
                 });
               });
 
+              function isAutoplayOn() {
+                return !!(toggleBtn && (toggleBtn.classList.contains("is-on") || toggleBtn.getAttribute("aria-pressed") === "true"));
+              }
+
               if (audio) {
                 audio.addEventListener("ended", function () {
+                  if (!isAutoplayOn()) return;
                   var next = current + 1;
                   if (next < trackList.length) setActive(next, true);
                 });
