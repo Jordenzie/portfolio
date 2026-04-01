@@ -96,7 +96,6 @@
       var activePopupId = null;
       var popupZ = 3005;
       var popupSeq = 0;
-      var standardAudioPopupSize = null;
 
       function renderPopupContent(content) {
         var wrap = document.createElement("div");
@@ -246,38 +245,6 @@
         popup.el.style.zIndex = String(++popupZ);
       }
 
-      function applyStandardAudioPopupSize(popup) {
-        if (!standardAudioPopupSize || !popup || !popup.el) return;
-        if (!popup.el.classList.contains("audio-popup")) return;
-        if (popup.el.classList.contains("audio-single")) return;
-        var maxW = Math.max(260, window.innerWidth - 40);
-        var maxH = Math.max(260, window.innerHeight - 80);
-        var w = Math.min(standardAudioPopupSize.width, maxW);
-        var h = Math.min(standardAudioPopupSize.height, maxH);
-        popup.el.style.width = w + "px";
-        popup.el.style.height = h + "px";
-      }
-
-      function applyStandardAudioPopupSizeToAll() {
-        if (!standardAudioPopupSize) return;
-        popupOrder.forEach(function (id) {
-          var p = popupRegistry[id];
-          if (p && p.el && p.el.classList.contains("audio-popup")) {
-            applyStandardAudioPopupSize(p);
-          }
-        });
-      }
-
-      function captureStandardAudioPopupSizeFrom(popup) {
-        if (!popup || !popup.el) return;
-        var rect = popup.el.getBoundingClientRect();
-        if (!rect.width || !rect.height) return;
-        standardAudioPopupSize = {
-          width: Math.round(rect.width),
-          height: Math.round(rect.height)
-        };
-        applyStandardAudioPopupSizeToAll();
-      }
 
       function addPopupTimer(popup, kind, id) {
         if (!popup) return;
@@ -1841,7 +1808,6 @@
 
       window.addEventListener("resize", function () {
         if (searchBarEl && searchBarEl.style.display === "flex") positionSearchBar();
-        if (standardAudioPopupSize) applyStandardAudioPopupSizeToAll();
       });
 
       (function initClock() {
@@ -2449,21 +2415,6 @@
             ],
             onOpen: function (popup) {
               if (!popup || !popup.el) return;
-              applyStandardAudioPopupSize(popup);
-              var standardKey = String(albumTitle || "").trim().toLowerCase();
-              var shouldCaptureStandard = (standardKey === "some singles");
-              if (shouldCaptureStandard && !standardAudioPopupSize) {
-                var artworkImg = popup.el.querySelector(".popup-artwork img");
-                var captureOnce = function () {
-                  if (standardAudioPopupSize) return;
-                  captureStandardAudioPopupSizeFrom(popup);
-                };
-                if (artworkImg && !artworkImg.complete) {
-                  artworkImg.addEventListener("load", function () { setTimeout(captureOnce, 0); }, { once: true });
-                } else {
-                  setTimeout(captureOnce, 0);
-                }
-              }
               var root = popup.el.querySelector("#" + albumId);
               if (!root) return;
               var audio = root.querySelector("audio");
