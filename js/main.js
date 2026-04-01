@@ -81,6 +81,60 @@
         } catch (e) {}
       }
 
+      var clickSoundPool = [];
+      var clickSoundIndex = 0;
+      var CLICK_SOUND_KEY = "prtf_click_sound_enabled";
+      var clickSoundEnabled = true;
+      try {
+        var clickRaw = localStorage.getItem(CLICK_SOUND_KEY);
+        if (clickRaw === "0") clickSoundEnabled = false;
+      } catch (e) {}
+      function setClickSoundEnabled(enabled) {
+        clickSoundEnabled = !!enabled;
+        try { localStorage.setItem(CLICK_SOUND_KEY, clickSoundEnabled ? "1" : "0"); } catch (e) {}
+      }
+      function toggleClickSoundEnabled() {
+        setClickSoundEnabled(!clickSoundEnabled);
+      }
+      function getClickSound() {
+        if (!clickSoundPool.length) {
+          var src = assetPath("assets/audio/mouse click.mp3");
+          for (var i = 0; i < 4; i++) {
+            var a = new Audio();
+            a.preload = "auto";
+            a.src = src;
+            a.volume = 0.6;
+            clickSoundPool.push(a);
+          }
+        }
+        var audio = clickSoundPool[clickSoundIndex];
+        clickSoundIndex = (clickSoundIndex + 1) % clickSoundPool.length;
+        return audio;
+      }
+      function playButtonClickSound() {
+        if (!clickSoundEnabled) return;
+        var audio = getClickSound();
+        try {
+          audio.currentTime = 0;
+          var p = audio.play();
+          if (p && typeof p.catch === "function") p.catch(function () {});
+        } catch (e) {}
+      }
+      var welcomeEnterAudio = null;
+      function playWelcomeEnterSound() {
+        if (!welcomeEnterAudio) {
+          welcomeEnterAudio = new Audio();
+          welcomeEnterAudio.preload = "auto";
+          welcomeEnterAudio.src = assetPath("assets/audio/Mac start up sound.mp3");
+          welcomeEnterAudio.volume = 0.8;
+        }
+        try {
+          welcomeEnterAudio.currentTime = 0;
+          var p = welcomeEnterAudio.play();
+          if (p && typeof p.catch === "function") p.catch(function () {});
+        } catch (e) {}
+      }
+
       var aboutBtn = $("aboutBtn");
       var desktopEl = $("desktop");
       var findBtn = $("findBtn");
@@ -88,6 +142,15 @@
       var searchInput = $("searchInput");
       var searchResultsEl = $("searchResults");
       var clockEl = $("menubarClock");
+
+      document.addEventListener("click", function (e) {
+        if (!e || !e.target || !e.target.closest) return;
+        var btn = e.target.closest("button, input[type='button'], input[type='submit'], input[type='reset'], [role='button']");
+        if (!btn) return;
+        if (btn.disabled || btn.getAttribute("aria-disabled") === "true") return;
+        if (btn.getAttribute("data-click-sound") === "off") return;
+        playButtonClickSound();
+      }, true);
 
       var popupOverlay = $("popupOverlay");
       var popupRegistry = Object.create(null);
@@ -417,7 +480,13 @@
 
         win.addEventListener("mousedown", function () { focusPopup(popup); });
         closeBtn.addEventListener("click", function (e) { e.stopPropagation(); closePopup(popup); });
-        okBtn.addEventListener("click", function (e) { e.stopPropagation(); closePopup(popup); });
+        okBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
+          if (popup.el && popup.el.classList && popup.el.classList.contains("welcome-popup")) {
+            playWelcomeEnterSound();
+          }
+          closePopup(popup);
+        });
 
         popupOverlay.appendChild(win);
         popupRegistry[popup.id] = popup;
@@ -1708,6 +1777,9 @@
           var activePopup = getActivePopup();
           if (activePopup) {
             e.preventDefault();
+            if (activePopup.el && activePopup.el.classList && activePopup.el.classList.contains("welcome-popup")) {
+              playWelcomeEnterSound();
+            }
             closePopup(activePopup);
           }
           return;
@@ -1816,6 +1888,16 @@
           }
           if (cmd === "snake") {
             startSnakeGame();
+            if (searchInput) searchInput.value = "";
+            if (searchResultsEl) {
+              searchResultsEl.innerHTML = "";
+              searchResultsEl.style.display = "none";
+            }
+            hideSearch();
+            return;
+          }
+          if (cmd === "click") {
+            toggleClickSoundEnabled();
             if (searchInput) searchInput.value = "";
             if (searchResultsEl) {
               searchResultsEl.innerHTML = "";
