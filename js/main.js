@@ -1027,6 +1027,77 @@
         return m + ":" + (s < 10 ? "0" + s : "" + s);
       }
 
+      function canUseMediaSession() {
+        return typeof navigator !== "undefined" && "mediaSession" in navigator;
+      }
+
+      function buildArtworkSet(url) {
+        if (!url) return [];
+        var sizes = [96, 128, 192, 256, 384, 512];
+        return sizes.map(function (s) {
+          return { src: url, sizes: s + "x" + s };
+        });
+      }
+
+      function setMediaSessionMetadata(meta) {
+        if (!canUseMediaSession() || !meta) return;
+        try {
+          var md = {};
+          if (meta.title) md.title = meta.title;
+          if (meta.artist) md.artist = meta.artist;
+          if (meta.album) md.album = meta.album;
+          var artwork = buildArtworkSet(meta.artwork);
+          if (artwork.length) md.artwork = artwork;
+          navigator.mediaSession.metadata = new MediaMetadata(md);
+        } catch (e) {}
+      }
+
+      function setMediaSessionPlaybackState(state) {
+        if (!canUseMediaSession()) return;
+        try { navigator.mediaSession.playbackState = state; } catch (e) {}
+      }
+
+      function updateMediaSessionPosition(audio) {
+        if (!canUseMediaSession()) return;
+        if (!audio || typeof navigator.mediaSession.setPositionState !== "function") return;
+        if (!isFinite(audio.duration) || audio.duration <= 0) return;
+        try {
+          navigator.mediaSession.setPositionState({
+            duration: audio.duration,
+            playbackRate: audio.playbackRate || 1,
+            position: audio.currentTime || 0
+          });
+        } catch (e) {}
+      }
+
+      function bindMediaSessionActions(audio, opts) {
+        if (!canUseMediaSession() || !audio) return;
+        opts = opts || {};
+        var ms = navigator.mediaSession;
+        function safeSet(action, handler) {
+          try { ms.setActionHandler(action, handler); } catch (e) {}
+        }
+        safeSet("play", function () { audio.play().catch(function () {}); });
+        safeSet("pause", function () { audio.pause(); });
+        safeSet("stop", function () { audio.pause(); audio.currentTime = 0; });
+        safeSet("seekto", function (details) {
+          if (details && isFinite(details.seekTime)) audio.currentTime = details.seekTime;
+        });
+        safeSet("seekbackward", function (details) {
+          var offset = (details && details.seekOffset) || 10;
+          audio.currentTime = Math.max(0, (audio.currentTime || 0) - offset);
+        });
+        safeSet("seekforward", function (details) {
+          var offset = (details && details.seekOffset) || 10;
+          var dur = audio.duration || 0;
+          if (dur > 0) audio.currentTime = Math.min(dur, (audio.currentTime || 0) + offset);
+        });
+        if (typeof opts.onPrev === "function") safeSet("previoustrack", function () { opts.onPrev(); });
+        else safeSet("previoustrack", null);
+        if (typeof opts.onNext === "function") safeSet("nexttrack", function () { opts.onNext(); });
+        else safeSet("nexttrack", null);
+      }
+
       function initNostalgiaPlayer(root, audio, opts) {
         if (!root || !audio) return function () {};
         opts = opts || {};
@@ -1086,10 +1157,10 @@
         if (prevBtn) prevBtn.addEventListener("click", onPrevClick);
         if (nextBtn) nextBtn.addEventListener("click", onNextClick);
 
-        function onPlay() { setPlayState(true); }
-        function onPause() { setPlayState(false); }
-        function onTime() { updateTime(); }
-        function onLoaded() { updateTime(); }
+        function onPlay() { setPlayState(true); setMediaSessionPlaybackState("playing"); }
+        function onPause() { setPlayState(false); setMediaSessionPlaybackState("paused"); }
+        function onTime() { updateTime(); updateMediaSessionPosition(audio); }
+        function onLoaded() { updateTime(); updateMediaSessionPosition(audio); }
 
         audio.addEventListener("play", onPlay);
         audio.addEventListener("pause", onPause);
@@ -1098,6 +1169,8 @@
 
         audio.volume = 1;
         if (opts.titleText) setTitle(opts.titleText);
+        if (opts.mediaMeta) setMediaSessionMetadata(opts.mediaMeta);
+        bindMediaSessionActions(audio, opts);
         if (opts.autoPlay) {
           audio.play().catch(function () {});
         }
@@ -2436,6 +2509,14 @@
               }
               if (root) skipEl = root.querySelector(".np-skip");
 
+              function updateMediaSessionForIdx(idx) {
+                setMediaSessionMetadata({
+                  title: trackList[idx].name,
+                  album: albumTitle,
+                  artwork: albumArtwork
+                });
+              }
+
               function setActive(idx, shouldPlay) {
                 current = idx;
                 buttons.forEach(function (btn, i) { btn.classList.toggle("is-active", i === idx); });
@@ -2444,6 +2525,7 @@
                   if (shouldPlay) audio.play().catch(function () {});
                 }
                 if (titleEl) titleEl.textContent = trackList[idx].name;
+                updateMediaSessionForIdx(idx);
               }
 
               buttons.forEach(function (btn) {
