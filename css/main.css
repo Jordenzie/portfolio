@@ -492,7 +492,7 @@
       background: #dfdfdf;
       display: flex;
       flex-direction: column;
-      overflow: auto;
+      overflow: hidden;
       position: relative;
     }
 
@@ -516,13 +516,18 @@
       gap: 8px;
     }
 
+    .popup-window.audio-popup .popup-content {
+      flex: 1 1 auto;
+      overflow: auto;
+      min-height: 0;
+    }
+
     .popup-window.audio-popup .popup-body > .popup-audio-actions {
-      margin-top: auto;
-      padding: 0px 8px 0px;
+      margin-top: 0;
+      flex: 0 0 auto;
+      padding: 0;
       border-top: 1px solid #6e6e6e;
       background: #efefef;
-      position: sticky;
-      bottom: 0;
       z-index: 3;
     }
 
@@ -752,6 +757,14 @@
       box-shadow: inset 0 1px 0 #fff;
     }
 
+    .popup-window.audio-popup .popup-body > .popup-audio-actions .nostalgia-player {
+      background: #dfdfdf;
+      padding-left: 8px;
+      padding-right: 8px;
+      padding-bottom: 0;
+    }
+
+
     .np-btn {
       width: 24px;
       height: 24px;
@@ -806,7 +819,7 @@
       justify-content: space-between;
       gap: 0;
       width: calc(100% + 32px);
-      margin: 0 -16px -6px -16px;
+      margin: 0 -16px 0 -16px;
       border-top: 1px solid #6f6f6f;
       box-shadow: inset 0 1px 0 #fff;
     }
@@ -947,7 +960,7 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
-      padding-bottom: 80px;
+      padding-bottom: 8px;
     }
 
     .album-track {
