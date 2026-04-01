@@ -166,12 +166,15 @@
       var clickSoundBuffer = null;
       var clickSoundLoading = false;
       var clickSoundPrimed = false;
+      var clickSoundAllowed = !isTouchDevice();
+      if (!clickSoundAllowed) clickSoundEnabled = false;
       try {
         var clickRaw = localStorage.getItem(CLICK_SOUND_KEY);
         if (clickRaw === "0") clickSoundEnabled = false;
       } catch (e) {}
       function setClickSoundEnabled(enabled) {
         clickSoundEnabled = !!enabled;
+        if (!clickSoundAllowed) clickSoundEnabled = false;
         try { localStorage.setItem(CLICK_SOUND_KEY, clickSoundEnabled ? "1" : "0"); } catch (e) {}
       }
       function toggleClickSoundEnabled() {
@@ -256,7 +259,7 @@
         }
       }
       function playButtonClickSound() {
-        if (!clickSoundEnabled) return;
+        if (!clickSoundEnabled || !clickSoundAllowed) return;
         if (playClickSoundFast()) return;
         var audio = getClickSound();
         try {
