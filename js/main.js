@@ -1108,6 +1108,7 @@
         var nextBtn = root.querySelector(".np-next") || (controlsRoot && controlsRoot.querySelector(".np-next"));
         var timeEl = root.querySelector(".np-time");
         var seekEl = root.querySelector(".np-seek");
+        var toggleBtn = root.querySelector(".np-toggle-btn") || (controlsRoot && controlsRoot.querySelector(".np-toggle-btn"));
         var titleEl = opts.titleEl || null;
 
         function setPlayState(isPlaying) {
@@ -1152,10 +1153,17 @@
           if (typeof opts.onNext === "function") opts.onNext();
         }
 
+        function onToggleClick() {
+          if (!toggleBtn) return;
+          var isOn = toggleBtn.classList.toggle("is-on");
+          toggleBtn.setAttribute("aria-pressed", isOn ? "true" : "false");
+        }
+
         if (playBtn) playBtn.addEventListener("click", onPlayClick);
         if (seekEl) seekEl.addEventListener("input", onSeekInput);
         if (prevBtn) prevBtn.addEventListener("click", onPrevClick);
         if (nextBtn) nextBtn.addEventListener("click", onNextClick);
+        if (toggleBtn) toggleBtn.addEventListener("click", onToggleClick);
 
         function onPlay() { setPlayState(true); setMediaSessionPlaybackState("playing"); }
         function onPause() { setPlayState(false); setMediaSessionPlaybackState("paused"); }
@@ -1181,6 +1189,7 @@
           if (seekEl) seekEl.removeEventListener("input", onSeekInput);
           if (prevBtn) prevBtn.removeEventListener("click", onPrevClick);
           if (nextBtn) nextBtn.removeEventListener("click", onNextClick);
+          if (toggleBtn) toggleBtn.removeEventListener("click", onToggleClick);
           audio.removeEventListener("play", onPlay);
           audio.removeEventListener("pause", onPause);
           audio.removeEventListener("timeupdate", onTime);
@@ -2468,6 +2477,7 @@
                   "<div class=\"np-top\">" +
                     "<div class=\"np-time\">0:00 / 0:00</div>" +
                     "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
+                    "<button type=\"button\" class=\"np-toggle-btn\" aria-pressed=\"false\" aria-label=\"Toggle\"></button>" +
                   "</div>" +
                   "<div class=\"np-controls\">" +
                     "<button type=\"button\" class=\"np-btn np-prev\" aria-label=\"Previous\"></button>" +
