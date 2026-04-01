@@ -2343,6 +2343,7 @@
         var dataTracks = icon.getAttribute("data-tracks") || "";
         var dataTrackNames = icon.getAttribute("data-track-names") || "";
         var dataArtwork = icon.getAttribute("data-artwork") || "";
+        var dataArtist = icon.getAttribute("data-artist") || "";
         if (kind === "audio" || kind === "album") {
           var warmArtwork = dataArtwork ? normalizeIconPath(dataArtwork) : "";
           if (warmArtwork) prefetchImage(warmArtwork);
@@ -2424,6 +2425,7 @@
 
         if (kind === "album") {
           var albumTitle = dataTitle || name || "Album";
+          var albumArtist = safeText(dataArtist).trim();
           var tracksRaw = safeText(dataTracks).trim();
           var albumArtwork = dataArtwork ? normalizeIconPath(dataArtwork) : "";
           if (!tracksRaw) {
@@ -2512,6 +2514,7 @@
               function updateMediaSessionForIdx(idx) {
                 setMediaSessionMetadata({
                   title: trackList[idx].name,
+                  artist: albumArtist,
                   album: albumTitle,
                   artwork: albumArtwork
                 });
