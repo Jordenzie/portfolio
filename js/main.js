@@ -2871,21 +2871,5 @@
         });
       }
 
-      // Prevent iOS double-tap zoom while still allowing pinch-zoom.
-      (function () {
-        var lastTouchEnd = 0;
-        document.addEventListener("touchend", function (e) {
-          var target = e.target;
-          if (target && target.closest && target.closest("input, textarea, select, [contenteditable=\"true\"]")) {
-            return;
-          }
-          var now = Date.now();
-          if (now - lastTouchEnd <= 300) {
-            e.preventDefault();
-          }
-          lastTouchEnd = now;
-        }, { passive: false });
-      })();
-
     })();
   
