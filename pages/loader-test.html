@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>Loader Test</title>
+
+  <link rel="stylesheet" href="../css/main.css" />
+</head>
+<body data-page="loader-test">
+  <div class="desktop" id="desktop"></div>
+
+  <div class="taskbar">
+    <div class="left-group"></div>
+    <div class="right-group"></div>
+  </div>
+
+  <div class="search-bar" id="searchBar">
+    <input id="searchInput" type="text" placeholder="Find..." autocomplete="off" />
+    <div class="search-results" id="searchResults"></div>
+  </div>
+
+  <div class="popup-overlay" id="popupOverlay" aria-hidden="true"></div>
+
+  <script src="../js/main.js" defer></script>
+  <script defer>
+    window.addEventListener("load", function () {
+      function loop() {
+        if (typeof window.showLoadingScreen !== "function") return;
+        var loadHints = [
+          "Flipping switches",
+          "Tightening screws",
+          "Checking wires",
+          "Filing papers",
+          "Submitting taxes"
+        ];
+        window.showLoadingScreen({
+          label: "Loading…",
+          hint: loadHints[Math.floor(Math.random() * loadHints.length)],
+          hints: loadHints,
+          durationMs: 1500,
+          onDone: function () {
+            setTimeout(loop, 200);
+          }
+        });
+      }
+      loop();
+    });
+  </script>
+</body>
+</html>

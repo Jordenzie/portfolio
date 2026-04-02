@@ -741,31 +741,41 @@
       }
 
       function startLoaderHintCycle(popup, hintEl, hints) {
-        if (!popup || !hintEl || !Array.isArray(hints) || !hints.length) return;
+        if (!popup || !hintEl || !hints) return;
+        var list = hints;
+        var ordered = false;
+        if (!Array.isArray(hints) && typeof hints === "object") {
+          list = hints.list;
+          ordered = hints.order === "in-order";
+        }
+        if (!Array.isArray(list) || !list.length) return;
+
         var order = [];
         var idx = 0;
 
-        function shuffleHints() {
-          order = hints.slice();
-          for (var i = order.length - 1; i > 0; i--) {
-            var j = Math.floor(Math.random() * (i + 1));
-            var tmp = order[i];
-            order[i] = order[j];
-            order[j] = tmp;
+        function buildOrder() {
+          order = list.slice();
+          if (!ordered) {
+            for (var i = order.length - 1; i > 0; i--) {
+              var j = Math.floor(Math.random() * (i + 1));
+              var tmp = order[i];
+              order[i] = order[j];
+              order[j] = tmp;
+            }
           }
         }
 
-        shuffleHints();
+        buildOrder();
         hintEl.textContent = order[idx] || "";
 
         var t = setInterval(function () {
           idx += 1;
           if (idx >= order.length) {
-            shuffleHints();
+            buildOrder();
             idx = 0;
           }
           hintEl.textContent = order[idx] || "";
-        }, 3000);
+        }, 1000);
         addPopupTimer(popup, "interval", t);
       }
 

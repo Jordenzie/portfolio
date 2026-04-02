@@ -338,9 +338,10 @@
 
     /* ---------- OS9 Loader ---------- */
     .loader-wrap { margin: 12px 0 4px; }
-    .loader-label { font-size: 10px; margin-bottom: 6px; }
+    .loader-label { font-size: 10px; margin-bottom: 6px; padding: 0 10px; }
     .loader-bar {
       height: 14px;
+      margin: 0 10px;
       background: #ffffff;
       border-top: 1px solid #6f6f6f;
       border-left: 1px solid #6f6f6f;
@@ -353,8 +354,19 @@
     .loader-fill {
       height: 100%;
       width: 0%;
-      background: repeating-linear-gradient(90deg, #000 0px, #000 3px, transparent 3px, transparent 6px);
+      background: linear-gradient(
+        90deg,
+        #ff3b30 0%,
+        #ff9500 18%,
+        #ffcc00 36%,
+        #34c759 54%,
+        #007aff 72%,
+        #5856d6 90%,
+        #ff3b30 100%
+      );
       background-position: 0 0;
+      -webkit-mask-image: repeating-linear-gradient(90deg, #000 0px, #000 4px, transparent 4px, transparent 6px);
+      mask-image: repeating-linear-gradient(90deg, #000 0px, #000 4px, transparent 4px, transparent 6px);
     }
 
     .loader-fill.indeterminate {
@@ -366,7 +378,7 @@
       from { background-position: 0 0; }
       to { background-position: 12px 0; }
     }
-    .loader-hint { font-size: 10px; margin-top: 6px; opacity: 0.8; }
+    .loader-hint { font-size: 10px; margin-top: 6px; opacity: 0.8; padding: 0 10px; }
 
 
     .popup-overlay {
