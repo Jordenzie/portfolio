@@ -664,6 +664,22 @@
       margin-top: 0;
     }
 
+    .popup-window.about-popup .popup-media {
+      margin: 10px 0 0;
+    }
+
+    .popup-window.about-popup .popup-content > * + * {
+      margin-top: 0;
+    }
+
+    .popup-window.about-popup .popup-media img {
+      max-width: 30px;
+    }
+
+    .popup-window.about-popup .popup-body {
+      background: #efefef;
+    }
+
     .popup-text.role-welcome {
       margin-bottom: 18px;
     }

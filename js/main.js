@@ -411,6 +411,14 @@
         about: function () {
           return [
             {
+              type: "image",
+              src: assetPath("assets/icons/apple logo.png"),
+              alt: "Apple logo",
+              size: "xs",
+              pixelated: false,
+              noFrame: true
+            },
+            {
               type: "quote",
               text:
                 "Jordan A. McKenzie was born and raised in Redding, California, on August 9, 1999. " +
@@ -1178,6 +1186,7 @@
           key: "about",
           title: "About Me",
           okText: "Done",
+          className: "about-popup",
           content: POPUP_CONTENT.about()
         });
       }
