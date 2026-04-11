@@ -425,7 +425,8 @@
     }
 
     .popup-window {
-      width: min(520px, calc(100vw - 40px));
+      --popup-width: min(520px, calc(100vw - 40px));
+      width: var(--popup-width);
       max-height: 75vh;
       --popup-bar-bg: #dfdfdf;
       --popup-bar-top-shadow: inset 0 1px 0 #fff;
@@ -437,6 +438,16 @@
       flex-direction: column;
       position: fixed;
       pointer-events: auto;
+    }
+
+    .popup-window.image-popup {
+      min-height: calc(var(--popup-width) / 2);
+    }
+
+    .popup-window.image-popup .popup-body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .popup-titlebar {
@@ -497,7 +508,7 @@
 
     .popup-body {
       padding: 0;
-      background: #fff;
+      background: #efefef;
       overflow: auto;
       overflow-x: hidden;
       flex: 1;

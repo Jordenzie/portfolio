@@ -2745,6 +2745,7 @@
           openPopup({
             title: icon.querySelector("span") ? icon.querySelector("span").textContent : "Image",
             key: "file:" + popupSrc,
+            className: "image-popup",
             content: [
               { type: "image", src: popupSrc, alt: "Preview", size: "xl" }
             ]
