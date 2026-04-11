@@ -90,8 +90,9 @@ function extractIcons(html, filePath, rootDir, pageHref) {
     var block = match[0];
     var tagMatch = /<a\b([^>]*)>/i.exec(block);
     var attrs = parseAttributes(tagMatch ? tagMatch[1] : "");
-    var rawKind = String(attrs["data-kind"] || "folder").trim();
-    var kind = (rawKind.toLowerCase() === "folder") ? "folder" : "file";
+    var rawKind = String(attrs["data-kind"] || "folder").trim().toLowerCase();
+    if (rawKind === "trash" || rawKind === "reset") continue;
+    var kind = (rawKind === "folder") ? "folder" : "file";
 
     var href = resolveHref(attrs.href, filePath, rootDir, pageHref);
 

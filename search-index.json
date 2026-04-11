@@ -9,7 +9,7 @@
     },
     {
       "name": "Virgil.txt",
-      "kind": "text",
+      "kind": "file",
       "href": "index.html",
       "icon": "assets/icons/txt.png"
     },
@@ -21,19 +21,25 @@
     },
     {
       "name": "The Prelude",
-      "kind": "music",
+      "kind": "file",
       "href": "pages/j-mac.html",
-      "icon": "assets/icons/cd.png"
+      "icon": "assets/icons/movie.png"
     },
     {
       "name": "I Want U.mp3",
-      "kind": "audio",
+      "kind": "file",
       "href": "pages/j-mac.html",
       "icon": "assets/icons/cd.png"
     },
     {
       "name": "Some Singles",
-      "kind": "album",
+      "kind": "file",
+      "href": "pages/j-mac.html",
+      "icon": "assets/icons/cd.png"
+    },
+    {
+      "name": "Random Shit",
+      "kind": "file",
       "href": "pages/j-mac.html",
       "icon": "assets/icons/cd.png"
     },

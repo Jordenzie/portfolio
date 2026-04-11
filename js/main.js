@@ -1545,6 +1545,7 @@
           var kind = el.getAttribute("data-kind") || "folder";
           // Hide items that should never appear in Find.
           if (kind === "trash" || kind === "reset") return;
+          if (el.classList && el.classList.contains("in-trash")) return;
           var imgEl = el.querySelector("img");
           var iconSrc = (imgEl && (imgEl.getAttribute("src") || imgEl.src)) || "";
           if (!name) return;
