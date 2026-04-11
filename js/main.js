@@ -2219,6 +2219,27 @@
 
       icons.forEach(function (icon) { applyVideoIcon(icon); });
 
+      function sortDesktopIcons() {
+        icons.sort(function (a, b) {
+          var ak = (a.getAttribute("data-kind") || "").toLowerCase();
+          var bk = (b.getAttribute("data-kind") || "").toLowerCase();
+          var aIsTrash = ak === "trash";
+          var bIsTrash = bk === "trash";
+          if (aIsTrash !== bIsTrash) return aIsTrash ? 1 : -1;
+          var aGroup = ak === "folder" ? 0 : 1;
+          var bGroup = bk === "folder" ? 0 : 1;
+          if (aGroup !== bGroup) return aGroup - bGroup;
+          var aName = normalizeNameKey(a.querySelector("span") ? a.querySelector("span").textContent : "");
+          var bName = normalizeNameKey(b.querySelector("span") ? b.querySelector("span").textContent : "");
+          if (aName < bName) return -1;
+          if (aName > bName) return 1;
+          return 0;
+        });
+        if (desktopEl) icons.forEach(function (icon) { desktopEl.appendChild(icon); });
+      }
+
+      sortDesktopIcons();
+
       function iconKey(icon) {
         var label = icon.querySelector("span");
         var name = label ? label.textContent : "";
