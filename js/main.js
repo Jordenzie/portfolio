@@ -17,6 +17,24 @@
         fixedIconsUnlocked = !!on;
         try { localStorage.setItem("prtf_fixed_icons_unlocked_v1", fixedIconsUnlocked ? "1" : "0"); } catch (e) {}
       }
+      var RETURN_KEY = "prtf_return_href_v1";
+      function setReturnTarget(href) {
+        if (!href) return;
+        try { sessionStorage.setItem(RETURN_KEY, href); } catch (e) {}
+      }
+      function getReturnTarget() {
+        try { return sessionStorage.getItem(RETURN_KEY) || ""; } catch (e) { return ""; }
+      }
+      function getParentTarget() {
+        if (!document || !document.body) return "";
+        var v = document.body.getAttribute("data-parent") || "";
+        return safeText(v).trim();
+      }
+      function resolveNavHref(href) {
+        if (!href) return "";
+        if (/^(https?:|data:|blob:|\/)/.test(href)) return href;
+        return normalizeIconPath(href);
+      }
       function currentPageHref() {
         var path = window.location.pathname || "";
         if (isSubpage()) {
@@ -1239,6 +1257,9 @@
         if (!link) return;
         var href = link.getAttribute("href") || "";
         if (!href || href === "#") return;
+        if (!/^(https?:|mailto:|tel:|javascript:|#)/i.test(href)) {
+          setReturnTarget(currentPageHref());
+        }
         if (normalizeHrefForKey({ href: href }) === "index.html") {
           markSkipWelcomeOnce();
         }
@@ -1247,7 +1268,28 @@
       var returnLinks = document.querySelectorAll(".return-to-desktop");
       if (returnLinks && returnLinks.length) {
         Array.prototype.forEach.call(returnLinks, function (el) {
-          el.addEventListener("click", function () { markSkipWelcomeOnce(); });
+          el.addEventListener("click", function (e) {
+            markSkipWelcomeOnce();
+            if (e) e.preventDefault();
+            var fallback = el.getAttribute("href") || "../index.html";
+            var parent = getParentTarget();
+            if (parent) {
+              window.location.href = resolveNavHref(parent);
+              return;
+            }
+            var target = getReturnTarget();
+            if (target) {
+              window.location.href = resolveNavHref(target);
+              return;
+            }
+            try {
+              if (window.history && window.history.length > 1) {
+                window.history.back();
+                return;
+              }
+            } catch (e2) {}
+            window.location.href = fallback;
+          });
         });
       }
 
@@ -3001,6 +3043,7 @@
               })
             );
           } catch (e) {}
+          setReturnTarget(currentPageHref());
           window.location.href = href;
         }
       }
