@@ -2205,6 +2205,20 @@
       var lastViewportW = window.innerWidth || 0;
       var lastViewportH = window.innerHeight || 0;
 
+      function applyVideoIcon(icon) {
+        if (!icon) return;
+        var kind = icon.getAttribute("data-kind") || "";
+        if (kind !== "video") return;
+        icon.classList.add("video-icon");
+        var imgEl = icon.querySelector("img");
+        if (imgEl) {
+          imgEl.src = normalizeIconPath("assets/icons/movie.png");
+          if (!imgEl.getAttribute("alt")) imgEl.setAttribute("alt", "Video");
+        }
+      }
+
+      icons.forEach(function (icon) { applyVideoIcon(icon); });
+
       function iconKey(icon) {
         var label = icon.querySelector("span");
         var name = label ? label.textContent : "";
@@ -2688,7 +2702,7 @@
           return;
         }
 
-        if (kind === "music") {
+        if (kind === "music" || kind === "video") {
           var blocks = [];
           if (dataSpotify) blocks.push({ type: "embed", html: dataSpotify });
           if (dataApple) blocks.push({ type: "embed", html: dataApple });
@@ -2697,8 +2711,8 @@
           }
 
           openPopup({
-            title: name || "Music",
-            key: "music:" + (name || "track"),
+            title: name || (kind === "video" ? "Video" : "Music"),
+            key: (kind === "video" ? "video:" : "music:") + (name || "track"),
             content: blocks
           });
           return;

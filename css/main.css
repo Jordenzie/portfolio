@@ -97,6 +97,10 @@
       margin-top: 1px;
     }
 
+    .icon.video-icon img {
+      image-rendering: pixelated;
+    }
+
     .icon span {
       font-size: 8px;
       width: 69px;
@@ -637,6 +641,7 @@
 
     .popup-window.welcome-popup .popup-body {
       padding: 10px;
+      background: #efefef;
     }
 
     .popup-window:not(.welcome-popup) .popup-text {
