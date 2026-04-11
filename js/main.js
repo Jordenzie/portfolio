@@ -11,6 +11,12 @@
       var assetBase = isSubpage() ? "../" : "";
       function assetPath(path) { return assetBase + path; }
       function keyKind(kind) { return (safeText(kind).trim().toLowerCase() === "folder") ? "folder" : "file"; }
+      var fixedIconsUnlocked = false;
+      try { fixedIconsUnlocked = localStorage.getItem("prtf_fixed_icons_unlocked_v1") === "1"; } catch (e) {}
+      function setFixedIconsUnlocked(on) {
+        fixedIconsUnlocked = !!on;
+        try { localStorage.setItem("prtf_fixed_icons_unlocked_v1", fixedIconsUnlocked ? "1" : "0"); } catch (e) {}
+      }
       function currentPageHref() {
         var path = window.location.pathname || "";
         if (isSubpage()) {
@@ -1029,7 +1035,6 @@
         // Timed (faux) loader
         opts = opts || {};
         var fillId = "loaderFill_" + Math.random().toString(16).slice(2);
-
         var popup = openPopup({
           title: "",
           okText: null,
@@ -1039,7 +1044,6 @@
           ]
         });
         if (!popup) return;
-
         var labelEl = popup.el ? popup.el.querySelector(".loader-label") : null;
         startLoaderDots(popup, labelEl);
         var hintEl = popup.el ? popup.el.querySelector(".loader-hint") : null;
@@ -2201,6 +2205,7 @@
       var trashedIcons = loadTrashState();
       var trashPos = loadTrashPos();
       var trashIconEl = document.querySelector(".icon[data-kind=\"trash\"]");
+      var resetIconEl = document.querySelector(".icon[data-kind=\"reset\"]");
       var lastGrid = null;
       var lastViewportW = window.innerWidth || 0;
       var lastViewportH = window.innerHeight || 0;
@@ -2225,7 +2230,7 @@
           var bk = (b.getAttribute("data-kind") || "").toLowerCase();
           var aIsTrash = ak === "trash";
           var bIsTrash = bk === "trash";
-          if (aIsTrash !== bIsTrash) return aIsTrash ? 1 : -1;
+          if (!fixedIconsUnlocked && aIsTrash !== bIsTrash) return aIsTrash ? 1 : -1;
           var aGroup = ak === "folder" ? 0 : 1;
           var bGroup = bk === "folder" ? 0 : 1;
           if (aGroup !== bGroup) return aGroup - bGroup;
@@ -2252,8 +2257,20 @@
         return !!(icon && icon.getAttribute("data-kind") === "trash");
       }
 
+      function isResetIcon(icon) {
+        return !!(icon && icon.getAttribute("data-kind") === "reset");
+      }
+
+      function isProtectedIcon(icon) {
+        return isTrashIcon(icon) || isResetIcon(icon);
+      }
+
+      function isFixedIcon(icon) {
+        return !!(icon && !fixedIconsUnlocked && isProtectedIcon(icon));
+      }
+
       function isIconTrashed(icon) {
-        if (!icon || isTrashIcon(icon)) return false;
+        if (!icon || isProtectedIcon(icon)) return false;
         var key = iconKey(icon);
         return !!(trashedIcons && trashedIcons[key]);
       }
@@ -2284,6 +2301,7 @@
       }
 
       function saveTrashPos() {
+        if (fixedIconsUnlocked) return;
         if (!trashIconEl) return;
         trashPos = { x: trashIconEl.offsetLeft, y: trashIconEl.offsetTop };
         try { localStorage.setItem(TRASH_POS_KEY, JSON.stringify(trashPos)); } catch (e) {}
@@ -2296,7 +2314,7 @@
 
       function applyTrashState() {
         icons.forEach(function (icon) {
-          if (isTrashIcon(icon)) return;
+          if (isProtectedIcon(icon)) return;
           var key = iconKey(icon);
           if (trashedIcons[key]) {
             icon.classList.add("in-trash");
@@ -2414,7 +2432,7 @@
       }
 
       function trashIcon(icon) {
-        if (!icon || isTrashIcon(icon)) return;
+        if (!icon || isProtectedIcon(icon)) return;
         var key = iconKey(icon);
         if (!trashedIcons[key]) {
           trashedIcons[key] = { x: icon.offsetLeft, y: icon.offsetTop };
@@ -2425,7 +2443,7 @@
       }
 
       function restoreIcon(icon) {
-        if (!icon || isTrashIcon(icon)) return;
+        if (!icon || isProtectedIcon(icon)) return;
         var key = iconKey(icon);
         if (!trashedIcons[key]) return;
         delete trashedIcons[key];
@@ -2550,12 +2568,12 @@
 
       function updateTrashHover(icon) {
         if (!trashIconEl) return;
-        var shouldHover = !!(icon && !isTrashIcon(icon) && isOverTrash(icon));
+        var shouldHover = !!(icon && !isProtectedIcon(icon) && isOverTrash(icon));
         trashIconEl.classList.toggle("trash-hover", shouldHover);
       }
 
       function handleTrashDrop(icon) {
-        if (!icon || isTrashIcon(icon)) return;
+        if (!icon || isProtectedIcon(icon)) return;
         if (trashIconEl) trashIconEl.classList.remove("trash-hover");
         if (isOverTrash(icon)) {
           trashIcon(icon);
@@ -2578,7 +2596,7 @@
           var out = {};
           icons.forEach(function (icon) {
             if (isIconTrashed(icon)) return;
-            if (isTrashIcon(icon)) return;
+            if (isProtectedIcon(icon)) return;
             out[iconKey(icon)] = { x: icon.offsetLeft, y: icon.offsetTop };
           });
           savedIconPositions = out;
@@ -2594,7 +2612,7 @@
         if (!hasSavedPositions() || isMobile()) return;
         icons.forEach(function (icon) {
           if (isIconTrashed(icon)) return;
-          if (isTrashIcon(icon)) return;
+          if (isProtectedIcon(icon)) return;
           var pos = savedIconPositions[iconKey(icon)];
           if (!pos) return;
           if (typeof pos.x === "number") icon.style.left = pos.x + "px";
@@ -2603,6 +2621,7 @@
       }
 
       function resetIconPositions() {
+        setFixedIconsUnlocked(true);
         try {
           for (var i = localStorage.length - 1; i >= 0; i--) {
             var key = localStorage.key(i);
@@ -2963,6 +2982,7 @@
 
         if (kind === "reset") {
           resetIconPositions();
+          sortDesktopIcons();
           layoutIcons();
           return;
         }
@@ -3033,7 +3053,7 @@
 
         icons.forEach(function (icon) {
           if (isIconTrashed(icon)) return;
-          if (isTrashIcon(icon)) return;
+          if (isProtectedIcon(icon)) return;
           icon.style.left = x + "px";
           icon.style.top = y + "px";
           visibleCount += 1;
@@ -3049,17 +3069,36 @@
         });
 
         if (trashIconEl) {
+          var trashLeft = null;
+          var trashTop = null;
           if (trashPos && typeof trashPos.x === "number" && typeof trashPos.y === "number") {
-            trashIconEl.style.left = trashPos.x + "px";
-            trashIconEl.style.top = trashPos.y + "px";
+            trashLeft = trashPos.x;
+            trashTop = trashPos.y;
+            trashIconEl.style.left = trashLeft + "px";
+            trashIconEl.style.top = trashTop + "px";
           } else {
             var deskRect = desktopEl ? desktopEl.getBoundingClientRect() : { top: 0 };
             var availableH = Math.max(0, window.innerHeight - deskRect.top - 10);
             var rowsFit = Math.max(1, Math.floor((availableH - paddingTop - iconH) / gridY) + 1);
             var trashCol = Math.max(0, cols - 1);
             var trashRow = Math.max(0, rowsFit - 1);
-            trashIconEl.style.left = Math.round(paddingLeft + (trashCol * gridX)) + "px";
-            trashIconEl.style.top = Math.round(paddingTop + (trashRow * gridY)) + "px";
+            trashLeft = Math.round(paddingLeft + (trashCol * gridX));
+            trashTop = Math.round(paddingTop + (trashRow * gridY));
+            trashIconEl.style.left = trashLeft + "px";
+            trashIconEl.style.top = trashTop + "px";
+          }
+
+          if (resetIconEl) {
+            var resetLeft = trashLeft != null ? (trashLeft - (2 * gridX)) : paddingLeft;
+            var resetTop = trashTop != null ? (trashTop - gridY) : paddingTop;
+            var minLeft = paddingLeft;
+            var maxLeft = Math.max(minLeft, window.innerWidth - iconW - margin);
+            var minTop = paddingTop;
+            var maxTop = Math.max(minTop, window.innerHeight - iconH - margin);
+            resetLeft = Math.min(maxLeft, Math.max(minLeft, resetLeft));
+            resetTop = Math.min(maxTop, Math.max(minTop, resetTop));
+            resetIconEl.style.left = Math.round(resetLeft) + "px";
+            resetIconEl.style.top = Math.round(resetTop) + "px";
           }
         }
 
@@ -3179,7 +3218,7 @@
       document.addEventListener("mouseup", function () {
         if (draggingIcon && activeIcon) handleTrashDrop(activeIcon);
         if (draggingIcon && activeIcon) snapIconToGrid(activeIcon);
-        if (draggingIcon && activeIcon && isTrashIcon(activeIcon)) saveTrashPos();
+        if (draggingIcon && activeIcon && isTrashIcon(activeIcon) && !fixedIconsUnlocked) saveTrashPos();
         if (draggingIcon) saveIconPositions();
         possibleDrag = false;
         draggingIcon = false;
@@ -3217,7 +3256,7 @@
         if (!activeIcon) return;
         if (draggingIcon) handleTrashDrop(activeIcon);
         if (draggingIcon) snapIconToGrid(activeIcon);
-        if (draggingIcon && isTrashIcon(activeIcon)) saveTrashPos();
+        if (draggingIcon && isTrashIcon(activeIcon) && !fixedIconsUnlocked) saveTrashPos();
         if (draggingIcon) saveIconPositions();
         if (!draggingIcon && isMobile()) openIcon(activeIcon);
         possibleDrag = false;
