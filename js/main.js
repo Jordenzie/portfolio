@@ -2748,7 +2748,9 @@
 
           var albumHtml =
             "<div class=\"popup-embed-frame\">" +
-              "<div class=\"popup-embed-bar\"><span class=\"embed-title-italic np-title\">" + escHtml(albumTitle) + "</span></div>" +
+              "<div class=\"popup-embed-bar\">" +
+                "<span class=\"embed-title-italic np-title\">" + escHtml(albumTitle) + "</span>" +
+              "</div>" +
               (albumArtwork
                 ? "<div class=\"popup-artwork\"><img src=\"" + escHtml(albumArtwork) + "\" alt=\"\" loading=\"eager\" decoding=\"async\" fetchpriority=\"high\" /></div>"
                 : "<div class=\"popup-artwork placeholder\"><div class=\"popup-artwork-text\">No Artwork Available</div></div>") +
@@ -2758,6 +2760,7 @@
                   "<div class=\"np-top\">" +
                     "<div class=\"np-time\">0:00 / 0:00</div>" +
                     "<input class=\"np-seek\" type=\"range\" min=\"0\" max=\"100\" value=\"0\" step=\"0.1\" />" +
+                    "<a class=\"np-download-btn\" href=\"#\" download aria-label=\"Download track\" title=\"Download\"></a>" +
                     "<button type=\"button\" class=\"np-toggle-btn\" aria-pressed=\"false\" aria-label=\"Toggle\"></button>" +
                   "</div>" +
                   "<div class=\"np-controls\">" +
@@ -2788,6 +2791,7 @@
               var current = 0;
               var cleanupPlayer = null;
               var titleEl = popup.el.querySelector(".np-title");
+              var downloadBtn = popup.el.querySelector(".np-download-btn");
               var toggleBtn = root.querySelector(".np-toggle-btn");
               var AUTOPLAY_KEY = "prtf_nostalgia_autoplay_v1";
               var skipEl = null;
@@ -2822,6 +2826,12 @@
                   if (shouldPlay) audio.play().catch(function () {});
                 }
                 if (titleEl) titleEl.textContent = trackList[idx].name;
+                if (downloadBtn) {
+                  downloadBtn.href = trackList[idx].src;
+                  downloadBtn.setAttribute("download", trackList[idx].name || "track");
+                  downloadBtn.setAttribute("aria-label", "Download " + trackList[idx].name);
+                  downloadBtn.setAttribute("title", "Download " + trackList[idx].name);
+                }
                 updateMediaSessionForIdx(idx);
               }
 
