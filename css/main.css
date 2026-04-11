@@ -799,6 +799,14 @@
       padding-top: 30px;
       box-sizing: border-box;
     }
+    
+    .popup-window.audio-single .popup-embed-bar {
+      display: none;
+    }
+
+    .popup-window.audio-single .popup-embed-frame {
+      padding-top: 10px;
+    }
 
     .popup-embed-bar,
     .popup-embed-bar * {
