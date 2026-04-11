@@ -1557,12 +1557,15 @@
       var SEARCH_INDEX = buildLocalIndex();
       var GLOBAL_INDEX = [];
       var GLOBAL_INDEX_READY = false;
+      maybeOpenPendingFindTarget();
       var activeIdx = -1;
       var currentMatches = [];
       var findIsRecentsView = false;
       var RECENTS_KEY = "prtf_find_recents_v1";
       var RECENTS_SESSION_KEY = "prtf_find_recents_session_v1";
       var SKIP_WELCOME_KEY = "prtf_skip_welcome_once";
+      var FIND_OPEN_KEY = "prtf_find_open_target_v1";
+      var FIND_OPEN_MAX_AGE = 30000;
 
       function resetRecentsOnNewSession() {
         try {
@@ -1586,6 +1589,92 @@
           }
         } catch (e) {}
         return false;
+      }
+
+      function setPendingFindOpen(it) {
+        if (!it) return;
+        try {
+          var payload = {
+            key: buildFindKey(it),
+            href: normalizeHrefForKey(it),
+            name: safeText(it.name || "").trim(),
+            kind: safeText(it.kind || "").trim(),
+            ts: Date.now()
+          };
+          sessionStorage.setItem(FIND_OPEN_KEY, JSON.stringify(payload));
+          return payload;
+        } catch (e) {}
+        return null;
+      }
+
+      function clearPendingFindOpen() {
+        try { sessionStorage.removeItem(FIND_OPEN_KEY); } catch (e) {}
+      }
+
+      function maybeOpenPendingFindTarget() {
+        function readPendingFromUrl() {
+          try {
+            if (typeof URLSearchParams !== "function") return null;
+            var params = new URLSearchParams(window.location.search || "");
+            var raw = params.get("findopen");
+            if (!raw) return null;
+            var decoded = raw;
+            try { decoded = decodeURIComponent(raw); } catch (e2) {}
+            var parsed = JSON.parse(decoded);
+            params.delete("findopen");
+            var clean = params.toString();
+            var next = window.location.pathname + (clean ? "?" + clean : "") + (window.location.hash || "");
+            if (window.history && window.history.replaceState) {
+              window.history.replaceState(null, "", next);
+            }
+            return parsed;
+          } catch (e3) {}
+          return null;
+        }
+
+        var raw = null;
+        var data = null;
+        try { raw = sessionStorage.getItem(FIND_OPEN_KEY); } catch (e) {}
+        if (raw) {
+          try { data = JSON.parse(raw); } catch (e2) { clearPendingFindOpen(); return; }
+        } else {
+          data = readPendingFromUrl();
+        }
+        if (!data) return;
+        if (!data || !data.href) { clearPendingFindOpen(); return; }
+
+        if (data.ts && (Date.now() - data.ts) > FIND_OPEN_MAX_AGE) {
+          clearPendingFindOpen();
+          return;
+        }
+
+        var targetPage = normalizeHrefForKey({ href: data.href });
+        if (targetPage !== currentPageHref()) return;
+
+        // Refresh local index so we match what's currently available on this page.
+        try { SEARCH_INDEX = buildLocalIndex(); } catch (e3) {}
+
+        var key = safeText(data.key || "").trim();
+        var found = null;
+        if (key) {
+          for (var i = 0; i < SEARCH_INDEX.length; i++) {
+            if (buildFindKey(SEARCH_INDEX[i]) === key) { found = SEARCH_INDEX[i]; break; }
+          }
+        }
+        if (!found && data.name) {
+          var nkey = normalizeNameKey(data.name);
+          var kkind = keyKind(data.kind);
+          for (var j = 0; j < SEARCH_INDEX.length; j++) {
+            var it = SEARCH_INDEX[j];
+            if (normalizeNameKey(it.name) === nkey && keyKind(it.kind) === kkind) { found = it; break; }
+          }
+        }
+
+        clearPendingFindOpen();
+
+        if (found && found.el) {
+          openIcon(found.el);
+        }
       }
 
       function normalizeItem(it) {
@@ -1860,7 +1949,8 @@
 
         // Fall back to navigation only when href is meaningful
         if (it.href && it.href !== "#") {
-          if (normalizeHrefForKey(it) === "index.html") markSkipWelcomeOnce();
+          var targetKeyHref = normalizeHrefForKey(it);
+          if (targetKeyHref === "index.html") markSkipWelcomeOnce();
           var targetHref = it.href;
           if (isSubpage()) {
             var isAbsolute = targetHref.indexOf("http:") === 0 || targetHref.indexOf("https:") === 0;
@@ -1870,6 +1960,26 @@
             var isUp = targetHref.indexOf("../") === 0;
             if (!(isAbsolute || isMail || isTel || isRoot || isUp)) {
               targetHref = "../" + targetHref;
+            }
+          }
+          var isExternal = targetHref.indexOf("http:") === 0 || targetHref.indexOf("https:") === 0 ||
+            targetHref.indexOf("mailto:") === 0 || targetHref.indexOf("tel:") === 0;
+          if (!isExternal && targetKeyHref !== currentPageHref()) {
+            var pending = setPendingFindOpen(it);
+            if (pending) {
+              var hrefBody = targetHref;
+              var hash = "";
+              var hashIdx = hrefBody.indexOf("#");
+              if (hashIdx !== -1) {
+                hash = hrefBody.slice(hashIdx);
+                hrefBody = hrefBody.slice(0, hashIdx);
+              }
+              var sep = (hrefBody.indexOf("?") === -1) ? "?" : "&";
+              try {
+                var encoded = encodeURIComponent(JSON.stringify(pending));
+                hrefBody = hrefBody + sep + "findopen=" + encoded;
+              } catch (e) {}
+              targetHref = hrefBody + hash;
             }
           }
           window.location.href = targetHref;
