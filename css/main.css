@@ -444,6 +444,11 @@
       min-height: calc(var(--popup-width) / 2);
     }
 
+    .popup-window.minimized .popup-body,
+    .popup-window.minimized .popup-actions {
+      display: none;
+    }
+
     .popup-window.image-popup .popup-body {
       display: flex;
       align-items: center;

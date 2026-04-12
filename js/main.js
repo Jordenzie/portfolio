@@ -581,6 +581,30 @@
         });
       }
 
+      function setPopupMinimized(popup, minimized) {
+        if (!popup || !popup.el) return;
+        var next = !!minimized;
+        popup.isMinimized = next;
+        popup.el.classList.toggle("minimized", next);
+      }
+
+      function bindPopupMinimize(popup) {
+        if (!popup || !popup.titlebarEl) return;
+        var titlebar = popup.titlebarEl;
+
+        function onDblClick(e) {
+          if (e.target && e.target.closest && e.target.closest(".popup-close")) return;
+          e.preventDefault();
+          setPopupMinimized(popup, !popup.isMinimized);
+        }
+
+        titlebar.addEventListener("dblclick", onDblClick);
+        if (!popup.cleanup) popup.cleanup = [];
+        popup.cleanup.push(function () {
+          titlebar.removeEventListener("dblclick", onDblClick);
+        });
+      }
+
       function openPopup(opts) {
         opts = opts || {};
         if (!popupOverlay) return null;
@@ -683,6 +707,7 @@
           resetPopupPosition(popup);
         }
         bindPopupDrag(popup);
+        bindPopupMinimize(popup);
         focusPopup(popup);
         setOverlayVisible();
 
@@ -1593,18 +1618,17 @@
 
       function setPendingFindOpen(it) {
         if (!it) return;
+        var payload = {
+          key: buildFindKey(it),
+          href: normalizeHrefForKey(it),
+          name: safeText(it.name || "").trim(),
+          kind: safeText(it.kind || "").trim(),
+          ts: Date.now()
+        };
         try {
-          var payload = {
-            key: buildFindKey(it),
-            href: normalizeHrefForKey(it),
-            name: safeText(it.name || "").trim(),
-            kind: safeText(it.kind || "").trim(),
-            ts: Date.now()
-          };
           sessionStorage.setItem(FIND_OPEN_KEY, JSON.stringify(payload));
-          return payload;
         } catch (e) {}
-        return null;
+        return payload;
       }
 
       function clearPendingFindOpen() {
@@ -1673,7 +1697,17 @@
         clearPendingFindOpen();
 
         if (found && found.el) {
-          openIcon(found.el);
+          var targetEl = found.el;
+          var tryOpen = function () {
+            try { openIcon(targetEl); } catch (e) {}
+          };
+          if (document.readyState === "complete") {
+            tryOpen();
+          } else {
+            window.addEventListener("load", function () {
+              setTimeout(tryOpen, 0);
+            }, { once: true });
+          }
         }
       }
 
