@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bubble Atlas Widget</title>
+    <link rel="stylesheet" href="ps1styles.css" />
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="widget-window">
+        <header class="widget-titlebar" aria-label="Window title bar">
+          <div class="widget-titlebar-box" aria-hidden="true"></div>
+          <h1 class="widget-title">Bubble Atlas</h1>
+        </header>
+        <div class="widget-layout">
+          <div class="widget-stage" id="widget-stage" aria-label="Interactive bubble canvas">
+            <div class="selection-marquee" id="selection-marquee" aria-hidden="true"></div>
+            <div class="stage-viewport" id="stage-viewport">
+              <div class="intro-splash" aria-hidden="true">
+                <div class="startup-brand" id="startup-brand">
+                  <img src="media/ps1 logo.png" alt="PlayStation style logo" />
+                </div>
+                <p class="empty-hint" id="empty-hint" data-text="Press start or enter on your keyboard...">
+                  Press start or enter on your keyboard...
+                </p>
+              </div>
+              <svg class="link-layer" id="link-layer" aria-hidden="true">
+                <line class="link-preview" id="link-preview" x1="0" y1="0" x2="0" y2="0"></line>
+              </svg>
+              <div class="bubble-layer" id="bubble-layer"></div>
+            </div>
+          </div>
+          <aside class="widget-panel" aria-label="Navigation panel">
+            <div class="panel-section minimap-section">
+              <div class="minimap-panel">
+                <div class="minimap-frame" id="minimap-frame" role="button" tabindex="0" aria-label="Mini map">
+                  <svg class="minimap" id="minimap" viewBox="0 0 100 100" aria-hidden="true">
+                    <g id="minimap-links"></g>
+                    <g id="minimap-bubbles"></g>
+                    <rect id="minimap-viewport" class="minimap-viewport" x="0" y="0" width="100" height="100"></rect>
+                  </svg>
+                </div>
+              </div>
+            </div>
+            <div class="panel-section button-control-section">
+              <div class="control-section">
+              <div class="control-row control-row-top">
+                <div class="button-section shoulder-buttons-section" aria-label="Left shoulder buttons section">
+                  <div class="shoulder-stack">
+                    <button class="shoulder-button shoulder-l1-button" type="button" aria-label="L1 button"></button>
+                    <button class="shoulder-button shoulder-l2-button" type="button" aria-label="L2 button"></button>
+                  </div>
+                </div>
+                <div class="button-section shoulder-buttons-section" aria-label="Right shoulder buttons section">
+                  <div class="shoulder-stack">
+                    <button class="shoulder-button shoulder-r2-button" type="button" aria-label="R2 button"></button>
+                    <button class="shoulder-button shoulder-r1-button" type="button" aria-label="R1 button"></button>
+                  </div>
+                </div>
+              </div>
+              <div class="control-row control-row-middle">
+                <div class="button-section dpad-section" aria-label="D-Pad buttons section">
+                  <div class="diamond-grid dpad-grid" aria-label="Pan controls">
+                    <button class="diamond-button dpad-button dpad-up diamond-top" data-pan-direction="up" type="button" aria-label="Pan up"></button>
+                    <button class="diamond-button dpad-button dpad-left diamond-left" data-pan-direction="left" type="button" aria-label="Pan left"></button>
+                    <button class="diamond-button dpad-button dpad-right diamond-right" data-pan-direction="right" type="button" aria-label="Pan right"></button>
+                    <button class="diamond-button dpad-button dpad-down diamond-bottom" data-pan-direction="down" type="button" aria-label="Pan down"></button>
+                  </div>
+                </div>
+                <div class="button-section symbol-buttons-section" aria-label="Symbol buttons section">
+                  <div class="diamond-grid symbol-buttons-grid">
+                    <button class="diamond-button symbol-button symbol-square-button diamond-left" type="button" aria-label="Square button"></button>
+                    <button class="diamond-button symbol-button symbol-triangle-button zoom-button zoom-in-button diamond-top" id="zoom-in" type="button" aria-label="Zoom in"></button>
+                    <button class="diamond-button symbol-button symbol-circle-button diamond-right" type="button" aria-label="Circle button"></button>
+                    <button class="diamond-button symbol-button symbol-x-button zoom-button zoom-out-button diamond-bottom" id="zoom-out" type="button" aria-label="Zoom out"></button>
+                  </div>
+                </div>
+              </div>
+              <div class="control-row control-row-menu" aria-label="Select and Start buttons section">
+                <div class="button-section menu-button-section">
+                  <div class="menu-button-stack">
+                    <button class="menu-button select-button" type="button" aria-label="Select button"></button>
+                    <span class="menu-button-label">SELECT</span>
+                  </div>
+                </div>
+                <div class="button-section menu-button-section">
+                  <div class="menu-button-stack">
+                    <button class="menu-button start-button" type="button" aria-label="Start button"></button>
+                    <span class="menu-button-label">START</span>
+                  </div>
+                </div>
+              </div>
+              <div class="control-row control-row-bottom" aria-label="Bottom buttons section">
+                <div class="button-section bottom-button-section">
+                  <div class="analog-stick-base" aria-label="Left analog stick">
+                    <button class="analog-stick analog-stick-left" type="button" aria-label="Left analog stick"></button>
+                  </div>
+                </div>
+                <div class="button-section bottom-button-section">
+                  <div class="analog-stick-base" aria-label="Right analog stick">
+                    <button class="analog-stick analog-stick-right" type="button" aria-label="Right analog stick"></button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
+
+    <script src="app.js"></script>
+  </body>
+</html>
