@@ -4,6 +4,11 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Bubble Atlas Widget</title>
+    <script>
+      if (new URLSearchParams(window.location.search).get("embed") === "1") {
+        document.documentElement.classList.add("ps1-embed");
+      }
+    </script>
     <link rel="stylesheet" href="ps1styles.css" />
   </head>
   <body>

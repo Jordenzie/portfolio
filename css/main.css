@@ -444,6 +444,12 @@
       min-height: calc(var(--popup-width) / 2);
     }
 
+    .popup-window.app-popup {
+      --popup-width: min(1120px, calc(100vw - 80px));
+      height: min(84vh, 860px);
+      max-height: min(84vh, 860px);
+    }
+
     .popup-window.minimized .popup-body,
     .popup-window.minimized .popup-actions {
       display: none;
@@ -533,6 +539,15 @@
 
     .popup-window.audio-popup .popup-actions {
       justify-content: center;
+    }
+
+    .popup-window.app-popup .popup-body {
+      background: #ecece8;
+      overflow: hidden;
+    }
+
+    .popup-window.app-popup .popup-actions {
+      display: none;
     }
 
 
@@ -676,6 +691,13 @@
       margin: 0;
     }
 
+    .popup-window.app-popup .popup-content,
+    .popup-window.app-popup .popup-embed,
+    .popup-window.app-popup .popup-app-frame,
+    .popup-window.app-popup .popup-app-body {
+      height: 100%;
+    }
+
     .popup-window:not(.welcome-popup) .popup-quote {
       margin: 0;
       border: 0;
@@ -787,6 +809,12 @@
       flex-direction: column;
     }
 
+    .popup-window.app-popup .popup-app-frame {
+      border: 0;
+      box-shadow: none;
+      background: transparent;
+    }
+
     .audio-popup .popup-embed-frame {
       border: none;
       box-shadow: none;
@@ -845,6 +873,10 @@
     .welcome-embed-body {
       position: relative;
       background: #efefef;
+    }
+
+    .popup-window.app-popup .popup-app-body {
+      background: transparent;
     }
 
     .popup-embed-body.popup-audio {
@@ -1236,6 +1268,12 @@
       border: 0;
       display: block;
       aspect-ratio: 16 / 9;
+    }
+
+    .popup-window.app-popup .popup-app-body iframe {
+      height: 100%;
+      aspect-ratio: auto;
+      background: transparent;
     }
 
     .popup-artwork {

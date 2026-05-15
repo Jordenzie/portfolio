@@ -2166,6 +2166,7 @@
           }
           var activePopup = getActivePopup();
           if (activePopup) {
+            if (activePopup.el && activePopup.el.classList && activePopup.el.classList.contains("app-popup")) return;
             e.preventDefault();
             if (activePopup.el && activePopup.el.classList && activePopup.el.classList.contains("welcome-popup")) {
               playWelcomeEnterSound();
@@ -2875,6 +2876,10 @@
         var dataTrackNames = icon.getAttribute("data-track-names") || "";
         var dataArtwork = icon.getAttribute("data-artwork") || "";
         var dataArtist = icon.getAttribute("data-artist") || "";
+        var dataPopupSrc = icon.getAttribute("data-popup-src") || "";
+        var dataPopupTitle = icon.getAttribute("data-popup-title") || "";
+        var dataPopupClass = icon.getAttribute("data-popup-class") || "";
+        var dataPopupKey = icon.getAttribute("data-popup-key") || "";
         if (kind === "audio" || kind === "album") {
           var warmArtwork = dataArtwork ? resolveArtworkSrc(normalizeIconPath(dataArtwork)) : "";
           if (warmArtwork) prefetchImage(warmArtwork);
@@ -3172,6 +3177,54 @@
           resetIconPositions();
           sortDesktopIcons();
           layoutIcons();
+          return;
+        }
+
+        if (dataPopupSrc) {
+          var popupHref = resolveNavHref(dataPopupSrc);
+          var popupTitle = dataPopupTitle || dataTitle || name || "App";
+          var popupClassName = safeText(dataPopupClass).trim();
+          var popupKey = safeText(dataPopupKey).trim() || ("app:" + popupHref);
+
+          openPopup({
+            title: popupTitle,
+            key: popupKey,
+            className: ["app-popup", popupClassName].filter(Boolean).join(" "),
+            okText: null,
+            content: [
+              {
+                type: "embed",
+                html:
+                  "<div class=\"popup-embed-frame popup-app-frame\">" +
+                    "<div class=\"popup-embed-body popup-app-body\">" +
+                      "<iframe src='" + escHtml(popupHref) + "' title='" + escHtml(popupTitle) + "' loading='lazy' tabindex='0'></iframe>" +
+                    "</div>" +
+                  "</div>"
+              }
+            ],
+            onOpen: function (popup) {
+              if (!popup || !popup.el) return;
+              var frame = popup.el.querySelector("iframe");
+              if (!frame) return;
+
+              function focusFrame() {
+                try { frame.focus(); } catch (e) {}
+                try {
+                  if (frame.contentWindow && typeof frame.contentWindow.focus === "function") {
+                    frame.contentWindow.focus();
+                  }
+                } catch (e) {}
+              }
+
+              frame.addEventListener("load", focusFrame);
+              var focusTimer = setTimeout(focusFrame, 120);
+
+              return function () {
+                frame.removeEventListener("load", focusFrame);
+                clearTimeout(focusTimer);
+              };
+            }
+          });
           return;
         }
 
