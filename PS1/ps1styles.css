@@ -1061,36 +1061,53 @@ html.ps1-embed .widget-layout {
 
 @keyframes bubble-resonance {
   0% {
-    transform: translate(calc(-50% - (var(--resonance-x) * 0.28)), calc(-50% - (var(--resonance-y) * 0.28)))
+    transform: translate(
+      calc(var(--bubble-x) - 50% - (var(--resonance-x) * 0.28)),
+      calc(var(--bubble-y) - 50% - (var(--resonance-y) * 0.28))
+    )
       rotate(calc(var(--resonance-tilt) * -0.32)) scale(0.986);
   }
 
   20% {
-    transform: translate(calc(-50% + var(--resonance-x)), calc(-50% + var(--resonance-y)))
+    transform: translate(
+      calc(var(--bubble-x) - 50% + var(--resonance-x)),
+      calc(var(--bubble-y) - 50% + var(--resonance-y))
+    )
       rotate(var(--resonance-tilt)) scale(1.055);
   }
 
   42% {
-    transform: translate(calc(-50% - (var(--resonance-x) * 0.42)), calc(-50% - (var(--resonance-y) * 0.42)))
+    transform: translate(
+      calc(var(--bubble-x) - 50% - (var(--resonance-x) * 0.42)),
+      calc(var(--bubble-y) - 50% - (var(--resonance-y) * 0.42))
+    )
       rotate(calc(var(--resonance-tilt) * -0.56)) scale(0.972);
   }
 
   64% {
-    transform: translate(calc(-50% + (var(--resonance-x) * 0.2)), calc(-50% + (var(--resonance-y) * 0.2)))
+    transform: translate(
+      calc(var(--bubble-x) - 50% + (var(--resonance-x) * 0.2)),
+      calc(var(--bubble-y) - 50% + (var(--resonance-y) * 0.2))
+    )
       rotate(calc(var(--resonance-tilt) * 0.24)) scale(1.016);
   }
 
   82% {
-    transform: translate(calc(-50% - (var(--resonance-x) * 0.08)), calc(-50% - (var(--resonance-y) * 0.08)))
+    transform: translate(
+      calc(var(--bubble-x) - 50% - (var(--resonance-x) * 0.08)),
+      calc(var(--bubble-y) - 50% - (var(--resonance-y) * 0.08))
+    )
       rotate(calc(var(--resonance-tilt) * -0.1)) scale(0.995);
   }
 
   100% {
-    transform: translate(-50%, -50%) rotate(0deg) scale(1);
+    transform: translate(calc(var(--bubble-x) - 50%), calc(var(--bubble-y) - 50%)) rotate(0deg) scale(1);
   }
 }
 
 .bubble {
+  --bubble-x: 0px;
+  --bubble-y: 0px;
   --diameter: 112px;
   --resonance-x: 0px;
   --resonance-y: 0px;
@@ -1112,13 +1129,17 @@ html.ps1-embed .widget-layout {
   display: grid;
   place-items: center;
   padding: 0;
-  transform: translate(calc(-50% + var(--drag-jello-x)), calc(-50% + var(--drag-jello-y)))
+  transform: translate(
+      calc(var(--bubble-x) - 50% + var(--drag-jello-x)),
+      calc(var(--bubble-y) - 50% + var(--drag-jello-y))
+    )
     rotate(var(--drag-jello-rotate))
     skewX(var(--drag-jello-skew-x))
     skewY(var(--drag-jello-skew-y))
     scaleX(var(--drag-jello-scale-x))
     scaleY(var(--drag-jello-scale-y));
   transform-origin: center;
+  contain: layout paint;
   cursor: grab;
   user-select: none;
   touch-action: none;

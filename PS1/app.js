@@ -33,6 +33,8 @@ const state = {
   hasEnteredApp: false,
   bubbles: [],
   links: [],
+  bubbleById: new Map(),
+  linkKeySet: new Set(),
   nextBubbleId: 1,
   nextLinkId: 1,
   drag: null,
@@ -57,6 +59,10 @@ const state = {
   activeKeyBindings: new Set(),
   keyboardPanOrder: [],
   keyboardShuffleTimerId: 0,
+  stageWidth: 0,
+  stageHeight: 0,
+  stageRect: null,
+  lastMinimapPaintTime: 0,
 };
 
 const zoomStep = 0.15;
@@ -101,7 +107,35 @@ const keyBoundButtons = {
   r2: r2Button,
 };
 
+function refreshStageMetrics() {
+  state.stageWidth = stage.clientWidth || 0;
+  state.stageHeight = stage.clientHeight || 0;
+  state.stageRect = null;
+}
+
+function getStageRect() {
+  if (!state.stageRect) {
+    state.stageRect = stage.getBoundingClientRect();
+  }
+
+  return state.stageRect;
+}
+
+function getLinkKey(firstBubbleId, secondBubbleId) {
+  return firstBubbleId < secondBubbleId
+    ? `${firstBubbleId}::${secondBubbleId}`
+    : `${secondBubbleId}::${firstBubbleId}`;
+}
+
+function syncMinimap(frameTime = performance.now()) {
+  state.lastMinimapPaintTime = frameTime;
+  updateMinimap();
+}
+
+refreshStageMetrics();
+
 window.addEventListener("resize", () => {
+  refreshStageMetrics();
   for (const bubble of state.bubbles) {
     keepBubbleInBounds(bubble);
     fitBubbleText(bubble);
@@ -408,6 +442,7 @@ function createBubble(options = {}) {
     label,
     connections: new Set(),
     children: new Set(),
+    parentId: null,
     clickTimerId: 0,
     dragJelloX: 0,
     dragJelloY: 0,
@@ -421,7 +456,13 @@ function createBubble(options = {}) {
     linkSettleVY: 0,
     isStatic: false,
     isEditing: false,
+    minimapElement: document.createElementNS(svgNamespace, "circle"),
+    renderedX: Number.NaN,
+    renderedY: Number.NaN,
+    renderedDiameter: Number.NaN,
   };
+
+  bubble.minimapElement.setAttribute("class", "minimap-bubble is-root");
 
   label.addEventListener("input", () => {
     fitBubbleText(bubble);
@@ -469,6 +510,8 @@ function createBubble(options = {}) {
 
   bubbleLayer.appendChild(element);
   state.bubbles.push(bubble);
+  state.bubbleById.set(id, bubble);
+  minimapBubbles.appendChild(bubble.minimapElement);
   toggleEmptyHint();
 
   keepBubbleInBounds(bubble);
@@ -610,15 +653,9 @@ function endDrag() {
 
 function dragBubble(event) {
   const drag = state.drag;
-  const bubble = drag.bubble;
   const worldPoint = clientPointToWorld(event.clientX, event.clientY);
   drag.targetX = worldPoint.x - drag.offsetX;
   drag.targetY = worldPoint.y - drag.offsetY;
-  bubble.x = drag.targetX;
-  bubble.y = drag.targetY;
-  keepBubbleInBounds(bubble);
-  drag.targetX = bubble.x;
-  drag.targetY = bubble.y;
   const clientDeltaX = event.clientX - drag.lastClientX;
   const clientDeltaY = event.clientY - drag.lastClientY;
   const deltaMs = Math.max(event.timeStamp - drag.lastMoveTime, 8);
@@ -629,39 +666,50 @@ function dragBubble(event) {
   drag.lastClientX = event.clientX;
   drag.lastClientY = event.clientY;
   drag.lastMoveTime = event.timeStamp;
-  renderBubble(bubble);
-  redrawLinks();
-  const overlapTarget = findOverlapTarget(bubble);
-  updatePreviewTarget(bubble, overlapTarget);
   requestAnimationLoop();
 }
 
 function createLink(childBubble, parentBubble, sourceMotion = null) {
-  if (childBubble.id === parentBubble.id || bubblesAreLinked(childBubble.id, parentBubble.id)) {
+  const key = getLinkKey(childBubble.id, parentBubble.id);
+  if (childBubble.id === parentBubble.id || state.linkKeySet.has(key)) {
     return;
   }
 
   const linkElement = document.createElementNS(svgNamespace, "line");
   linkElement.classList.add("bubble-link");
   linkLayer.insertBefore(linkElement, previewLine);
+  const minimapElement = document.createElementNS(svgNamespace, "line");
+  minimapElement.setAttribute("class", "minimap-link");
+  minimapLinks.appendChild(minimapElement);
 
   const link = {
     id: `link-${state.nextLinkId++}`,
+    key,
     a: childBubble.id,
     b: parentBubble.id,
+    firstBubble: childBubble,
+    secondBubble: parentBubble,
     parentId: parentBubble.id,
     childId: childBubble.id,
+    parentBubble,
+    childBubble,
     element: linkElement,
+    minimapElement,
   };
 
   state.links.push(link);
+  state.linkKeySet.add(key);
   childBubble.connections.add(parentBubble.id);
   parentBubble.connections.add(childBubble.id);
   parentBubble.children.add(childBubble.id);
+  if (childBubble.parentId == null) {
+    childBubble.parentId = parentBubble.id;
+  }
   refreshBubbleSizes();
   triggerLinkResonance(childBubble, parentBubble, sourceMotion);
 
   redrawLinks();
+  syncMinimap();
 }
 
 function startEditing(bubble) {
@@ -736,9 +784,18 @@ function fitBubbleText(bubble) {
 
 function renderBubble(bubble) {
   const diameter = bubble.radius * 2;
-  bubble.element.style.setProperty("--diameter", `${diameter}px`);
-  bubble.element.style.left = `${bubble.x}px`;
-  bubble.element.style.top = `${bubble.y}px`;
+  if (bubble.renderedDiameter !== diameter) {
+    bubble.element.style.setProperty("--diameter", `${diameter}px`);
+    bubble.renderedDiameter = diameter;
+  }
+  if (bubble.renderedX !== bubble.x) {
+    bubble.element.style.setProperty("--bubble-x", `${bubble.x}px`);
+    bubble.renderedX = bubble.x;
+  }
+  if (bubble.renderedY !== bubble.y) {
+    bubble.element.style.setProperty("--bubble-y", `${bubble.y}px`);
+    bubble.renderedY = bubble.y;
+  }
 }
 
 function clearBubbleResonance(bubble) {
@@ -793,6 +850,16 @@ function updateBubbleDragPhysics(deltaSeconds, frameTime) {
 
   const drag = state.drag;
   const bubble = drag.bubble;
+  let movedBubble = false;
+  if (bubble.x !== drag.targetX || bubble.y !== drag.targetY) {
+    bubble.x = drag.targetX;
+    bubble.y = drag.targetY;
+    keepBubbleInBounds(bubble);
+    drag.targetX = bubble.x;
+    drag.targetY = bubble.y;
+    renderBubble(bubble);
+    movedBubble = true;
+  }
   const ageMs = frameTime - drag.lastMoveTime;
   const hasSettledInput = ageMs > bubbleDragStillnessMs;
   const decayRate = hasSettledInput ? bubbleDragVelocityDecay * 2.6 : bubbleDragVelocityDecay;
@@ -842,8 +909,10 @@ function updateBubbleDragPhysics(deltaSeconds, frameTime) {
   const hasRecentInput = ageMs < 30;
   const hasVelocity = speed > 0.01;
   const hasSpringEnergy = jelloMagnitude > 0.03 || jelloVelocity > 0.32;
+  const overlapTarget = findOverlapTarget(bubble);
+  updatePreviewTarget(bubble, overlapTarget);
 
-  return hasRecentInput || hasVelocity || hasSpringEnergy;
+  return movedBubble || hasRecentInput || hasVelocity || hasSpringEnergy;
 }
 
 function applyBubbleDragJello(bubble) {
@@ -1045,6 +1114,7 @@ function updateBubbleGravityPhysics(deltaSeconds) {
 function updateBubbleSeparationPhysics() {
   let keepAnimating = false;
   const draggedBubble = state.drag?.bubble ?? null;
+  const movedBubbles = new Set();
 
   for (let iteration = 0; iteration < bubbleResistanceIterations; iteration += 1) {
     let movedThisIteration = false;
@@ -1081,8 +1151,8 @@ function updateBubbleSeparationPhysics() {
         secondBubble.y += normalY * correction;
         keepBubbleInBounds(firstBubble);
         keepBubbleInBounds(secondBubble);
-        renderBubble(firstBubble);
-        renderBubble(secondBubble);
+        movedBubbles.add(firstBubble);
+        movedBubbles.add(secondBubble);
         movedThisIteration = true;
 
         if (overlap > 0.35) {
@@ -1094,6 +1164,10 @@ function updateBubbleSeparationPhysics() {
     if (!movedThisIteration) {
       break;
     }
+  }
+
+  for (const bubble of movedBubbles) {
+    renderBubble(bubble);
   }
 
   return keepAnimating;
@@ -1109,9 +1183,9 @@ function getBubbleBounds(bubble) {
   const padding = 24;
   return {
     minX: bubble.radius + padding,
-    maxX: Math.max(bubble.radius + padding, stage.clientWidth - bubble.radius - padding),
+    maxX: Math.max(bubble.radius + padding, state.stageWidth - bubble.radius - padding),
     minY: bubble.radius + padding,
-    maxY: Math.max(bubble.radius + padding, stage.clientHeight - bubble.radius - padding),
+    maxY: Math.max(bubble.radius + padding, state.stageHeight - bubble.radius - padding),
   };
 }
 
@@ -1120,8 +1194,8 @@ function pickSpawnPoint(radius) {
 
   for (let index = 0; index < attempts; index += 1) {
     const point = {
-      x: randomBetween(radius + 48, Math.max(radius + 48, stage.clientWidth - radius - 48)),
-      y: randomBetween(radius + 48, Math.max(radius + 48, stage.clientHeight - radius - 48)),
+      x: randomBetween(radius + 48, Math.max(radius + 48, state.stageWidth - radius - 48)),
+      y: randomBetween(radius + 48, Math.max(radius + 48, state.stageHeight - radius - 48)),
     };
 
     const overlapsBubble = state.bubbles.some((bubble) => {
@@ -1135,8 +1209,8 @@ function pickSpawnPoint(radius) {
   }
 
   return {
-    x: stage.clientWidth / 2 + randomBetween(-80, 80),
-    y: stage.clientHeight / 2 + randomBetween(-80, 80),
+    x: state.stageWidth / 2 + randomBetween(-80, 80),
+    y: state.stageHeight / 2 + randomBetween(-80, 80),
   };
 }
 
@@ -1194,30 +1268,26 @@ function clearPreviewTarget() {
 }
 
 function bubblesAreLinked(firstBubbleId, secondBubbleId) {
-  return state.links.some((link) => {
-    return (
-      (link.a === firstBubbleId && link.b === secondBubbleId) ||
-      (link.a === secondBubbleId && link.b === firstBubbleId)
-    );
-  });
+  return state.linkKeySet.has(getLinkKey(firstBubbleId, secondBubbleId));
 }
 
 function redrawLinks() {
   for (const link of state.links) {
-    const firstBubble = state.bubbles.find((bubble) => bubble.id === link.a);
-    const secondBubble = state.bubbles.find((bubble) => bubble.id === link.b);
+    const firstBubble = link.firstBubble ?? getBubbleById(link.a);
+    const secondBubble = link.secondBubble ?? getBubbleById(link.b);
 
     if (!firstBubble || !secondBubble) {
       continue;
     }
+
+    link.firstBubble = firstBubble;
+    link.secondBubble = secondBubble;
 
     link.element.setAttribute("x1", firstBubble.x);
     link.element.setAttribute("y1", firstBubble.y);
     link.element.setAttribute("x2", secondBubble.x);
     link.element.setAttribute("y2", secondBubble.y);
   }
-
-  updateMinimap();
 }
 
 function requestAnimationLoop() {
@@ -1239,7 +1309,15 @@ function stepScene(frameTime) {
   const keepSeparationAnimating = updateBubbleSeparationPhysics();
   const keepAnimating =
     keepDragAnimating || keepLinkAnimating || keepGravityAnimating || keepSeparationAnimating;
-  redrawLinks();
+  const geometryChanged =
+    Boolean(state.drag) || keepLinkAnimating || keepGravityAnimating || keepSeparationAnimating;
+
+  if (geometryChanged) {
+    redrawLinks();
+    if (frameTime - state.lastMinimapPaintTime >= 48 || !keepAnimating) {
+      syncMinimap(frameTime);
+    }
+  }
 
   if (keepAnimating) {
     requestAnimationLoop();
@@ -1250,7 +1328,7 @@ function stepScene(frameTime) {
 }
 
 function getBubbleById(bubbleId) {
-  return state.bubbles.find((bubble) => bubble.id === bubbleId) || null;
+  return state.bubbleById.get(bubbleId) || null;
 }
 
 function getBubblesByIds(bubbleIds) {
@@ -1264,7 +1342,7 @@ function refreshBubbleSizes() {
 }
 
 function updateBubbleSize(bubble, parentBubble) {
-  const stageMaxRadius = Math.min(stage.clientWidth, stage.clientHeight) * 0.18;
+  const stageMaxRadius = Math.min(state.stageWidth, state.stageHeight) * 0.18;
   let nextRadius = bubble.baseRadius;
 
   if (parentBubble) {
@@ -1283,12 +1361,11 @@ function updateBubbleSize(bubble, parentBubble) {
 }
 
 function findParentBubble(childBubble) {
-  const parentLink = state.links.find((link) => link.childId === childBubble.id);
-  if (!parentLink) {
+  if (!childBubble || childBubble.parentId == null) {
     return null;
   }
 
-  return getBubbleById(parentLink.parentId);
+  return getBubbleById(childBubble.parentId);
 }
 
 function clearBubbleClickTimer(bubble) {
@@ -1308,6 +1385,8 @@ function deleteBubble(bubbleToDelete) {
   }
 
   bubbleToDelete.element.remove();
+  bubbleToDelete.minimapElement?.remove();
+  state.bubbleById.delete(bubbleToDelete.id);
 
   for (const bubble of state.bubbles) {
     bubble.connections.delete(bubbleToDelete.id);
@@ -1319,6 +1398,7 @@ function deleteBubble(bubbleToDelete) {
   for (const link of state.links) {
     if (link.a === bubbleToDelete.id || link.b === bubbleToDelete.id) {
       link.element.remove();
+      link.minimapElement?.remove();
       continue;
     }
 
@@ -1331,8 +1411,10 @@ function deleteBubble(bubbleToDelete) {
   if (state.selectedBubbleId === bubbleToDelete.id) {
     state.selectedBubbleId = state.selectedBubbleIds.values().next().value ?? null;
   }
+  rebuildBubbleRelationships();
   refreshBubbleSizes();
   toggleEmptyHint();
+  syncMinimap();
   redrawLinks();
 }
 
@@ -1385,6 +1467,7 @@ function toggleSelectedBubbleBonds() {
     for (const link of state.links) {
       if (selectedIds.has(link.a) && selectedIds.has(link.b)) {
         link.element.remove();
+        link.minimapElement?.remove();
         removedAnyLinks = true;
         continue;
       }
@@ -1423,6 +1506,7 @@ function unlinkSelectedBubbles() {
   for (const link of state.links) {
     if (selectedIds.has(link.a) || selectedIds.has(link.b)) {
       link.element.remove();
+      link.minimapElement?.remove();
       removedAnyLinks = true;
       continue;
     }
@@ -1526,9 +1610,12 @@ function setSelectedBubbles(bubbles) {
 }
 
 function rebuildBubbleRelationships() {
+  state.linkKeySet.clear();
+
   for (const bubble of state.bubbles) {
     bubble.connections.clear();
     bubble.children.clear();
+    bubble.parentId = null;
   }
 
   for (const link of state.links) {
@@ -1536,6 +1623,12 @@ function rebuildBubbleRelationships() {
     const secondBubble = getBubbleById(link.b);
     const parentBubble = getBubbleById(link.parentId);
     const childBubble = getBubbleById(link.childId);
+    link.firstBubble = firstBubble;
+    link.secondBubble = secondBubble;
+    link.parentBubble = parentBubble;
+    link.childBubble = childBubble;
+    link.key = getLinkKey(link.a, link.b);
+    state.linkKeySet.add(link.key);
 
     if (firstBubble && secondBubble) {
       firstBubble.connections.add(secondBubble.id);
@@ -1544,6 +1637,9 @@ function rebuildBubbleRelationships() {
 
     if (parentBubble && childBubble) {
       parentBubble.children.add(childBubble.id);
+      if (childBubble.parentId == null) {
+        childBubble.parentId = parentBubble.id;
+      }
     }
   }
 }
@@ -1598,11 +1694,11 @@ function setZoom(nextZoom, options = {}) {
     return;
   }
 
-  const stageRect = stage.getBoundingClientRect();
+  const stageRect = getStageRect();
   const stageCenterX =
-    options.clientX != null ? options.clientX - stageRect.left : stage.clientWidth * 0.5;
+    options.clientX != null ? options.clientX - stageRect.left : state.stageWidth * 0.5;
   const stageCenterY =
-    options.clientY != null ? options.clientY - stageRect.top : stage.clientHeight * 0.5;
+    options.clientY != null ? options.clientY - stageRect.top : state.stageHeight * 0.5;
   const worldCenterX = (stageCenterX - state.panX) / state.zoom;
   const worldCenterY = (stageCenterY - state.panY) / state.zoom;
 
@@ -1947,7 +2043,7 @@ function stepManualPan(frameTime) {
 
 function applyZoom(options = {}) {
   stageViewport.style.transform = `translate(${state.panX}px, ${state.panY}px) scale(${state.zoom})`;
-  updateMinimap();
+  syncMinimap();
 
   if (options.revealViewport) {
     revealMinimapViewportPreview();
@@ -1979,7 +2075,7 @@ function hideMinimapViewportPreview() {
 }
 
 function clientPointToWorld(clientX, clientY) {
-  const stageRect = stage.getBoundingClientRect();
+  const stageRect = getStageRect();
   return {
     x: (clientX - stageRect.left - state.panX) / state.zoom,
     y: (clientY - stageRect.top - state.panY) / state.zoom,
@@ -1987,7 +2083,7 @@ function clientPointToWorld(clientX, clientY) {
 }
 
 function beginMarqueeSelection(event) {
-  const stageRect = stage.getBoundingClientRect();
+  const stageRect = getStageRect();
   const marquee = {
     pointerId: event.pointerId,
     startLocalX: event.clientX - stageRect.left,
@@ -2009,7 +2105,7 @@ function handleMarqueeSelectionMove(event) {
     return;
   }
 
-  const stageRect = stage.getBoundingClientRect();
+  const stageRect = getStageRect();
   const localX = clamp(event.clientX - stageRect.left, 0, stageRect.width);
   const localY = clamp(event.clientY - stageRect.top, 0, stageRect.height);
   const marquee = state.marqueeSelection;
@@ -2116,8 +2212,6 @@ function updateMinimap() {
 
   const bounds = getSceneBounds();
   state.minimapBounds = bounds;
-  minimapLinks.replaceChildren();
-  minimapBubbles.replaceChildren();
 
   const width = Math.max(bounds.width, 1);
   const height = Math.max(bounds.height, 1);
@@ -2125,31 +2219,28 @@ function updateMinimap() {
   const mapY = (worldY) => ((worldY - bounds.minY) / height) * 100;
 
   for (const link of state.links) {
-    const firstBubble = getBubbleById(link.a);
-    const secondBubble = getBubbleById(link.b);
+    const firstBubble = link.firstBubble ?? getBubbleById(link.a);
+    const secondBubble = link.secondBubble ?? getBubbleById(link.b);
 
     if (!firstBubble || !secondBubble) {
       continue;
     }
 
-    const line = document.createElementNS(svgNamespace, "line");
-    line.setAttribute("class", "minimap-link");
+    const line = link.minimapElement;
     line.setAttribute("x1", mapX(firstBubble.x));
     line.setAttribute("y1", mapY(firstBubble.y));
     line.setAttribute("x2", mapX(secondBubble.x));
     line.setAttribute("y2", mapY(secondBubble.y));
-    minimapLinks.appendChild(line);
   }
 
   for (const bubble of state.bubbles) {
-    const circle = document.createElementNS(svgNamespace, "circle");
     const parentBubble = findParentBubble(bubble);
+    const circle = bubble.minimapElement;
     const mapRadius = clamp((bubble.radius / Math.max(width, height)) * 100, 1.8, 6.5);
-    circle.setAttribute("class", `minimap-bubble${parentBubble ? "" : " is-root"}`);
+    circle.setAttribute("class", parentBubble ? "minimap-bubble" : "minimap-bubble is-root");
     circle.setAttribute("cx", mapX(bubble.x));
     circle.setAttribute("cy", mapY(bubble.y));
     circle.setAttribute("r", mapRadius);
-    minimapBubbles.appendChild(circle);
   }
 
   const visibleWorld = getVisibleWorldRect();
@@ -2167,15 +2258,15 @@ function getVisibleWorldRect() {
   return {
     minX: -state.panX / state.zoom,
     minY: -state.panY / state.zoom,
-    width: stage.clientWidth / state.zoom,
-    height: stage.clientHeight / state.zoom,
+    width: state.stageWidth / state.zoom,
+    height: state.stageHeight / state.zoom,
   };
 }
 
 function getSceneBounds() {
   const visibleWorld = getVisibleWorldRect();
-  const stageWidth = stage.clientWidth || 1;
-  const stageHeight = stage.clientHeight || 1;
+  const stageWidth = state.stageWidth || 1;
+  const stageHeight = state.stageHeight || 1;
   let minX = Math.min(0, visibleWorld.minX);
   let minY = Math.min(0, visibleWorld.minY);
   let maxX = Math.max(stageWidth, visibleWorld.minX + visibleWorld.width);
@@ -2207,8 +2298,8 @@ function navigateFromMinimap(clientX, clientY) {
   const targetX = bounds.minX + bounds.width * ratioX;
   const targetY = bounds.minY + bounds.height * ratioY;
 
-  state.panX = stage.clientWidth * 0.5 - targetX * state.zoom;
-  state.panY = stage.clientHeight * 0.5 - targetY * state.zoom;
+  state.panX = state.stageWidth * 0.5 - targetX * state.zoom;
+  state.panY = state.stageHeight * 0.5 - targetY * state.zoom;
   applyZoom();
 }
 

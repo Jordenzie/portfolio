@@ -523,6 +523,31 @@
         var dragging = false;
         var offX = 0;
         var offY = 0;
+        var dragRaf = 0;
+        var pendingLeft = 0;
+        var pendingTop = 0;
+        var dragWidth = 0;
+        var dragHeight = 0;
+        var baseLeft = 0;
+        var baseTop = 0;
+
+        function flushDragPosition() {
+          dragRaf = 0;
+          if (dragging) {
+            win.style.transform = "translate3d(" + (pendingLeft - baseLeft) + "px, " + (pendingTop - baseTop) + "px, 0)";
+            return;
+          }
+          win.style.left = pendingLeft + "px";
+          win.style.top = pendingTop + "px";
+          win.style.transform = "none";
+        }
+
+        function queueDragPosition(left, top) {
+          pendingLeft = left;
+          pendingTop = top;
+          if (dragRaf) return;
+          dragRaf = window.requestAnimationFrame(flushDragPosition);
+        }
 
         function onMouseDown(e) {
           if (e.target && e.target.closest && e.target.closest(".popup-close")) return;
@@ -530,9 +555,16 @@
           focusPopup(popup);
 
           var r = win.getBoundingClientRect();
+          dragWidth = r.width;
+          dragHeight = r.height;
+          baseLeft = r.left;
+          baseTop = r.top;
+          pendingLeft = r.left;
+          pendingTop = r.top;
           win.style.left = r.left + "px";
           win.style.top = r.top + "px";
           win.style.transform = "none";
+          win.classList.add("is-dragging");
 
           dragging = true;
           offX = e.clientX - r.left;
@@ -541,30 +573,42 @@
 
         function onMouseMove(e) {
           if (!dragging) return;
-          var r = win.getBoundingClientRect();
           var x = e.clientX - offX;
           var y = e.clientY - offY;
           var margin = 10;
-          var maxX = window.innerWidth - r.width - margin;
-          var maxY = window.innerHeight - r.height - margin;
+          var maxX = window.innerWidth - dragWidth - margin;
+          var maxY = window.innerHeight - dragHeight - margin;
           x = Math.max(margin, Math.min(maxX, x));
           y = Math.max(margin, Math.min(maxY, y));
-          win.style.left = x + "px";
-          win.style.top = y + "px";
+          queueDragPosition(x, y);
         }
 
-        function onMouseUp() { dragging = false; }
+        function onMouseUp() {
+          if (!dragging) return;
+          dragging = false;
+          win.classList.remove("is-dragging");
+          if (dragRaf) {
+            window.cancelAnimationFrame(dragRaf);
+            dragRaf = 0;
+          }
+          win.style.left = pendingLeft + "px";
+          win.style.top = pendingTop + "px";
+          win.style.transform = "none";
+        }
 
         function onResize() {
           if (!win) return;
           if (win.style.transform && win.style.transform !== "none") return;
 
           var r = win.getBoundingClientRect();
+          dragWidth = r.width;
+          dragHeight = r.height;
           var margin = 10;
-          var x = Math.max(margin, Math.min(window.innerWidth - r.width - margin, r.left));
-          var y = Math.max(margin, Math.min(window.innerHeight - r.height - margin, r.top));
-          win.style.left = x + "px";
-          win.style.top = y + "px";
+          var x = Math.max(margin, Math.min(window.innerWidth - dragWidth - margin, r.left));
+          var y = Math.max(margin, Math.min(window.innerHeight - dragHeight - margin, r.top));
+          baseLeft = x;
+          baseTop = y;
+          queueDragPosition(x, y);
         }
 
         titlebar.addEventListener("mousedown", onMouseDown);
@@ -574,6 +618,8 @@
 
         if (!popup.cleanup) popup.cleanup = [];
         popup.cleanup.push(function () {
+          if (dragRaf) window.cancelAnimationFrame(dragRaf);
+          win.classList.remove("is-dragging");
           titlebar.removeEventListener("mousedown", onMouseDown);
           document.removeEventListener("mousemove", onMouseMove);
           document.removeEventListener("mouseup", onMouseUp);

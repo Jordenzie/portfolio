@@ -440,6 +440,11 @@
       pointer-events: auto;
     }
 
+    .popup-window.is-dragging {
+      will-change: transform;
+      contain: layout paint;
+    }
+
     .popup-window.image-popup {
       min-height: calc(var(--popup-width) / 2);
     }
@@ -1274,6 +1279,12 @@
       height: 100%;
       aspect-ratio: auto;
       background: transparent;
+      backface-visibility: hidden;
+      transform: translateZ(0);
+    }
+
+    .popup-window.is-dragging .popup-app-body iframe {
+      pointer-events: none;
     }
 
     .popup-artwork {
